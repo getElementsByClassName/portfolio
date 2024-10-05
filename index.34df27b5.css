@@ -51,16 +51,21 @@ footer {
   z-index: 25;
   background-color: #0006;
   width: 100%;
-  height: 12svh;
+  height: 8svh;
   position: fixed;
   bottom: 0;
   left: 0;
 }
 
-@media (width <= 768px) {
+@media (width <= 768px) and (orientation: portrait) {
   footer {
-    width: 100vw;
     height: 6svh;
+  }
+}
+
+@media (width <= 1024px) and (orientation: landscape) {
+  footer {
+    height: 10svh;
   }
 }
 
@@ -127,14 +132,28 @@ footer {
   }
 }
 
+.image-container img {
+  object-fit: cover;
+  filter: grayscale();
+  width: 100%;
+  height: 34svh;
+  display: block;
+}
+
+@media (width <= 1000px) and (orientation: landscape) {
+  .image-container img {
+    height: 65svh;
+  }
+}
+
 @media (width <= 768px) and (orientation: portrait) {
   .content {
     max-width: 90vw;
   }
 
   .content > h2 {
-    margin-top: 3vh;
-    margin-bottom: 3vh;
+    margin-top: 3svh;
+    margin-bottom: 3svh;
     font-size: 3rem;
     font-weight: 100;
   }
@@ -148,27 +167,12 @@ footer {
   }
 }
 
-.image-container img {
-  object-fit: cover;
-  filter: grayscale();
-  width: 100%;
-  height: 33svh;
-  display: block;
-}
-
-@media only screen and (orientation: landscape) {
-  .image-container img {
-    height: 60svh;
-  }
-}
-
 .image-container .text-overlay {
   color: #fff;
   text-align: center;
   z-index: 3;
   width: 100%;
   padding: 10px;
-  font-size: 1.25rem;
   transition: background-color .3s;
   position: absolute;
   bottom: 0;
@@ -180,7 +184,7 @@ footer {
 }
 
 .line-2 {
-  font-size: .75rem;
+  font-size: .8rem;
   font-weight: 100;
 }
 
@@ -699,13 +703,27 @@ figcaption {
   }
 }
 
-@media only screen and (width <= 768px) {
+@media only screen and (width <= 768px) and (orientation: portrait) {
   .glowing-btn-projects, .glowing-btn-contact {
     font-size: 1rem;
   }
 
   .glowing-btn-projects {
-    right: 10vw;
+    right: 5vw;
+  }
+}
+
+@media only screen and (width <= 1024px) and (orientation: landscape) {
+  .glowing-btn-projects, .glowing-btn-contact {
+    font-size: 1rem;
+  }
+
+  .glowing-btn-contact {
+    right: 20vw;
+  }
+
+  .glowing-btn-projects {
+    right: 5vw;
   }
 }
 /*# sourceMappingURL=index.34df27b5.css.map */

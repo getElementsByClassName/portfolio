@@ -796,7 +796,7 @@ sections.forEach((section)=>{
     observerNavigation.observe(section);
 });
 //button navigation
-navBtn1.addEventListener("click", ()=>{
+navBtn1.addEventListener("pointerdown", ()=>{
     controls.unlock();
     const targetSection = navBtn1.textContent.includes("Projects") ? "container-projects" : "container-opening-scene";
     if (windowWidth <= 1000) document.getElementById(targetSection).scrollIntoView({
@@ -804,7 +804,7 @@ navBtn1.addEventListener("click", ()=>{
     });
     else CSSScroll(document.getElementById(targetSection).offsetTop, 1200, document.body);
 });
-navBtn2.addEventListener("click", ()=>{
+navBtn2.addEventListener("pointerdown", ()=>{
     controls.unlock();
     const targetSection = navBtn2.textContent.includes("Contact") ? "container-contact" : "container-projects";
     if (windowWidth <= 1000) document.getElementById(targetSection).scrollIntoView({
