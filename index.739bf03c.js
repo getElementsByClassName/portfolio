@@ -939,7 +939,7 @@ renderer.setPixelRatio(1.0);
 renderer.outputEncoding = _three.SRGBColorSpace;
 renderer.toneMapping = _three.ACESFilmicToneMapping;
 //renderer.toneMapping = THREE.ReinhardToneMapping;
-renderer.toneMappingExposure = 0.65;
+renderer.toneMappingExposure = 0.70;
 //calc width and height
 const pixelRatio = window.devicePixelRatio;
 const canvasWidth = canvas.clientWidth * pixelRatio | 0;
@@ -1389,7 +1389,7 @@ const checkOrientation = ()=>{
         console.log("Landscape mode");
         landscapeMode = true;
         if (!cameraHasBeenPositionedInLandscapeMode) {
-            camera.position.set(80, getHeight(80, 290) + PERSON_HEIGHT, 290);
+            camera.position.set(0, getHeight(0, 350) + PERSON_HEIGHT, 350);
             //camera.rotateY(Math.PI / 14);
             //camera.rotateX(Math.PI / 22);
             cameraHasBeenPositionedInLandscapeMode = true;
@@ -1408,7 +1408,7 @@ if (visitedFromMobileDevice) {
         cameraHasBeenPositionedInPortraitMode = true;
         cameraHasBeenPositionedInLandscapeMode = false;
     } else {
-        camera.position.set(0, getHeight(80, 290) + PERSON_HEIGHT, 0);
+        camera.position.set(0, getHeight(0, 350) + PERSON_HEIGHT, 350);
         //camera.rotateY(Math.PI / 14);
         //camera.rotateX(Math.PI / 22);
         cameraHasBeenPositionedInLandscapeMode = true;

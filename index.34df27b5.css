@@ -80,7 +80,7 @@ footer {
   justify-content: center;
   align-items: center;
   width: 100%;
-  min-height: 100vh;
+  min-height: 100svh;
   display: flex;
   position: relative;
 }
@@ -95,7 +95,7 @@ footer {
 .content {
   z-index: 1;
   max-width: 60vw;
-  min-height: 100dvh;
+  min-height: 100svh;
 }
 
 .content > h2 {
@@ -112,7 +112,7 @@ footer {
   align-items: center;
   gap: 20px;
   height: auto;
-  margin-bottom: 5dvh;
+  margin-bottom: 5svh;
   display: flex;
 }
 
