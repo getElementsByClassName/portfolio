@@ -1044,6 +1044,7 @@ video.src = (0, _introvideoWebmDefault.default); // Set the path to your video f
 //video.style.filter = 'brightness(0.8) contrast(1.9)';
 video.muted = true;
 video.loop = true;
+video.playsInline = true;
 video.load(); // Load the video
 video.play(); // Play the video
 // Create a texture from the video element
