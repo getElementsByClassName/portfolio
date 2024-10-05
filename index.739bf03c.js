@@ -945,7 +945,7 @@ const pixelRatio = window.devicePixelRatio;
 const canvasWidth = canvas.clientWidth * pixelRatio | 0;
 const canvasHeight = canvas.clientHeight * pixelRatio | 0;
 //console.log(canvasWidth)
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setSize(window.clientWidth, window.clientHeight);
 //cntOpeningScene.appendChild(renderer.domElement);
 //show stats, updated in animation loop
 const stats = (0, _statsModuleDefault.default)();
@@ -1836,7 +1836,7 @@ workers.forEach((worker)=>{
     }
 });
 function animate() {
-    renderer.setAnimationLoop(animate);
+    //renderer.setAnimationLoop(animate);
     checkOrientation();
     //const delta = clock.getDelta();
     //camControls.update(delta);
@@ -1865,12 +1865,12 @@ function animate() {
     //LOD.update(camera);
     grassMaterialTest.uniforms.time.value += 0.01; // Update time for wind animation
     customMaterial.uniforms.uTime.value += 0.005;
-    renderer.render(scene, camera);
+    //renderer.render(scene, camera);
     stats.update();
 }
 fnStartRendering();
 
-},{"three":"ktPTu","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader":"dVRsF","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","./shaders/grass.js":"cNzyR","../img/grassColor.png":"f6f8d","../img/introvideo.webm":"iF6OC","./content.json":"24cue","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","73d37e91c71236a0":"02A2s"}],"ktPTu":[function(require,module,exports) {
+},{"three":"ktPTu","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader":"dVRsF","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","./shaders/grass.js":"cNzyR","../img/grassColor.png":"f6f8d","../img/introvideo.webm":"iF6OC","./content.json":"24cue","73d37e91c71236a0":"02A2s","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"ktPTu":[function(require,module,exports) {
 /**
  * @license
  * Copyright 2010-2024 Three.js Authors
