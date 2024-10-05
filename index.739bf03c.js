@@ -927,7 +927,7 @@ const scene = new _three.Scene();
 const camera = new _three.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 900);
 const cntOpeningScene = document.getElementById("container-opening-scene");
 const canvas = document.querySelector("canvas");
-console.log(canvas);
+//console.log(canvas)
 const renderer = new _three.WebGLRenderer({
     antialias: true,
     alpha: false,
@@ -949,8 +949,8 @@ renderer.setSize(canvasWidth, canvasHeight);
 //cntOpeningScene.appendChild(renderer.domElement);
 //show stats, updated in animation loop
 const stats = (0, _statsModuleDefault.default)();
-stats.showPanel(0);
-document.body.appendChild(stats.dom);
+//stats.showPanel(0);
+//document.body.appendChild(stats.dom);
 // Vertex and fragment shader code as strings
 const vertexShader = `
     varying float vPositionAlongLine;
@@ -1402,51 +1402,67 @@ const checkOrientation = ()=>{
 };
 if (visitedFromMobileDevice) {
     if (!landscapeMode) {
-        camera.position.set(-140, getHeight(-140, 590) + PERSON_HEIGHT, 590);
+        camera.position.set(0, getHeight(0, 350) + PERSON_HEIGHT, 350);
         //camera.rotateY(Math.PI / -15);
         //camera.rotateX(Math.PI / 11);
         cameraHasBeenPositionedInPortraitMode = true;
         cameraHasBeenPositionedInLandscapeMode = false;
     } else {
-        camera.position.set(80, getHeight(80, 290) + PERSON_HEIGHT, 290);
+        camera.position.set(0, getHeight(80, 290) + PERSON_HEIGHT, 0);
         //camera.rotateY(Math.PI / 14);
         //camera.rotateX(Math.PI / 22);
         cameraHasBeenPositionedInLandscapeMode = true;
         cameraHasBeenPositionedInPortraitMode = false;
     }
-} else camera.position.set(80, getHeight(80, 290) + PERSON_HEIGHT, 290);
+} else camera.position.set(0, getHeight(0, 350) + PERSON_HEIGHT, 350);
 // Initial check
 //camera.lookAt(0, 100, 0);
+/*
 let touchstartX = 0;
 let touchstartY = 0;
 let touchendX = 0;
 let touchendY = 0;
+
 const swipeThreshold = 50; // Minimum swipe distance in pixels
-const detectSwipeDirection = ()=>{
+
+const detectSwipeDirection = () => {
     const diffX = touchendX - touchstartX;
     const diffY = touchendY - touchstartY;
+
     // Horizontal Swipe
     if (Math.abs(diffX) > Math.abs(diffY)) {
         if (Math.abs(diffX) > swipeThreshold) {
-            if (diffX > 0) console.log("Swiped Right");
-            else console.log("Swiped Left");
+            if (diffX > 0) {
+                console.log('Swiped Right');
+            } else {
+                console.log('Swiped Left');
+            }
         }
-    } else if (Math.abs(diffY) > swipeThreshold) {
-        if (diffY > 0) console.log("Swiped Down");
-        else console.log("Swiped Up");
+    }
+    // Vertical Swipe
+    else {
+        if (Math.abs(diffY) > swipeThreshold) {
+            if (diffY > 0) {
+                console.log('Swiped Down');
+            } else {
+                console.log('Swiped Up');
+            }
+        }
     }
 };
+
 // Add event listeners for touch events
-document.addEventListener("touchstart", (e)=>{
+document.addEventListener('touchstart', (e) => {
     touchstartX = e.changedTouches[0].screenX;
     touchstartY = e.changedTouches[0].screenY;
 });
-document.addEventListener("touchend", (e)=>{
+
+document.addEventListener('touchend', (e) => {
     touchendX = e.changedTouches[0].screenX;
     touchendY = e.changedTouches[0].screenY;
     detectSwipeDirection(); // Check the direction after touch ends
 });
-// Controls
+*/ // Controls
 /*
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enablePan = true;
@@ -1463,7 +1479,7 @@ controls.addEventListener("change", event => {
 });
 //console.log('here');
 */ const axesHelper = new _three.AxesHelper(1000);
-//scene.add(axesHelper);
+scene.add(axesHelper);
 /********************************************************************
 // FPS Controller
 ********************************************************************/ // Create a clock to manage time and deltas
@@ -1471,7 +1487,6 @@ const clock = new _three.Clock();
 let controlsIsLocked = false;
 // Create the FPS controller
 const controls = new (0, _pointerLockControlsJs.PointerLockControls)(camera, renderer.domElement);
-controls.pointerSpeed = 1.1;
 // Add event listeners for locking the pointer
 sectionScene.addEventListener("click", function() {
     if (!controlsIsLocked && gameIsActive) {
@@ -1857,7 +1872,7 @@ workers.forEach(worker => {
     grassMaterialTest.uniforms.time.value += 0.01; // Update time for wind animation
     customMaterial.uniforms.uTime.value += 0.005;
     renderer.render(scene, camera);
-    stats.update();
+//stats.update();
 } //fnStartRendering();
 
 },{"three":"ktPTu","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader":"dVRsF","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","./shaders/grass.js":"cNzyR","../img/grassColor.png":"f6f8d","../img/introvideo.webm":"iF6OC","./content.json":"24cue","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"ktPTu":[function(require,module,exports) {
