@@ -649,7 +649,7 @@ document.addEventListener("visibilitychange", ()=>{
 function CSSScroll(_target, duration, scrollElement) {
     let transition;
     let transform;
-    if (duration === undefined) duration = 500;
+    if (duration === undefined) duration = 800;
     if (scrollElement === undefined) scrollElement = document.body;
     //if (!transform) transform = getPrefixedStyle('transform')
     //if (!transition) transition = getPrefixedStyle('transition')
@@ -796,22 +796,26 @@ sections.forEach((section)=>{
     observerNavigation.observe(section);
 });
 //button navigation
-navBtn1.addEventListener("pointerdown", ()=>{
+function fnHandleBtn1Click() {
     controls.unlock();
     const targetSection = navBtn1.textContent.includes("Projects") ? "container-projects" : "container-opening-scene";
-    if (windowWidth <= 1000) document.getElementById(targetSection).scrollIntoView({
+    if (visitedFromMobileDevice) document.getElementById(targetSection).scrollIntoView({
         behavior: "smooth"
     });
-    else CSSScroll(document.getElementById(targetSection).offsetTop, 1200, document.body);
-});
-navBtn2.addEventListener("pointerdown", ()=>{
+    else CSSScroll(document.getElementById(targetSection).offsetTop, 1000, document.body);
+}
+function fnHandleBtn2Click() {
     controls.unlock();
     const targetSection = navBtn2.textContent.includes("Contact") ? "container-contact" : "container-projects";
-    if (windowWidth <= 1000) document.getElementById(targetSection).scrollIntoView({
+    if (visitedFromMobileDevice) document.getElementById(targetSection).scrollIntoView({
         behavior: "smooth"
     });
-    else CSSScroll(document.getElementById(targetSection).offsetTop, 1200, document.body);
-});
+    else CSSScroll(document.getElementById(targetSection).offsetTop, 1000, document.body);
+}
+navBtn1.addEventListener("click", fnHandleBtn1Click);
+navBtn1.addEventListener("touchstart", fnHandleBtn1Click);
+navBtn2.addEventListener("click", fnHandleBtn2Click);
+navBtn2.addEventListener("touchstart", fnHandleBtn2Click);
 /********************************************************************
 // Handle Overlay
 ********************************************************************/ const imageContainers = document.querySelectorAll(".image-container");

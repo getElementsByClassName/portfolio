@@ -495,9 +495,9 @@ figcaption {
   border: .1rem solid var(--glow-color-projects);
   perspective: 2rem;
   text-align: center;
-  -webkit-box-shadow: inset 0px 0px .4rem 0px var(--glow-color-projects), 0px 0px .4em 0px var(--glow-color-projects);
-  -moz-box-shadow: inset 0px 0px .4rem 0px var(--glow-color-projects), 0px 0px .4em 0px var(--glow-color-projects);
-  box-shadow: inset 0px 0px .4rem 0px var(--glow-color-projects), 0px 0px .4em 0px var(--glow-color-projects);
+  -webkit-box-shadow: inset 0px 0px .4rem 0px var(--glow-color-projects), 0px 0px .4rem 0px var(--glow-color-projects);
+  -moz-box-shadow: inset 0px 0px .4rem 0px var(--glow-color-projects), 0px 0px .4rem 0px var(--glow-color-projects);
+  box-shadow: inset 0px 0px .4rem 0px var(--glow-color-projects), 0px 0px .4rem 0px var(--glow-color-projects);
   background: none;
   border-radius: 1em;
   padding: .35rem .5rem;
@@ -517,11 +517,11 @@ figcaption {
   border: .1rem solid var(--glow-color-contact);
   perspective: 2rem;
   text-align: center;
-  -webkit-box-shadow: inset 0px 0px .4rem 0px var(--glow-color-contact), 0px 0px .4em 0px var(--glow-color-contact);
-  -moz-box-shadow: inset 0px 0px .4rem 0px var(--glow-color-contact), 0px 0px .4em 0px var(--glow-color-contact);
-  box-shadow: inset 0px 0px .4rem 0px var(--glow-color-contact), 0px 0px .4em 0px var(--glow-color-contact);
+  -webkit-box-shadow: inset 0px 0px .4rem 0px var(--glow-color-contact), 0px 0px .4rem 0px var(--glow-color-contact);
+  -moz-box-shadow: inset 0px 0px .4rem 0px var(--glow-color-contact), 0px 0px .4rem 0px var(--glow-color-contact);
+  box-shadow: inset 0px 0px .4rem 0px var(--glow-color-contact), 0px 0px .4rem 0px var(--glow-color-contact);
   background: none;
-  border-radius: 1em;
+  border-radius: 1rem;
   padding: .35rem .5rem;
   font-family: AvenirNextLTPro-UltLt;
   font-size: 1.1rem;
