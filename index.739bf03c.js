@@ -798,7 +798,6 @@ sections.forEach((section)=>{
 //button navigation
 function fnHandleBtn1Click() {
     controls.unlock();
-    prompt("test");
     const targetSection = navBtn1.textContent.includes("Projects") ? "container-projects" : "container-opening-scene";
     if (visitedFromMobileDevice) document.getElementById(targetSection).scrollIntoView({
         behavior: "smooth"
@@ -807,7 +806,6 @@ function fnHandleBtn1Click() {
 }
 function fnHandleBtn2Click() {
     controls.unlock();
-    prompt("test");
     const targetSection = navBtn2.textContent.includes("Contact") ? "container-contact" : "container-projects";
     if (visitedFromMobileDevice) document.getElementById(targetSection).scrollIntoView({
         behavior: "smooth"
