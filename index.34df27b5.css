@@ -59,7 +59,7 @@ footer {
 
 @media (width <= 768px) and (orientation: portrait) {
   footer {
-    height: 6svh;
+    height: 16svh;
   }
 }
 
