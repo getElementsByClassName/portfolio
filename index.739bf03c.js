@@ -829,13 +829,13 @@ closeBtn.addEventListener("click", ()=>{
     closeBtn.classList.remove("show");
 });
 // Optional: Hide overlay when clicking outside of it
-// overlay.addEventListener('click', (e) => {
-//     console.log('clicking')
-//     //if (e.target === overlay) {
-//     overlay.classList.remove('show');
-//     overlayIsOpen = false;
-//     //}
-// });
+overlay.addEventListener("click", (e)=>{
+    console.log("clicking");
+    //if (e.target === overlay) 
+    overlay.classList.remove("show");
+    overlayIsOpen = false;
+//}
+});
 overlay.addEventListener("touchstart", function(event) {
     overlayTouchStart = event.touches[0].clientX; // Get the initial x position of the touch
 });
@@ -843,7 +843,7 @@ overlay.addEventListener("touchmove", (e)=>{
     const currentX = e.touches[0].clientX; // Get the current x position of the touch
     const deltaX = currentX - overlayTouchStart; // Calculate the difference
     //swiping right
-    if (deltaX > 50) {
+    if (deltaX > 40) {
         e.preventDefault(); // prevent scrolling during touchmove
         overlay.classList.remove("show");
         overlayIsOpen = false;
@@ -863,12 +863,10 @@ const colorTxt = document.getElementsByClassName("color-txt");
 imageContainers.forEach((container)=>{
     container.addEventListener("click", async (e)=>{
         const id = e.currentTarget.dataset.id;
-        console.log((0, _contentJsonDefault.default)[id]);
         fnLoadContent(id);
     });
 });
 function fnLoadContent(id) {
-    console.log(id);
     const contentData = (0, _contentJsonDefault.default)[id];
     contentTitle.innerText = contentData.title;
     contentMainText.innerHTML = contentData.main_txt;
@@ -1485,6 +1483,19 @@ const clock = new _three.Clock();
 let controlsIsLocked = false;
 // Create the FPS controller
 const controls = new (0, _pointerLockControlsJs.PointerLockControls)(camera, renderer.domElement);
+//intersection observer for detecting opening scene out of view
+const handleObserver = (entries)=>{
+    entries.forEach((entry)=>{
+        if (!entry.isIntersecting) {
+            // Start or resume animation
+            console.log("check");
+            controls.unlock();
+            controlsIsLocked = false;
+        } else console.log("out");
+    });
+};
+const sceneObserver = new IntersectionObserver(handleObserver, observerOptions);
+sceneObserver.observe(targetElement);
 // Add event listeners for locking the pointer
 sectionScene.addEventListener("click", function() {
     if (!controlsIsLocked && gameIsActive) {
@@ -1495,7 +1506,6 @@ sectionScene.addEventListener("click", function() {
         controlsIsLocked = false;
     }
 });
-controls.addEventListener("lock", ()=>{});
 let moveForward = false;
 let moveBackward = false;
 let moveLeft = false;
