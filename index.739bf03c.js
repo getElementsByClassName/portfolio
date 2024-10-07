@@ -818,14 +818,14 @@ imageContainers.forEach((container)=>{
     container.addEventListener("click", ()=>{
         overlay.classList.add("show");
         lenisSite.stop();
-        overlayIsOpen = true;
+        //overlayIsOpen = true;
         closeBtn.classList.add("show");
     });
 });
 closeBtn.addEventListener("click", ()=>{
     overlay.classList.remove("show");
     lenisSite.start();
-    overlayIsOpen = false;
+    //overlayIsOpen = false;
     closeBtn.classList.remove("show");
 });
 // Optional: Hide overlay when clicking outside of it
@@ -833,7 +833,9 @@ overlay.addEventListener("click", (e)=>{
     console.log("clicking");
     //if (e.target === overlay) 
     overlay.classList.remove("show");
-    overlayIsOpen = false;
+    closeBtn.classList.remove("show");
+    lenisSite.start();
+//overlayIsOpen = false;
 //}
 });
 overlay.addEventListener("touchstart", function(event) {
@@ -846,7 +848,8 @@ overlay.addEventListener("touchmove", (e)=>{
     if (deltaX > 40) {
         e.preventDefault(); // prevent scrolling during touchmove
         overlay.classList.remove("show");
-        overlayIsOpen = false;
+        closeBtn.classList.remove("show");
+        //overlayIsOpen = false;
         lenisSite.start();
     }
 });
@@ -1488,13 +1491,19 @@ const handleObserver = (entries)=>{
     entries.forEach((entry)=>{
         if (!entry.isIntersecting) {
             // Start or resume animation
-            console.log("check");
+            console.log("out");
             controls.unlock();
             controlsIsLocked = false;
-        } else console.log("out");
+        }
     });
 };
-const sceneObserver = new IntersectionObserver(handleObserver, observerOptions);
+// Intersection Observer setup for opening scene
+const obsOptions = {
+    root: null,
+    rootMargin: "0px",
+    threshold: 0.3 // Trigger when 30% of the target is visible
+};
+const sceneObserver = new IntersectionObserver(handleObserver, obsOptions);
 sceneObserver.observe(targetElement);
 // Add event listeners for locking the pointer
 sectionScene.addEventListener("click", function() {
