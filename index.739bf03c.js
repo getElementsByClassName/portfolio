@@ -868,41 +868,35 @@ const updateNavigation = (entries)=>{
 const observerNavigation = new IntersectionObserver(updateNavigation, {
     threshold: 0.3 // Trigger when 10% of the section is visible
 });
-// Observe each section
 sections.forEach((section)=>{
     observerNavigation.observe(section);
 });
-//button navigation
-/*
-function fnHandleBtn1Click() {
-    // controls.unlock();
-    const targetSection = navBtn1.textContent.includes('Projects') ? 'container-projects' : 'container-opening-scene';
-
-    if (visitedFromMobileDevice) {
-        //document.getElementById(targetSection).scrollIntoView({ behavior: 'smooth' });
-        CSSScroll(document.getElementById(targetSection).offsetTop, 1200, document.body);
-    } else {
-        CSSScroll(document.getElementById(targetSection).offsetTop, 1200, document.body);
-    }
-}
-
-function fnHandleBtn2Click() {
-    // controls.unlock();
-    const targetSection = navBtn2.textContent.includes('Contact') ? 'container-contact' : 'container-projects';
-    if (visitedFromMobileDevice) {
-        //document.getElementById(targetSection).scrollIntoView({ behavior: 'smooth' });
-        CSSScroll(document.getElementById(targetSection).offsetTop, 1200, document.body);
-    } else {
-        CSSScroll(document.getElementById(targetSection).offsetTop, 1200, document.body);
-    }
-}
-
-navBtn1.addEventListener('click', fnHandleBtn1Click);
-navBtn1.addEventListener('touchstart', fnHandleBtn1Click);
-navBtn2.addEventListener('click', fnHandleBtn2Click);
-navBtn2.addEventListener('touchstart', fnHandleBtn2Click);
-
-*/ /********************************************************************
+/********************************************************************
+// Handle Button Navigation
+********************************************************************/ const navBtn = document.querySelectorAll(".nav-btn");
+console.log(navBtn);
+const fnHandleBtnNavClick = ()=>{
+    const targetSection = navBtn.textContent.includes("Projects") ? "container-projects" : "container-opening-scene";
+    console.log(targetSection);
+    lenisSite.scrollTo("#" + targetSection, {
+        duration: 2.0,
+        offset: 0
+    });
+};
+navBtn.forEach((navBtn)=>{
+    navBtn.addEventListener("click", (e)=>{
+        let targetSection = navBtn.textContent;
+        e.stopPropagation();
+        if (targetSection.includes("Projects")) targetSection = "#container-projects";
+        else if (targetSection.includes("Contact")) targetSection = "#container-contact";
+        else targetSection = "#container-opening-scene";
+        lenisSite.scrollTo(targetSection, {
+            duration: 2.0,
+            offset: 0
+        });
+    });
+});
+/********************************************************************
 // Handle Overlay
 ********************************************************************/ const imageContainers = document.querySelectorAll(".image-container");
 const closeBtn = document.getElementById("closeBtn");
@@ -938,12 +932,8 @@ document.addEventListener('touchmove', (e) => {
 });
 */ /********************************************************************
 // Lazy Load Content
-********************************************************************/ //const imageContainers = document.querySelectorAll('.image-container');
-const contentTitle = document.getElementById("content-title");
+********************************************************************/ const contentTitle = document.getElementById("content-title");
 const contentVideo = document.getElementById("content-video");
-//const showcaseImage1 = document.getElementById('showcase-image-1');
-//const showcaseImage2 = document.getElementById('showcase-image-2');
-//const showcaseImage3 = document.getElementById('showcase-image-3');
 const contentMainText = document.getElementById("content-main-txt");
 const contentClient = document.getElementById("content-client");
 const contentTech = document.getElementById("content-tech");
@@ -976,7 +966,6 @@ function fnLoadContent(id) {
     ].forEach((elem)=>{
         elem.classList.add("color-" + id);
     });
-    //colorTxt.classList.add('color-' + content);
     //create video element
     contentVideo.innerHTML = ""; //clear
     // Create a new video element
@@ -990,14 +979,12 @@ function fnLoadContent(id) {
     // Set the source dynamically
     const sourceElement = document.createElement("source");
     sourceElement.src = contentData.video_ref;
-    //sourceElement.src = `${id}Video`;
     sourceElement.type = "video/webm";
     // Append the source to the video element
     videoElement.appendChild(sourceElement);
     // Append the video element to the container
     contentVideo.appendChild(videoElement);
     videoElement.load();
-    //sourceElement.load();
     for(let i = 1; i < 4; i++){
         const showcaseImage = document.getElementById(`showcase-image-${i}`);
         showcaseImage.src = contentData.images[i - 1];
@@ -1211,13 +1198,13 @@ scene.add(terrainMesh);
 ********************************************************************/ /*
 const playerPosition = camera.position;
 console.log(playerPosition)
-
+ 
 function generateChunk(posX, posZ) {
-
+ 
     const proceduralTerrainGeometry = new THREE.PlaneGeometry(chunkSize, chunkSize, 32, 32);
-
+ 
     proceduralTerrainGeometry.rotateX(-Math.PI / 2); // Orient the terrain
-
+ 
     const verticesProceduralChunk = proceduralTerrainGeometry.attributes.position.array;
     for (let i = 0; i < verticesProceduralChunk.length; i += 3) {
         const xNew = verticesProceduralChunk[i];
@@ -1225,30 +1212,30 @@ function generateChunk(posX, posZ) {
         console.log(zNew)
         verticesProceduralChunk[i + 1] = getHeight(xNew, zNew); // Modify the y-value based on noise
     }
-
+ 
     const proceduralTerrainMaterial = new THREE.MeshBasicMaterial({ color: 0xFF0000, side: THREE.DoubleSide });
     const proceduralTerrainChunk = new THREE.Mesh(proceduralTerrainGeometry, proceduralTerrainMaterial);
     proceduralTerrainChunk.position.set(posX, 0, posZ);
-
+ 
     //proceduralTerrainChunk.scale.set(1000, 0, 1000);
     console.log(proceduralTerrainChunk)
-
+ 
     scene.add(proceduralTerrainChunk);
 }
 let currentChunk = { x: 0, z: 0 };
 function updateTerrain() {
     const playerX = Math.floor(camera.position.x / chunkSize);
     const playerZ = Math.floor(camera.position.z / chunkSize);
-
+ 
     console.log(playerX);
-
+ 
     // If player moves into a new chunk, generate the adjacent chunks
     if (playerX !== currentChunk.x || playerZ !== currentChunk.z) {
         currentChunk = { x: playerX, z: playerZ };
         generateSurroundingChunks(playerX, playerZ);
     }
 }
-
+ 
 function generateSurroundingChunks(chunkX, chunkZ) {
     for (let x = -1; x <= 1; x++) {
         for (let z = -1; z <= 1; z++) {
@@ -1259,7 +1246,7 @@ function generateSurroundingChunks(chunkX, chunkZ) {
         }
     }
 }
-
+ 
 */ // Create a PMREMGenerator
 const pmremGenerator = new _three.PMREMGenerator(renderer);
 pmremGenerator.compileEquirectangularShader();
@@ -1277,7 +1264,7 @@ rgbeLoader.load("./assets/belfast_sunset_puresky_2k.hdr", function(texture) {
     //scene.environmentRotation = (0, Math.PI * 2, 0);
     /*
     const boxGeometry = new THREE.BoxGeometry();
-
+ 
     const material2 = new THREE.MeshPhysicalMaterial({
         reflectivity: 1.0,
         transmission: 0.0,
@@ -1513,13 +1500,13 @@ let touchstartX = 0;
 let touchstartY = 0;
 let touchendX = 0;
 let touchendY = 0;
-
+ 
 const swipeThreshold = 50; // Minimum swipe distance in pixels
-
+ 
 const detectSwipeDirection = () => {
     const diffX = touchendX - touchstartX;
     const diffY = touchendY - touchstartY;
-
+ 
     // Horizontal Swipe
     if (Math.abs(diffX) > Math.abs(diffY)) {
         if (Math.abs(diffX) > swipeThreshold) {
@@ -1541,13 +1528,13 @@ const detectSwipeDirection = () => {
         }
     }
 };
-
+ 
 // Add event listeners for touch events
 document.addEventListener('touchstart', (e) => {
     touchstartX = e.changedTouches[0].screenX;
     touchstartY = e.changedTouches[0].screenY;
 });
-
+ 
 document.addEventListener('touchend', (e) => {
     touchendX = e.changedTouches[0].screenX;
     touchendY = e.changedTouches[0].screenY;
@@ -1707,13 +1694,13 @@ const bladeGeometry = new _three.ShapeGeometry(bladeShape);
 // Convert shape to geometry
 const bladeShapeLOD1 = createGrassBladeShapeLOD1();
 const bladeGeometryLOD1 = new THREE.ShapeGeometry(bladeShapeLOD1);
-
+ 
 // InstancedBufferGeometry
 const instancedGeometryLOD1 = new THREE.InstancedBufferGeometry();
 instancedGeometryLOD1.index = bladeGeometryLOD1.index;
 instancedGeometryLOD1.attributes.position = bladeGeometryLOD1.attributes.position;
 instancedGeometryLOD1.attributes.uv = bladeGeometryLOD1.attributes.uv;
-
+ 
 */ // Shader material for grass blades
 const grassMaterial = new _three.ShaderMaterial({
     uniforms: {
@@ -1793,56 +1780,56 @@ for(let x = 0; x < FIELD_SIZE / chunkSize; x++)for(let z = 0; z < FIELD_SIZE / c
 function addInstanceToChunk(chunk, position) {
     // Assuming each chunk has a fixed number of grass blades
     const instanceCount = grassBladesPerChunk;
-
+ 
     // Create buffers for instance attributes
     const offsets = new Float32Array(instanceCount * 3); // x, y, z
     const uvs = new Float32Array(instanceCount * 2);
     const rotationMatrices = new Float32Array(instanceCount * 9); // Rotation angle
     const scales = new Float32Array(instanceCount); // x, y, z scale
     const normalizedHeight = new Float32Array(instanceCount);
-
-
+ 
+ 
     for (let i = 0; i < instanceCount; i++) {
         // Set position
         offsets[i * 3] = position.x + (Math.random() * chunkSize);
         offsets[i * 3 + 2] = position.y + (Math.random() * chunkSize);
         offsets[i * 3 + 1] = getHeight(offsets[i * 3], offsets[i * 3 + 2]);
-
+ 
         //set UV's
         uvs[i] = [convertRange(offsets[i * 3], position.x, (position.x + chunkSize), (0 + chunkSize), (position.x / chunkSize))];
         uvs[i + 2] = [convertRange(offsets[i * 3 + 2], position.y, (position.y + chunkSize), (0 + chunkSize), (position.y / chunkSize))];
-
+ 
         //define angles
         const angle = Math.random() * Math.PI * 2; // Random rotation angle
         const cosAngle = Math.cos(angle);
         const sinAngle = Math.sin(angle);
-
-
+ 
+ 
         // Construct a 3x3 rotation matrix around the Y-axis
         const index = i * 9;
         rotationMatrices[index + 0] = cosAngle;
         rotationMatrices[index + 1] = 0;
         rotationMatrices[index + 2] = -sinAngle;
-
+ 
         rotationMatrices[index + 3] = 0;
         rotationMatrices[index + 4] = 1;
         rotationMatrices[index + 5] = 0;
-
+ 
         rotationMatrices[index + 6] = sinAngle;
         rotationMatrices[index + 7] = 0;
         rotationMatrices[index + 8] = cosAngle;
-
+ 
         // Set scale
         scales[i] = Math.random() * 2.0 + 3.5;
-
+ 
         //normalize the height
         normalizedHeight[i] = [convertRange(scales[i], 1.55, 6.60, 0, 1)];
     }
-
+ 
     chunk.geometry.index = bladeGeometry.index;
     chunk.geometry.attributes.position = bladeGeometry.attributes.position;
     chunk.geometry.attributes.uv = bladeGeometry.attributes.uv;
-
+ 
     // Set attributes in InstancedBufferGeometry
     chunk.geometry.setAttribute('offset', new THREE.InstancedBufferAttribute(offsets, 3));
     chunk.geometry.setAttribute('uv', new THREE.InstancedBufferAttribute(uvs, 2));
@@ -1852,20 +1839,20 @@ function addInstanceToChunk(chunk, position) {
     chunk.geometry.computeVertexNormals();
     //chunk.geometry.boundingBox = new THREE.Box3();
     chunk.geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(position.x + chunkSize, getHeight(position.x + chunkSize, position.y + chunkSize) + 20.0, position.y + chunkSize), chunkSize + 25.0);
-
+ 
     chunk.geometry.boundingSphere.needsUpdate = true;
 }
-
-
-
-
+ 
+ 
+ 
+ 
 arrChunks.forEach(chunk => {
-
+ 
     addInstanceToChunk(chunk, chunk.position);
-
+ 
 });
-
-
+ 
+ 
 arrChunks.forEach(chunk => {
     //if (isChunkVisible(camera, chunk)) {
     // Create a Mesh from the chunk's instanced geometry
