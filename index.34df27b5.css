@@ -41,7 +41,7 @@ canvas {
 
 body {
   scrollbar-width: inherit;
-  scroll-behavior: smooth;
+  scroll-behavior: initial;
   -webkit-font-smoothing: antialiased;
   font-family: AvenirNextLTPro-UltLt;
   overflow-x: hidden;
@@ -59,7 +59,7 @@ footer {
 
 @media (width <= 768px) and (orientation: portrait) {
   footer {
-    height: 16svh;
+    height: 12svh;
   }
 }
 
@@ -308,8 +308,9 @@ footer {
 }
 
 .overlay {
+  overscroll-behavior: contain;
   z-index: 1000;
-  scroll-behavior: smooth;
+  scroll-behavior: initial;
   background-color: #1e2227;
   background-position: center;
   background-size: cover;
@@ -488,6 +489,10 @@ figcaption {
   box-sizing: border-box;
 }
 
+button {
+  touch-action: manipulation;
+}
+
 .glowing-btn-projects {
   z-index: 30;
   color: var(--glow-color-projects);
@@ -548,10 +553,10 @@ figcaption {
 
 .glowing-btn-projects:before {
   content: "";
+  cursor: pointer;
   opacity: .3;
   filter: blur(1rem);
   background: var(--glow-color-projects);
-  pointer-events: none;
   position: absolute;
   inset: 0;
   transform: translateY(120%)rotateX(95deg)scale(1);
@@ -559,10 +564,10 @@ figcaption {
 
 .glowing-btn-contact:before {
   content: "";
+  cursor: pointer;
   opacity: .3;
   filter: blur(1rem);
   background: var(--glow-color-contact);
-  pointer-events: none;
   position: absolute;
   inset: 0;
   transform: translateY(120%)rotateX(95deg)scale(1);
