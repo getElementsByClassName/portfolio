@@ -843,12 +843,12 @@ overlay.addEventListener("touchmove", (e)=>{
     const currentX = e.touches[0].clientX; // Get the current x position of the touch
     const deltaX = currentX - overlayTouchStart; // Calculate the difference
     //swiping right
-    if (deltaX > 0) {
+    if (deltaX > 50) {
+        e.preventDefault(); // prevent scrolling during touchmove
         overlay.classList.remove("show");
         overlayIsOpen = false;
+        lenisSite.start();
     }
-    // Optionally, prevent scrolling during touchmove
-    e.preventDefault();
 });
 /********************************************************************
 // Lazy Load Content
