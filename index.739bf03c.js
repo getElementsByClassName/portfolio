@@ -718,18 +718,8 @@ requestAnimationFrame(raf);
 // Detect Mouse wheel scroll
 ********************************************************************/ //let visitedFromMobileDevice;
 let landscapeMode = false;
-//console.log(visitedFromMobileDevice)
-let windowHeight = window.innerHeight;
-const windowWidth = window.innerWidth;
 // Get the specific section by its ID
 const sectionScene = document.getElementById("container-opening-scene");
-const sectionProjects = document.getElementById("container-projects");
-const sectionContact = document.getElementById("container-contact");
-let overlayIsOpen = false;
-// Get the height of the section (content height)
-const sectionProjectsHeight = sectionProjects.scrollHeight;
-const sectionContactHeight = sectionContact.scrollHeight;
-//document.addEventListener('DOMContentLoaded', () => {
 // Get all sections
 const sections = document.querySelectorAll("section");
 let currentSectionIndex = 0;
@@ -737,7 +727,6 @@ let isScrolling = false;
 // Function to scroll to a specific section
 function scrollToSection(index) {
     if (index >= 0 && index < sections.length) {
-        console.log(sections[index]);
         isScrolling = true;
         lenisSite.scrollTo(sections[index], {
             duration: 2.0,
@@ -746,81 +735,15 @@ function scrollToSection(index) {
     }
     isScrolling = false;
 }
-/*
-lenisSite.on('scroll', (e) => {
-    if (isScrolling) return; // Prevent multiple scrolls while one is in progress
-
-    // Check scroll direction
-    if (e.velocity > 0) {
-        console.log(isScrolling)
-        // Scrolling down, move to next section
-        currentSectionIndex = Math.min(currentSectionIndex + 1, sections.length - 1);
-    } else if (e.velocity < 0) {
-        console.log(isScrolling)
-        // Scrolling up, move to previous section
-        currentSectionIndex = Math.max(currentSectionIndex - 1, 0);
-    }
-
-    scrollToSection(currentSectionIndex);
-});
-*/ // Mouse wheel event listener
+// Mouse wheel event listener
 window.addEventListener("wheel", (event)=>{
     if (isScrolling) return; // Prevent multiple scrolls while one is in progress
     // Check scroll direction
-    if (event.deltaY > 0) {
-        console.log("scroll down");
-        // Scrolling down, move to next section
-        //currentSectionIndex++;
-        currentSectionIndex = Math.min(currentSectionIndex + 1, sections.length - 1);
-    } else if (event.deltaY < 0) {
-        console.log("scroll up");
-        // Scrolling up, move to previous section
-        currentSectionIndex = Math.max(currentSectionIndex - 1, 0);
-    //currentSectionIndex--;
-    }
-    console.log(currentSectionIndex);
+    if (event.deltaY > 0) currentSectionIndex = Math.min(currentSectionIndex + 1, sections.length - 1);
+    else if (event.deltaY < 0) // Scrolling up, move to previous section
+    currentSectionIndex = Math.max(currentSectionIndex - 1, 0);
     scrollToSection(currentSectionIndex);
 });
-//  if (!visitedFromMobileDevice) {
-//     //if (windowWidth > 1000) {
-//     document.addEventListener('wheel', function (event) {
-//         if (!overlayIsOpen) {
-//             if (isScrolling) return;
-//             isScrolling = true;
-//             if (event.deltaY > 0) {
-//                 //console.log(currentSection);
-//                 // Scrolling down
-//                 if (currentSection < totalSections) {
-//                     currentSection++;
-//                     /*
-//                                 if ((sectionProjectsHeight > windowHeight) && currentSection == 3) {
-//                                     CSSScroll((sectionProjectsHeight), 1200, document.body);
-//                                     console.log(window.pageYOffset)
-//                                 } else {
-//                                     scrollToSection(currentSection);
-//                                     console.log(window.pageYOffset)
-//                                 }
-//                     */
-//                     scrollToSection(currentSection);
-//                 }
-//             } else {
-//                 // Scrolling up
-//                 if (currentSection > 1) {
-//                     currentSection--;
-//                     scrollToSection(currentSection);
-//                 }
-//             }
-//             // Reset the flag after a delay
-//             setTimeout(() => {
-//                 isScrolling = false;
-//             }, 800);
-//         }
-//     });
-// }
-// function scrollToSection(sectionNumber) {
-//     const targetSection = document.querySelector(`[data-section="${sectionNumber}"]`);
-//     CSSScroll(targetSection.offsetTop, 1200, document.body)
-// }
 /********************************************************************
 // Intersection Observer
 ********************************************************************/ // Intersection Observer setup for opening scene
@@ -832,7 +755,6 @@ const observerOptions = {
 //intersection observer for detecting opening scene out of view
 const observerCallback = (entries)=>{
     entries.forEach((entry)=>{
-        //console.log(entry);
         if (entry.isIntersecting) // Start or resume animation
         fnStartRendering();
         else // Pause animation
@@ -874,15 +796,6 @@ sections.forEach((section)=>{
 /********************************************************************
 // Handle Button Navigation
 ********************************************************************/ const navBtn = document.querySelectorAll(".nav-btn");
-console.log(navBtn);
-const fnHandleBtnNavClick = ()=>{
-    const targetSection = navBtn.textContent.includes("Projects") ? "container-projects" : "container-opening-scene";
-    console.log(targetSection);
-    lenisSite.scrollTo("#" + targetSection, {
-        duration: 2.0,
-        offset: 0
-    });
-};
 navBtn.forEach((navBtn)=>{
     navBtn.addEventListener("click", (e)=>{
         let targetSection = navBtn.textContent;
@@ -900,10 +813,10 @@ navBtn.forEach((navBtn)=>{
 // Handle Overlay
 ********************************************************************/ const imageContainers = document.querySelectorAll(".image-container");
 const closeBtn = document.getElementById("closeBtn");
+let overlayTouchStart = 0;
 imageContainers.forEach((container)=>{
     container.addEventListener("click", ()=>{
         overlay.classList.add("show");
-        //document.body.classList.add('no-scroll');
         lenisSite.stop();
         overlayIsOpen = true;
         closeBtn.classList.add("show");
@@ -911,26 +824,33 @@ imageContainers.forEach((container)=>{
 });
 closeBtn.addEventListener("click", ()=>{
     overlay.classList.remove("show");
-    //document.body.classList.remove('no-scroll');
     lenisSite.start();
     overlayIsOpen = false;
     closeBtn.classList.remove("show");
 });
 // Optional: Hide overlay when clicking outside of it
-document.addEventListener("click", (e)=>{
-    if (e.target === overlay) {
+// overlay.addEventListener('click', (e) => {
+//     console.log('clicking')
+//     //if (e.target === overlay) {
+//     overlay.classList.remove('show');
+//     overlayIsOpen = false;
+//     //}
+// });
+overlay.addEventListener("touchstart", function(event) {
+    overlayTouchStart = event.touches[0].clientX; // Get the initial x position of the touch
+});
+overlay.addEventListener("touchmove", (e)=>{
+    const currentX = e.touches[0].clientX; // Get the current x position of the touch
+    const deltaX = currentX - overlayTouchStart; // Calculate the difference
+    //swiping right
+    if (deltaX > 0) {
         overlay.classList.remove("show");
-        document.body.classList.remove("no-scroll");
         overlayIsOpen = false;
     }
+    // Optionally, prevent scrolling during touchmove
+    e.preventDefault();
 });
-/*
-document.addEventListener('touchmove', (e) => {
-    if (e.target === overlay) {
-        console.log('touchmove');
-    }
-});
-*/ /********************************************************************
+/********************************************************************
 // Lazy Load Content
 ********************************************************************/ const contentTitle = document.getElementById("content-title");
 const contentVideo = document.getElementById("content-video");
@@ -41963,7 +41883,7 @@ exports.getOrigin = getOrigin;
 module.exports = require("8dabffa2ef0f7b19").getBundleURL("g05j8") + "introvideo.149b9427.webm" + "?" + Date.now();
 
 },{"8dabffa2ef0f7b19":"lgJ39"}],"24cue":[function(require,module,exports) {
-module.exports = JSON.parse('{"glass":{"title":"The Virtual Glass Harmonica","video_ref":"./assets/glass/video.webm","main_txt":"Together with a fellow peer, the design and development of the virtual glass harmonica was a project completed for the <span class=\'color-glass\'>Danish Music Museum</span>. As part of the <i>Music History - Taken out of the Box</i> project, funded by the Augustinus Foundation, it explores the use of <span class=\'color-glass\'>Virtual Reality</span> to resurrect a forgotten instrument and present its history, sound, and interaction through an immersive virtual environment. The installation can be experienced at the Music Museum, where qualitative evaluations have shown that it establishes a good connection between the virtual instrument and the physical 1780-era glass harmonica on display.","client":"Danish Music Museum","tech":"Unity | Blender | Meta Quest 2 Standalone | Handtracking | Shadergraph","publications":"<h4><a href=\'https://link.springer.com/chapter/10.1007/978-3-031-55312-7_16\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>ArtsIT, Interactivity and Game Creation 2023</a></h4> <h4><a href=\'https://doi.org/10.5281/zenodo.6822203\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>Sound and Music Computing Conference 2022</a></h4>","images":["./assets/glass/showcase-img1.webp","./assets/glass/showcase-img2.webp","./assets/glass/showcase-img3.webp"],"images_alt":["The virtual reality experience leverages the handtracking capabilities of the meta quest 2 device. Virtual environment capture.","Virtual environemnt capture showing interactive buttons for initiating tutorial and storytelling by Benjamin Franklin.","Photograph of excited visitor trying the virtual reality experience, at the Danish Music Museum."]},"nature":{"title":"Through the Eyes of Nature","video_ref":"./assets/glass/video.webm","main_txt":"Together with a fellow peer, the design and development of the virtual glass harmonica was a project completed for the <span class=\'color-glass\'>Danish Music Museum</span>. As part of the <i>Music History - Taken out of the Box</i> project, funded by the Augustinus Foundation, it explores the use of <span class=\'color-glass\'>Virtual Reality</span> to resurrect a forgotten instrument and present its history, sound, and interaction through an immersive virtual environment. The installation can be experienced at the Music Museum, where qualitative evaluations have shown that it establishes a good connection between the virtual instrument and the physical 1780-era glass harmonica on display.","client":"Danish Music Museum","tech":"Unity | Blender | Meta Quest 2 Standalone | Handtracking | Shadergraph","images":["bg.webp","showcase-img1.webp","showcase-img1.webp","showcase-img1.webp"],"images-alt":["alt image 1","alt image 2","alt image 3"]},"dad":{"title":"Through the Eyes of Nature","video_ref":"./assets/dad/video.webm","main_txt":"Together with a fellow peer, the design and development of the virtual glass harmonica was a project completed for the <span class=\'color-glass\'>Danish Music Museum</span>. As part of the <i>Music History - Taken out of the Box</i> project, funded by the Augustinus Foundation, it explores the use of <span class=\'color-glass\'>Virtual Reality</span> to resurrect a forgotten instrument and present its history, sound, and interaction through an immersive virtual environment. The installation can be experienced at the Music Museum, where qualitative evaluations have shown that it establishes a good connection between the virtual instrument and the physical 1780-era glass harmonica on display.","client":"Danish National Museum","link":"<h4><a href=\'https://www.dad.natmus.dk/\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>DAD - Natmus</a></h4>","tech":"Unity | Blender | Meta Quest 2 Standalone | Handtracking | Shadergraph","images":["bg.webp","showcase-img1.webp","showcase-img1.webp","showcase-img1.webp"],"images-alt":["alt image 1","alt image 2","alt image 3"]}}');
+module.exports = JSON.parse('{"glass":{"title":"The Virtual Glass Harmonica","video_ref":"./assets/glass/video.webm","main_txt":"Together with a fellow peer, the design and development of the virtual glass harmonica was a project completed for the <span class=\'color-glass\'>Danish Music Museum</span>. As part of the <i>Music History - Taken out of the Box</i> project, funded by the Augustinus Foundation, it explores the use of <span class=\'color-glass\'>Virtual Reality</span> to resurrect a forgotten instrument and present its history, sound, and interaction through an immersive virtual environment. The installation can be experienced at the Music Museum, where qualitative evaluations have shown that it establishes a good connection between the virtual instrument and the physical 1780-era glass harmonica on display.","client":"Danish Music Museum","tech":"Unity-C# | Blender | Meta Quest 2 Standalone | Handtracking | Shadergraph","publications":"<h4><a href=\'https://link.springer.com/chapter/10.1007/978-3-031-55312-7_16\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>ArtsIT, Interactivity and Game Creation 2023</a></h4> <h4><a href=\'https://doi.org/10.5281/zenodo.6822203\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>Sound and Music Computing Conference 2022</a></h4>","images":["./assets/glass/showcase-img1.webp","./assets/glass/showcase-img2.webp","./assets/glass/showcase-img3.webp"],"images_alt":["The virtual reality experience leverages the handtracking capabilities of the meta quest 2 device. Virtual environment capture.","Virtual environemnt capture showing interactive buttons for initiating tutorial and storytelling by Benjamin Franklin.","Photograph of excited visitor trying the virtual reality experience, at the Danish Music Museum."]},"nature":{"title":"Through the Eyes of Nature","video_ref":"./assets/glass/video.webm","main_txt":"Together with a fellow peer, the design and development of the virtual glass harmonica was a project completed for the <span class=\'color-glass\'>Danish Music Museum</span>. As part of the <i>Music History - Taken out of the Box</i> project, funded by the Augustinus Foundation, it explores the use of <span class=\'color-glass\'>Virtual Reality</span> to resurrect a forgotten instrument and present its history, sound, and interaction through an immersive virtual environment. The installation can be experienced at the Music Museum, where qualitative evaluations have shown that it establishes a good connection between the virtual instrument and the physical 1780-era glass harmonica on display.","client":"Danish Music Museum","tech":"Unity | Blender | Meta Quest 2 Standalone | Handtracking | Shadergraph","images":["bg.webp","showcase-img1.webp","showcase-img1.webp","showcase-img1.webp"],"images-alt":["alt image 1","alt image 2","alt image 3"]},"dad":{"title":"Through the Eyes of Nature","video_ref":"./assets/dad/video.webm","main_txt":"Together with a fellow peer, the design and development of the virtual glass harmonica was a project completed for the <span class=\'color-glass\'>Danish Music Museum</span>. As part of the <i>Music History - Taken out of the Box</i> project, funded by the Augustinus Foundation, it explores the use of <span class=\'color-glass\'>Virtual Reality</span> to resurrect a forgotten instrument and present its history, sound, and interaction through an immersive virtual environment. The installation can be experienced at the Music Museum, where qualitative evaluations have shown that it establishes a good connection between the virtual instrument and the physical 1780-era glass harmonica on display.","client":"Danish National Museum","link":"<h4><a href=\'https://www.dad.natmus.dk/\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>DAD - Natmus</a></h4>","tech":"Unity | Blender | Meta Quest 2 Standalone | Handtracking | Shadergraph","images":["bg.webp","showcase-img1.webp","showcase-img1.webp","showcase-img1.webp"],"images-alt":["alt image 1","alt image 2","alt image 3"]}}');
 
 },{}],"02A2s":[function(require,module,exports) {
 let workerURL = require("422b1475f0c5a287");
