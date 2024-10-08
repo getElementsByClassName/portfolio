@@ -943,7 +943,7 @@ renderer.setPixelRatio(1.0);
 renderer.outputEncoding = _three.SRGBColorSpace;
 renderer.toneMapping = _three.ACESFilmicToneMapping;
 //renderer.toneMapping = THREE.ReinhardToneMapping;
-renderer.toneMappingExposure = 0.70;
+renderer.toneMappingExposure = 0.95;
 //calc width and height
 const pixelRatio = window.devicePixelRatio;
 const canvasWidth = canvas.clientWidth * pixelRatio | 0;
