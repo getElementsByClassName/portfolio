@@ -849,12 +849,14 @@ overlay.addEventListener("touchmove", (e)=>{
     const deltaX = currentX - overlayTouchStart; // Calculate the difference
     //swiping right
     if (deltaX > 40) {
-        e.preventDefault(); // prevent scrolling during touchmove
+        lenisOverlay.stop() // prevent scrolling during touchmove
+        ;
         overlay.classList.remove("show");
         closeBtn.classList.remove("show");
         //overlayIsOpen = false;
         lenisSite.start();
     }
+    lenisOverlay.start();
 });
 /********************************************************************
 // Lazy Load Content
@@ -921,9 +923,9 @@ function fnLoadContent(id) {
 ********************************************************************/ let velocity = new _three.Vector3();
 let SPEED = 175.0;
 const PERSON_HEIGHT = 16.0;
-const FIELD_SIZE = 1000; // Field size in both x and z directions
+const FIELD_SIZE = 3000; // Field size in both x and z directions
 const chunkSize = 200;
-const grassBladesPerChunk = 150;
+const grassBladesPerChunk = 15000;
 // Basic scene setup
 const scene = new _three.Scene();
 const camera = new _three.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 900);
@@ -1377,33 +1379,41 @@ scene.add(videoPlane);
 ********************************************************************/ // Create a clock to manage time and deltas
 const clock = new _three.Clock();
 let controlsIsLocked = false;
+let controls;
 // Create the FPS controller
-//const controls = new PointerLockControls(camera, renderer.domElement);
+if (!visitedFromMobileDevice) controls = new (0, _pointerLockControlsJs.PointerLockControls)(camera, renderer.domElement);
+/*
 //intersection observer for detecting opening scene out of view
-const handleObserver = (entries)=>{
-    entries.forEach((entry)=>{
+const handleObserver = (entries) => {
+    entries.forEach(entry => {
         if (!entry.isIntersecting) {
             // Start or resume animation
-            console.log("out");
+            console.log('out');
             //controls.unlock();
             controlsIsLocked = false;
         }
     });
 };
+
+
 // Intersection Observer setup for opening scene
 const obsOptions = {
-    root: null,
-    rootMargin: "0px",
+    root: null, // Use the viewport as the root
+    rootMargin: '0px',
     threshold: 0.3 // Trigger when 30% of the target is visible
 };
+
 const sceneObserver = new IntersectionObserver(handleObserver, obsOptions);
 sceneObserver.observe(targetElement);
-// Add event listeners for locking the pointer
+*/ // Add event listeners for locking the pointer
 sectionScene.addEventListener("click", function() {
-    if (!controlsIsLocked && gameIsActive) // controls.lock();
-    controlsIsLocked = true;
-    else // controls.unlock();
-    controlsIsLocked = false;
+    if (!controlsIsLocked && gameIsActive) {
+        controls.lock();
+        controlsIsLocked = true;
+    } else {
+        controls.unlock();
+        controlsIsLocked = false;
+    }
 });
 let startX = 0, startY = 0; // Starting touch coordinates
 let isTouching = false;
@@ -1435,9 +1445,6 @@ let moveForward = false;
 let moveBackward = false;
 let moveLeft = false;
 let moveRight = false;
-let rotationX = 0;
-let rotationY = 0;
-const direction = new _three.Vector3();
 const onKeyDown = function(event) {
     switch(event.code){
         case "ArrowUp":
@@ -1517,15 +1524,15 @@ const checkOrientation = ()=>{
     if (window.matchMedia("(orientation: landscape)").matches && visitedFromMobileDevice) {
         camera.rotation.x = 0;
         camera.position.set(0, getHeight(0, 250) + PERSON_HEIGHT, 250);
-        // controls.unlock();
-        controlsIsLocked = false;
+    // controls.unlock();
+    //controlsIsLocked = false;
     } else if (window.matchMedia("(orientation: portrait)").matches && visitedFromMobileDevice) {
         camera.rotation.x = 0;
         camera.position.set(0, getHeight(0, 500) + PERSON_HEIGHT, 500);
         testTxt.innerHTML = "We are here";
-        //console.log("Portrait mode");
-        // controls.unlock();
-        controlsIsLocked = false;
+    //console.log("Portrait mode");
+    // controls.unlock();
+    //controlsIsLocked = false;
     }
 };
 // if (visitedFromMobileDevice) {
@@ -1871,7 +1878,7 @@ function animate() {
     //updateTerrain();
     shaderMaterialLine.uniforms.uTime.value += 0.05;
     //console.log(renderer.info);
-    //fnUpdateControls();
+    if (!visitedFromMobileDevice) fnUpdateControls();
     //composer.render();
     arrChunks.forEach((chunk)=>{
         const cameraPosition = camera.position;
@@ -1881,40 +1888,22 @@ function animate() {
         const chunkMiddlePosition = new _three.Vector2(chunkPosition.x + chunkSize / 2, chunkPosition.y + chunkSize / 2);
         //console.log(chunkMiddlePosition);
         const distance = cameraXZ.distanceTo(chunkPosition);
-    /*
-                if (!visitedFromMobileDevice) {
-        
-                    if (distance > 950) {
-                        chunk.geometry.instanceCount = 5000;
-                    } else if (distance > 800) {
-                        chunk.geometry.instanceCount = 6000;
-                    } else if (distance > 600) {
-                        chunk.geometry.instanceCount = 7000;
-                    } else if (distance > 400) {
-                        chunk.geometry.instanceCount = 9000;
-                    } else if (distance >= 200) {
-                        chunk.geometry.instanceCount = 12000;
-                    } else {
-                        chunk.geometry.instanceCount = grassBladesPerChunk;
-                    }
-        
-                } else {
-        
-                    if (distance > 950) {
-                        chunk.geometry.instanceCount = 0;
-                    } else if (distance > 800) {
-                        chunk.geometry.instanceCount = 5000;
-                    } else if (distance > 600) {
-                        chunk.geometry.instanceCount = 5000;
-                    } else if (distance > 400) {
-                        chunk.geometry.instanceCount = 8000;
-                    } else if (distance >= 200) {
-                        chunk.geometry.instanceCount = 15000;
-                    } else {
-                        chunk.geometry.instanceCount = grassBladesPerChunk;
-                    }
-                }
-        */ });
+        if (!visitedFromMobileDevice) {
+            if (distance > 950) chunk.geometry.instanceCount = 5000;
+            else if (distance > 800) chunk.geometry.instanceCount = 6000;
+            else if (distance > 600) chunk.geometry.instanceCount = 7000;
+            else if (distance > 400) chunk.geometry.instanceCount = 9000;
+            else if (distance >= 200) chunk.geometry.instanceCount = 12000;
+            else chunk.geometry.instanceCount = grassBladesPerChunk;
+        } else {
+            if (distance > 950) chunk.geometry.instanceCount = 0;
+            else if (distance > 800) chunk.geometry.instanceCount = 5000;
+            else if (distance > 600) chunk.geometry.instanceCount = 5000;
+            else if (distance > 400) chunk.geometry.instanceCount = 8000;
+            else if (distance >= 200) chunk.geometry.instanceCount = 15000;
+            else chunk.geometry.instanceCount = grassBladesPerChunk;
+        }
+    });
     // Update the video texture if the video is playing
     if (video.readyState >= video.HAVE_CURRENT_DATA) videoTexture.needsUpdate = true;
     //controls.update();
