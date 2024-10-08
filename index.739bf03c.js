@@ -660,8 +660,8 @@ const lenisOverlayOptions = {
     content: overlay.children[0]
 };
 const lenisSiteOptions = {
-    duration: 1.2,
-    easing: (t)=>Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    duration: 1.5,
+    //easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // Easing function
     smooth: true
 };
 const lenisOverlay = new (0, _lenisDefault.default)(lenisOverlayOptions);
@@ -738,6 +738,7 @@ function scrollToSection(index) {
 // Mouse wheel event listener
 window.addEventListener("wheel", (event)=>{
     if (isScrolling) return; // Prevent multiple scrolls while one is in progress
+    console.log("scrolling");
     // Check scroll direction
     if (event.deltaY > 0) currentSectionIndex = Math.min(currentSectionIndex + 1, sections.length - 1);
     else if (event.deltaY < 0) // Scrolling up, move to previous section
@@ -818,6 +819,7 @@ imageContainers.forEach((container)=>{
     container.addEventListener("click", ()=>{
         overlay.classList.add("show");
         lenisSite.stop();
+        //lenisOverlay.start();
         //overlayIsOpen = true;
         closeBtn.classList.add("show");
     });
@@ -916,11 +918,11 @@ function fnLoadContent(id) {
 /********************************************************************
 // Scene Constants
 ********************************************************************/ let velocity = new _three.Vector3();
-let SPEED = 200.0;
+let SPEED = 175.0;
 const PERSON_HEIGHT = 16.0;
-const FIELD_SIZE = 4000; // Field size in both x and z directions
+const FIELD_SIZE = 3000; // Field size in both x and z directions
 const chunkSize = 200;
-const grassBladesPerChunk = 10000;
+const grassBladesPerChunk = 15000;
 // Basic scene setup
 const scene = new _three.Scene();
 const camera = new _three.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 900);
@@ -943,7 +945,6 @@ renderer.toneMappingExposure = 0.70;
 const pixelRatio = window.devicePixelRatio;
 const canvasWidth = canvas.clientWidth * pixelRatio | 0;
 const canvasHeight = canvas.clientHeight * pixelRatio | 0;
-//console.log(canvasWidth)
 renderer.setSize(window.innerWidth, window.innerHeight);
 //cntOpeningScene.appendChild(renderer.domElement);
 //show stats, updated in animation loop
@@ -1007,7 +1008,6 @@ loader.load("./assets/powerlines.glb", function(gltf) {
     model.position.set(360, getHeight(360, -275), -275);
     model.rotateY(-Math.PI / 4);
     model.scale.set(10, 12, 10);
-//model.children[0].children[0].scale.set(10000000, 10000000, 10000000);
 }, undefined, function(error) {
     console.error("An error happened while loading the model:", error);
 });
@@ -1055,7 +1055,7 @@ const grassDiffuseMap = textureLoader.load((0, _grassColorPngDefault.default));
 //const cloudMap = textureLoader.load(cloudTexture);
 /********************************************************************
 // Lights
-********************************************************************/ const light = new _three.HemisphereLight(0xffffbb, 0x080820, 1.0);
+********************************************************************/ const light = new _three.HemisphereLight(0xffffbb, 0x080820, 0.8);
 scene.add(light);
 const widthLight = 340;
 const height = 5;
@@ -1074,12 +1074,6 @@ scene.add(rectLight);
 // Handle Window Resize
 ********************************************************************/ window.addEventListener("resize", onWindowResize, false);
 function onWindowResize() {
-    //console.log(canvas.clientWidth);
-    //console.log(canvas.clientHeight)
-    const pixelRatio = window.devicePixelRatio;
-    const canvasWidth = canvas.clientWidth * pixelRatio | 0;
-    const canvasHeight = canvas.clientHeight * pixelRatio | 0;
-    //console.log(canvasHeight);
     // Update renderer size
     renderer.setSize(window.innerWidth, window.innerHeight);
     // Update camera aspect ratio and projection matrix
@@ -1363,7 +1357,7 @@ rgbeLoader.load("./assets/belfast_sunset_puresky_2k.hdr", function(texture) {
         void main() {
             vec4 color = texture2D(texture1, vUv);
             float alpha = getAlpha(vUv);
-            alpha -= 0.25;
+            alpha -= 0.35;
             gl_FragColor = vec4(color.rgb, alpha);
         }
     `,
@@ -1375,110 +1369,8 @@ const videoGeometry = new _three.PlaneGeometry(384, 216, 16, 16); // 10x10 segme
 // Create a mesh with the geometry and custom shader material
 const videoPlane = new _three.Mesh(videoGeometry, customMaterial);
 videoPlane.position.set(0, getHeight(0, 0) + 110.0, 0);
-// Rotate the plane to make the Y-coordinate point up
-//plane.rotation.x = -Math.PI / 2;
 // Add the plane to the scene
 scene.add(videoPlane);
-/********************************************************************
-// Position Camera
-********************************************************************/ let cameraHasBeenPositionedInLandscapeMode = false;
-let cameraHasBeenPositionedInPortraitMode = false;
-const checkOrientation = ()=>{
-    if (window.matchMedia("(orientation: landscape)").matches && visitedFromMobileDevice) {
-        console.log("Landscape mode");
-        landscapeMode = true;
-        if (!cameraHasBeenPositionedInLandscapeMode) {
-            camera.position.set(0, getHeight(0, 350) + PERSON_HEIGHT, 350);
-            //camera.rotateY(Math.PI / 14);
-            //camera.rotateX(Math.PI / 22);
-            cameraHasBeenPositionedInLandscapeMode = true;
-        }
-    } else if (window.matchMedia("(orientation: portrait)").matches && visitedFromMobileDevice) {
-        console.log("Portrait mode");
-        landscapeMode = false;
-        cameraHasBeenPositionedInLandscapeMode = false;
-    }
-};
-if (visitedFromMobileDevice) {
-    if (!landscapeMode) {
-        camera.position.set(0, getHeight(0, 350) + PERSON_HEIGHT, 350);
-        //camera.rotateY(Math.PI / -15);
-        //camera.rotateX(Math.PI / 11);
-        cameraHasBeenPositionedInPortraitMode = true;
-        cameraHasBeenPositionedInLandscapeMode = false;
-    } else {
-        camera.position.set(0, getHeight(0, 350) + PERSON_HEIGHT, 350);
-        //camera.rotateY(Math.PI / 14);
-        //camera.rotateX(Math.PI / 22);
-        cameraHasBeenPositionedInLandscapeMode = true;
-        cameraHasBeenPositionedInPortraitMode = false;
-    }
-} else camera.position.set(0, getHeight(0, 350) + PERSON_HEIGHT, 350);
-// Initial check
-//camera.lookAt(0, 100, 0);
-/*
-let touchstartX = 0;
-let touchstartY = 0;
-let touchendX = 0;
-let touchendY = 0;
- 
-const swipeThreshold = 50; // Minimum swipe distance in pixels
- 
-const detectSwipeDirection = () => {
-    const diffX = touchendX - touchstartX;
-    const diffY = touchendY - touchstartY;
- 
-    // Horizontal Swipe
-    if (Math.abs(diffX) > Math.abs(diffY)) {
-        if (Math.abs(diffX) > swipeThreshold) {
-            if (diffX > 0) {
-                console.log('Swiped Right');
-            } else {
-                console.log('Swiped Left');
-            }
-        }
-    }
-    // Vertical Swipe
-    else {
-        if (Math.abs(diffY) > swipeThreshold) {
-            if (diffY > 0) {
-                console.log('Swiped Down');
-            } else {
-                console.log('Swiped Up');
-            }
-        }
-    }
-};
- 
-// Add event listeners for touch events
-document.addEventListener('touchstart', (e) => {
-    touchstartX = e.changedTouches[0].screenX;
-    touchstartY = e.changedTouches[0].screenY;
-});
- 
-document.addEventListener('touchend', (e) => {
-    touchendX = e.changedTouches[0].screenX;
-    touchendY = e.changedTouches[0].screenY;
-    detectSwipeDirection(); // Check the direction after touch ends
-});
-*/ // Controls
-/*
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enablePan = true;
-controls.enableZoom = true;
-controls.minPolarAngle = 0.0;
-controls.maxPolarAngle = 3.45 * 2;
-controls.enableDamping = true;
-controls.dampingFactor = 0.1;
-controls.update();
-controls.target.set(10, 10, 10);
- 
-controls.addEventListener("change", event => {
-    //console.log(controls.object.position);
-});
-//console.log('here');
-*/ const axesHelper = new _three.AxesHelper(1000);
-scene.add(axesHelper);
 /********************************************************************
 // FPS Controller
 ********************************************************************/ // Create a clock to manage time and deltas
@@ -1514,6 +1406,32 @@ sectionScene.addEventListener("click", function() {
         controls.unlock();
         controlsIsLocked = false;
     }
+});
+let startX = 0, startY = 0; // Starting touch coordinates
+let isTouching = false;
+sectionScene.addEventListener("touchstart", function(event) {
+    isTouching = true;
+    startX = event.touches[0].clientX; // Get the initial x position of the touch
+    startY = event.touches[0].clientY;
+});
+sectionScene.addEventListener("touchmove", (e)=>{
+    if (!isTouching) return;
+    //e.preventDefault();
+    const currentX = e.touches[0].clientX; // Get the current x position of the touch
+    const currentY = e.touches[0].clientY;
+    const deltaX = currentX - startX; // Calculate the difference
+    const deltaY = currentY - startX; // Calculate the difference
+    const rotationSpeed = 0.005;
+    // Adjust camera rotation based on touch movement
+    camera.rotation.y -= deltaX * rotationSpeed; // Rotate around y-axis (left/right movement)
+    //camera.rotation.x -= deltaY * rotationSpeed; // Rotate around x-axis (up/down movement)
+    // Update starting positions for the next frame
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+});
+// Event listener for touch end
+sectionScene.addEventListener("touchend", ()=>{
+    isTouching = false;
 });
 let moveForward = false;
 let moveBackward = false;
@@ -1564,13 +1482,7 @@ const onKeyUp = function(event) {
 };
 document.addEventListener("keydown", onKeyDown);
 document.addEventListener("keyup", onKeyUp);
-// Mouse movement for camera rotation
-/*
-document.addEventListener('mousemove', (event) => {
-    rotationX -= event.movementX * 0.01; // Adjust sensitivity as needed
-    rotationY -= event.movementY * 0.01;
-});
-*/ function fnUpdateControls() {
+function fnUpdateControls() {
     const delta = clock.getDelta(); // Get the time delta
     velocity.x -= velocity.x * 10.0 * delta;
     velocity.z -= velocity.z * 10.0 * delta;
@@ -1592,6 +1504,107 @@ document.addEventListener('mousemove', (event) => {
    */ const height = getHeight(playerPosition.x, playerPosition.z);
     playerPosition.y = height + PERSON_HEIGHT;
 }
+/********************************************************************
+// Position Camera
+********************************************************************/ //let cameraHasBeenPositionedInLandscapeMode = false;
+//let cameraHasBeenPositionedInPortraitMode = false;
+if (visitedFromMobileDevice) {
+    camera.far = 1100;
+    camera.updateProjectionMatrix();
+}
+//camera.position.set(0, getHeight(0, 0) + PERSON_HEIGHT, 0);
+camera.position.set(0, getHeight(0, 300) + PERSON_HEIGHT, 300);
+camera.rotation.x = Math.PI / 16;
+const checkOrientation = ()=>{
+    if (window.matchMedia("(orientation: landscape)").matches && visitedFromMobileDevice) {
+        camera.rotation.x = 0;
+        camera.position.set(0, getHeight(0, 250) + PERSON_HEIGHT, 250);
+        console.log("Landscape mode");
+        controls.unlock();
+        controlsIsLocked = false;
+    } else if (window.matchMedia("(orientation: portrait)").matches && visitedFromMobileDevice) {
+        camera.rotation.x = 0;
+        camera.position.set(0, getHeight(0, 500) + PERSON_HEIGHT, 500);
+        console.log("Portrait mode");
+        controls.unlock();
+        controlsIsLocked = false;
+    }
+};
+// if (visitedFromMobileDevice) {
+//     if (!landscapeMode) {
+//         camera.position.set(0, getHeight(0, 500) + PERSON_HEIGHT, 500);
+//         //camera.rotateY(Math.PI / -15);
+//         //camera.rotateX(Math.PI / 11);
+//         cameraHasBeenPositionedInPortraitMode = true;
+//         cameraHasBeenPositionedInLandscapeMode = false;
+//     } else {
+//         camera.position.set(0, getHeight(0, 500) + PERSON_HEIGHT, 500);
+//         //camera.rotateY(Math.PI / 14);
+//         //camera.rotateX(Math.PI / 22);
+//         cameraHasBeenPositionedInLandscapeMode = true;
+//         cameraHasBeenPositionedInPortraitMode = false;
+//     }
+// } else {
+//     camera.position.set(0, getHeight(0, 500) + PERSON_HEIGHT, 500);
+//     //camera.rotateY(Math.PI / 14);
+//     //camera.rotateX(Math.PI / 11);
+// }
+// const checkOrientation = () => {
+//     if (window.matchMedia("(orientation: landscape)").matches && visitedFromMobileDevice) {
+//         console.log("Landscape mode");
+//         controls.unlock();
+//         controlsIsLocked = false;
+//         landscapeMode = true;
+//         if (!cameraHasBeenPositionedInLandscapeMode) {
+//             camera.position.set(0, getHeight(0, 600) + PERSON_HEIGHT, 600);
+//             //camera.rotateY(Math.PI / 14);
+//             //camera.rotateX(Math.PI / 22);
+//             cameraHasBeenPositionedInLandscapeMode = true;
+//         }
+//     } else if (window.matchMedia("(orientation: portrait)").matches && visitedFromMobileDevice) {
+//         console.log("Portrait mode");
+//         camera.position.set(0, getHeight(0, 500) + PERSON_HEIGHT, 500);
+//         landscapeMode = false;
+//         cameraHasBeenPositionedInLandscapeMode = false;
+//     }
+// };
+// if (visitedFromMobileDevice) {
+//     if (!landscapeMode) {
+//         camera.position.set(0, getHeight(0, 500) + PERSON_HEIGHT, 500);
+//         //camera.rotateY(Math.PI / -15);
+//         //camera.rotateX(Math.PI / 11);
+//         cameraHasBeenPositionedInPortraitMode = true;
+//         cameraHasBeenPositionedInLandscapeMode = false;
+//     } else {
+//         camera.position.set(0, getHeight(0, 500) + PERSON_HEIGHT, 500);
+//         //camera.rotateY(Math.PI / 14);
+//         //camera.rotateX(Math.PI / 22);
+//         cameraHasBeenPositionedInLandscapeMode = true;
+//         cameraHasBeenPositionedInPortraitMode = false;
+//     }
+// } else {
+//     camera.position.set(0, getHeight(0, 500) + PERSON_HEIGHT, 500);
+//     //camera.rotateY(Math.PI / 14);
+//     //camera.rotateX(Math.PI / 11);
+// }
+// Controls
+/*
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enablePan = true;
+controls.enableZoom = true;
+controls.minPolarAngle = 0.0;
+controls.maxPolarAngle = 3.45 * 2;
+controls.enableDamping = true;
+controls.dampingFactor = 0.1;
+controls.update();
+controls.target.set(10, 10, 10);
+ 
+controls.addEventListener("change", event => {
+    //console.log(controls.object.position);
+});
+//console.log('here');
+*/ const axesHelper = new _three.AxesHelper(1000);
+scene.add(axesHelper);
 /********************************************************************
 // Set Field Border Constraints
 ********************************************************************/ /********************************************************************
@@ -1859,7 +1872,7 @@ function animate() {
     //camControls.update(delta);
     //updateTerrain();
     shaderMaterialLine.uniforms.uTime.value += 0.05;
-    //console.log(renderer.info);
+    console.log(renderer.info);
     fnUpdateControls();
     //composer.render();
     arrChunks.forEach((chunk)=>{
@@ -1870,11 +1883,21 @@ function animate() {
         const chunkMiddlePosition = new _three.Vector2(chunkPosition.x + chunkSize / 2, chunkPosition.y + chunkSize / 2);
         //console.log(chunkMiddlePosition);
         const distance = cameraXZ.distanceTo(chunkPosition);
-        if (distance > 950) chunk.geometry.instanceCount = 0;
-        else if (distance > 750) chunk.geometry.instanceCount = 10000;
-        else if (distance > 550) chunk.geometry.instanceCount = 11000;
-        else if (distance >= 300) chunk.geometry.instanceCount = 12500;
-        else chunk.geometry.instanceCount = grassBladesPerChunk;
+        if (!visitedFromMobileDevice) {
+            if (distance > 950) chunk.geometry.instanceCount = 5000;
+            else if (distance > 800) chunk.geometry.instanceCount = 6000;
+            else if (distance > 600) chunk.geometry.instanceCount = 7000;
+            else if (distance > 400) chunk.geometry.instanceCount = 9000;
+            else if (distance >= 200) chunk.geometry.instanceCount = 12000;
+            else chunk.geometry.instanceCount = grassBladesPerChunk;
+        } else {
+            if (distance > 950) chunk.geometry.instanceCount = 0;
+            else if (distance > 800) chunk.geometry.instanceCount = 5000;
+            else if (distance > 600) chunk.geometry.instanceCount = 5000;
+            else if (distance > 400) chunk.geometry.instanceCount = 8000;
+            else if (distance >= 200) chunk.geometry.instanceCount = 15000;
+            else chunk.geometry.instanceCount = grassBladesPerChunk;
+        }
     });
     // Update the video texture if the video is playing
     if (video.readyState >= video.HAVE_CURRENT_DATA) videoTexture.needsUpdate = true;
@@ -41855,7 +41878,7 @@ exports.default = {
 };
 
 },{"./glsl/grassbladeTest.vert.glsl":"h9wIl","./glsl/grassbladeTest.frag.glsl":"f3LHG","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"h9wIl":[function(require,module,exports) {
-module.exports = "uniform float time;\nuniform float windStrength;\nuniform sampler2D displacementMap;\nuniform float fieldSize;\nuniform float displacementScale;\n\nattribute vec3 offset;\nattribute float scale;\nattribute float normalizedHeight;\nattribute mat3 instanceRotationMatrix;\nattribute vec2 uvs; // Incoming UV coordinates\nvarying vec2 sendUV;\n//attribute float rotation;\nvarying vec2 vUv;\nvarying vec2 csm_cloudUV;\nvarying vec3 csm_vWorldPosition;\nvarying vec3 csm_vViewPosition;\nvarying float vHeight;\nvarying vec3 csm_vPosition;\n\nfloat hash(vec2 p) {\n    p = 50.0 * fract(p * 0.3183099 + vec2(0.71));\n    return -1.0 + 2.0 * fract(p.x * p.y * (p.x + p.y));\n}\n\nfloat noise(vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n    vec2 u = f * f * (3.0 - 2.0 * f);\n    \n    return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),\n               mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);\n}\n\nvoid main() {\n    precision highp float;\n#define GLSLIFY 1\n\n            //csm_vPosition = position;\n            //vUv = uv;\n            vUv = uv;\n            //cloudUV = uv;\n            //cloudUV.x += time / 200.;\n            //cloudUV.y += time / 100.;\n            vec3 transformedGrass = position * scale;\n            transformedGrass = instanceRotationMatrix * transformedGrass;\n            transformedGrass += offset;\n            //vec3 test = transformedGrass;\n\n            //vec3 positionTest = offset.xyz + vec3(position.x, 0.0, position.y);\n            csm_vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;\n            //vWorldPosition = worldPosition.xyz;\n            vHeight = position.y * normalizedHeight; \n            \n            // Use time and some arbitrary values to generate noise\n            float n = noise(vec2(time * 0.1, time * 0.05));\n\n            // Scale the noise value to be in the range [0.0, 0.2]\n            float varyingValue = n * 0.2;\n  \n            float noise = noise(offset.xz);\n\n            // varyingValue is now in the range [0.0, 0.2]\n            \n            float dispPower = 1.0 - cos( vHeight * 3.1416 / 0.5 );\n            transformedGrass.z += sin(offset.z * noise  + time * 2.0) * ((0.15 + varyingValue) * dispPower);\n            transformedGrass.x += sin(offset.x * noise  + time * 2.0) * ((0.15 + varyingValue) * dispPower);\n\n            //csm_PositionRaw = projectionMatrix * modelViewMatrix * vec4(transformedGrass, 1.0);\n            csm_Position = transformedGrass;\n            //csm_Position = position * scale * instanceRotationMatrix * vec3(1.0);\n   \n}\n\n";
+module.exports = "uniform float time;\nuniform float windStrength;\nuniform sampler2D displacementMap;\nuniform float fieldSize;\nuniform float displacementScale;\n\nattribute vec3 offset;\nattribute float scale;\nattribute float normalizedHeight;\nattribute mat3 instanceRotationMatrix;\nattribute vec2 uvs; // Incoming UV coordinates\nvarying vec2 sendUV;\n//attribute float rotation;\nvarying vec2 vUv;\nvarying vec2 csm_cloudUV;\nvarying vec3 csm_vWorldPosition;\nvarying vec3 csm_vViewPosition;\nvarying float vHeight;\nvarying vec3 csm_vPosition;\n\nfloat hash(vec2 p) {\n    p = 50.0 * fract(p * 0.3183099 + vec2(0.71));\n    return -1.0 + 2.0 * fract(p.x * p.y * (p.x + p.y));\n}\n\nfloat noise(vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n    vec2 u = f * f * (3.0 - 2.0 * f);\n    \n    return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),\n               mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);\n}\n\nvoid main() {\n    precision highp float;\n#define GLSLIFY 1\n\n            //csm_vPosition = position;\n            //vUv = uv;\n            vUv = uv;\n            //cloudUV = uv;\n            //cloudUV.x += time / 200.;\n            //cloudUV.y += time / 100.;\n            vec3 transformedGrass = position * scale;\n            transformedGrass = instanceRotationMatrix * transformedGrass;\n            transformedGrass += offset;\n            //vec3 test = transformedGrass;\n\n            //vec3 positionTest = offset.xyz + vec3(position.x, 0.0, position.y);\n            csm_vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;\n            //vWorldPosition = worldPosition.xyz;\n            vHeight = position.y * normalizedHeight; \n            \n            // Use time and some arbitrary values to generate noise\n            float n = noise(vec2(time * 0.1, time * 0.05));\n\n            // Scale the noise value to be in the range [0.0, 0.2]\n            float varyingValue = n * 0.3;\n  \n            float noise = noise(offset.xz);\n\n            // varyingValue is now in the range [0.0, 0.2]\n            \n            float dispPower = 1.0 - cos( vHeight * 3.1416 / 0.35 );\n            transformedGrass.z += sin(offset.z * noise  + time * 2.0) * ((0.15 + varyingValue) * dispPower);\n            transformedGrass.x += sin(offset.x * noise  + time * 2.0) * ((0.15 + varyingValue) * dispPower);\n\n            //csm_PositionRaw = projectionMatrix * modelViewMatrix * vec4(transformedGrass, 1.0);\n            csm_Position = transformedGrass;\n            //csm_Position = position * scale * instanceRotationMatrix * vec3(1.0);\n   \n}\n\n";
 
 },{}],"f3LHG":[function(require,module,exports) {
 module.exports = "#define GLSLIFY 1\nuniform sampler2D grassTexture;\n//uniform sampler2D cloudTexture;\nuniform vec3 fogColor;\nuniform float fogDensity;\nuniform vec3 vCameraPosition;\nvarying vec2 vUv;\nvarying vec2 sendUV;\n//varying vec2 cloudUV;\nvarying vec3 vWorldPosition;\nvarying vec3 csm_vWorldPosition;\nvarying float vHeight;\nvarying vec3 vPosition;\n//varying vec3 vViewPosition;\nvarying vec4 csm_DiffuseColor;\n\nfloat contrast = 1.5;\nfloat brightness = 1.1;\n\nvoid main() {\n\n        //precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n    float depth = length(csm_vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    float fogFactor = 1.0 - exp(-fogDensity * depth);\n    fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv/100.0).rgb;\n    //textureColor = textureColor * vec3(brightness, brightness, brightness);\n    textureColor = mix(textureColor, topBladeColor, 0.35);\n    float height = clamp(vHeight, 0.0, 1.0);\n    textureColor *= height * height * height;\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n    //finalColor = mix(csm_DiffuseColor.rgb, topBladeColor, 1.0);\n    //csm_Emissive = textureColor;\n\n    csm_DiffuseColor = vec4(finalColor, 1.0);\n\n    /*\n    //precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n    float depth = length(vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    float fogFactor = 1.0 - exp(-fogDensity * depth);\n    fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv/1000.0).rgb;\n    textureColor = textureColor * vec3(brightness, brightness, brightness);\n    textureColor = mix(textureColor, topBladeColor, 0.75);\n    textureColor *= vHeight * vHeight;\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n\n    csm_DiffuseColor = vec4(finalColor, 1.0);\n    */\n\n}\n\n";
