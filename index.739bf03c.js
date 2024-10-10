@@ -605,16 +605,6 @@ var _statsModuleDefault = parcelHelpers.interopDefault(_statsModule);
 var _lenis = require("lenis");
 var _lenisDefault = parcelHelpers.interopDefault(_lenis);
 var _lenisCss = require("lenis/dist/lenis.css");
-var _fogSceneJs = require("./FogScene.js");
-var _fogSceneJsDefault = parcelHelpers.interopDefault(_fogSceneJs);
-var _fogScene2Js = require("./FogScene2.js");
-var _fogScene2JsDefault = parcelHelpers.interopDefault(_fogScene2Js);
-var _simpleSceneJs = require("./SimpleScene.js");
-var _simpleSceneJsDefault = parcelHelpers.interopDefault(_simpleSceneJs);
-var _particleSystemWithLightingJs = require("./ParticleSystemWithLighting.js");
-var _particleSystemWithLightingJsDefault = parcelHelpers.interopDefault(_particleSystemWithLightingJs);
-var _grassSceneJs = require("./GrassScene.js");
-var _grassSceneJsDefault = parcelHelpers.interopDefault(_grassSceneJs);
 var _grassJs = require("./shaders/grass.js");
 var _grassJsDefault = parcelHelpers.interopDefault(_grassJs);
 var _grassColorPng = require("../img/grassColor.png");
@@ -624,8 +614,8 @@ var _introvideoWebm = require("../img/introvideo.webm");
 var _introvideoWebmDefault = parcelHelpers.interopDefault(_introvideoWebm);
 var _contentJson = require("./content.json");
 var _contentJsonDefault = parcelHelpers.interopDefault(_contentJson);
-var _particleSystemJs = require("./ParticleSystem.js");
-var _particleSystemJsDefault = parcelHelpers.interopDefault(_particleSystemJs);
+var _grassSceneJs = require("./GrassScene.js");
+var _grassSceneJsDefault = parcelHelpers.interopDefault(_grassSceneJs);
 //var CSSScroll = require('css-scroll')
 //import CSSScroll from "css-scroll";
 //import getPrefixedStyle from 'get-prefixed-style';
@@ -785,6 +775,18 @@ const observerCallback = (entries)=>{
 const observer = new IntersectionObserver(observerCallback, observerOptions);
 const targetElement = document.getElementById("container-opening-scene");
 observer.observe(targetElement);
+// Intersection Observer setup for contact scene
+//intersection observer for detecting opening scene out of view
+const observerContactSceneCallback = (entries)=>{
+    entries.forEach((entry)=>{
+        if (entry.isIntersecting) // Start or resume animation
+        grassScene.startRendering();
+        else // Pause animation
+        grassScene.stopRendering();
+    });
+};
+const observerContactScene = new IntersectionObserver(observerContactSceneCallback, observerOptions);
+observerContactScene.observe(grassContainer);
 //intersection observer for changing button text content
 const navBtn1 = document.getElementById("btn1");
 const navBtn2 = document.getElementById("btn2");
@@ -1626,8 +1628,8 @@ controls.addEventListener("change", event => {
     //console.log(controls.object.position);
 });
 //console.log('here');
-*/ const axesHelper = new _three.AxesHelper(1000);
-scene.add(axesHelper);
+*/ //const axesHelper = new THREE.AxesHelper(1000);
+//scene.add(axesHelper);
 /********************************************************************
 // Set Field Border Constraints
 ********************************************************************/ /********************************************************************
@@ -1868,24 +1870,19 @@ function assignChunkToWorker(worker, chunk) {
         }
     };
 }
-/*
 // Create the worker pool
-for (let i = 0; i < workerPoolSize; i++) {
-    const worker = new Worker(
-        new URL('worker.js', import.meta.url),
-        { type: 'module' }
-    );
+for(let i = 0; i < workerPoolSize; i++){
+    const worker = new Worker(require("73d37e91c71236a0"));
     workers.push(worker);
 }
-
 // Start processing the chunks with workers
-workers.forEach(worker => {
+workers.forEach((worker)=>{
     if (chunkQueue.length > 0) {
         const chunk = chunkQueue.shift();
         assignChunkToWorker(worker, chunk);
     }
 });
-*/ function animate() {
+function animate() {
     renderer.setAnimationLoop(animate);
     checkOrientation();
     //const delta = clock.getDelta();
@@ -1929,7 +1926,7 @@ workers.forEach(worker => {
 //stats.update();
 } //fnStartRendering();
 
-},{"three":"ktPTu","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader":"dVRsF","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./FogScene.js":"3eMIc","./FogScene2.js":"5ECYr","./SimpleScene.js":"lqZjn","./ParticleSystemWithLighting.js":"5QZ6c","./GrassScene.js":"a5jmZ","./shaders/grass.js":"cNzyR","../img/grassColor.png":"f6f8d","../img/introvideo.webm":"iF6OC","./content.json":"24cue","./ParticleSystem.js":"2AK05","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"ktPTu":[function(require,module,exports) {
+},{"three":"ktPTu","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader":"dVRsF","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./GrassScene.js":"a5jmZ","./shaders/grass.js":"cNzyR","../img/grassColor.png":"f6f8d","../img/introvideo.webm":"iF6OC","./content.json":"24cue","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","73d37e91c71236a0":"02A2s"}],"ktPTu":[function(require,module,exports) {
 /**
  * @license
  * Copyright 2010-2024 Three.js Authors
@@ -41885,411 +41882,7 @@ class Lenis {
     }
 }
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"e0AFw":[function() {},{}],"3eMIc":[function(require,module,exports) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-var _three = require("three");
-var _smokePng = require("../img/smoke.png");
-var _smokePngDefault = parcelHelpers.interopDefault(_smokePng);
-class FogScene {
-    constructor(container){
-        this.container = container;
-        // Load texture for the fog
-        const textureLoader = new _three.TextureLoader();
-        this.texture = textureLoader.load((0, _smokePngDefault.default)); // Adjust the path to your smoke texture
-        // Scene setup
-        this.scene = new _three.Scene();
-        this.camera = new _three.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        this.camera.position.z = 5;
-        this.renderer = new _three.WebGLRenderer({
-            alpha: true
-        });
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.container.appendChild(this.renderer.domElement);
-        // Track mouse movement
-        this.mouse = new _three.Vector2(0, 0);
-        window.addEventListener("mousemove", (event)=>{
-            this.mouse.x = event.clientX / window.innerWidth * 2 - 1;
-            this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-        });
-        // Create the fog
-        this.createFog();
-        // Start the animation loop
-        this.animate();
-    }
-    createFog() {
-        const particleCount = 50;
-        // Create buffer geometry
-        const geometry = new _three.BufferGeometry();
-        const positions = new Float32Array(particleCount * 3);
-        const uvs = new Float32Array(particleCount * 2);
-        const colors = new Float32Array(particleCount * 3);
-        for(let i = 0; i < particleCount; i++){
-            // Set random positions
-            positions[i * 3] = (Math.random() - 0.5) * 10; // x
-            positions[i * 3 + 1] = (Math.random() - 0.5) * 10; // y
-            positions[i * 3 + 2] = (Math.random() - 0.5) * 10; // z
-            // Set UV coordinates for the texture
-            uvs[i * 2] = Math.random();
-            uvs[i * 2 + 1] = Math.random();
-            // Set random colors (white-ish)
-            colors[i * 3] = Math.random() * 0.5 + 0.5; // R
-            colors[i * 3 + 1] = Math.random() * 0.5 + 0.5; // G
-            colors[i * 3 + 2] = Math.random() * 0.5 + 0.5; // B
-        }
-        geometry.setAttribute("position", new _three.BufferAttribute(positions, 3));
-        //geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
-        // Create points material
-        this.material = new _three.PointsMaterial({
-            size: 5.0,
-            vertexColors: false,
-            transparent: true,
-            map: this.texture,
-            depthWrite: false,
-            opacity: 0.2
-        });
-        // Create points
-        this.points = new _three.Points(geometry, this.material);
-        this.scene.add(this.points);
-    }
-    animate() {
-        // Update positions based on mouse movement
-        this.points.rotation.x += 0.001; // Optional rotation for dynamic effect
-        this.points.rotation.y += 0.001;
-        // Simple turbulence effect by updating positions slightly based on mouse
-        const positions = this.points.geometry.attributes.position.array;
-        for(let i = 0; i < positions.length; i += 3)positions[i + 2] += Math.sin(positions[i] * 2 + this.mouse.x * 5) * 0.01; // Add some turbulence
-        this.points.geometry.attributes.position.needsUpdate = true; // Notify Three.js that the position has changed
-        requestAnimationFrame(()=>this.animate());
-        this.renderer.render(this.scene, this.camera);
-    }
-}
-exports.default = FogScene;
-
-},{"three":"ktPTu","../img/smoke.png":"d3T18","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"d3T18":[function(require,module,exports) {
-module.exports = require("955a60be9a36e43c").getBundleURL("g05j8") + "smoke.485bc125.png" + "?" + Date.now();
-
-},{"955a60be9a36e43c":"lgJ39"}],"lgJ39":[function(require,module,exports) {
-"use strict";
-var bundleURL = {};
-function getBundleURLCached(id) {
-    var value = bundleURL[id];
-    if (!value) {
-        value = getBundleURL();
-        bundleURL[id] = value;
-    }
-    return value;
-}
-function getBundleURL() {
-    try {
-        throw new Error();
-    } catch (err) {
-        var matches = ("" + err.stack).match(/(https?|file|ftp|(chrome|moz|safari-web)-extension):\/\/[^)\n]+/g);
-        if (matches) // The first two stack frames will be this function and getBundleURLCached.
-        // Use the 3rd one, which will be a runtime in the original bundle.
-        return getBaseURL(matches[2]);
-    }
-    return "/";
-}
-function getBaseURL(url) {
-    return ("" + url).replace(/^((?:https?|file|ftp|(chrome|moz|safari-web)-extension):\/\/.+)\/[^/]+$/, "$1") + "/";
-}
-// TODO: Replace uses with `new URL(url).origin` when ie11 is no longer supported.
-function getOrigin(url) {
-    var matches = ("" + url).match(/(https?|file|ftp|(chrome|moz|safari-web)-extension):\/\/[^/]+/);
-    if (!matches) throw new Error("Origin not found");
-    return matches[0];
-}
-exports.getBundleURL = getBundleURLCached;
-exports.getBaseURL = getBaseURL;
-exports.getOrigin = getOrigin;
-
-},{}],"5ECYr":[function(require,module,exports) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-var _three = require("three");
-var _smokePng = require("../img/smoke.png");
-var _smokePngDefault = parcelHelpers.interopDefault(_smokePng);
-class FogScene {
-    constructor(container){
-        this.container = container;
-        const textureLoader = new _three.TextureLoader();
-        this.texture = textureLoader.load((0, _smokePngDefault.default)); // Adjust the path to your smoke texture
-        // Scene setup
-        this.scene = new _three.Scene();
-        this.camera = new _three.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        this.camera.position.z = 5;
-        this.renderer = new _three.WebGLRenderer({
-            alpha: true
-        });
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.container.appendChild(this.renderer.domElement);
-        // Track mouse movement
-        this.mouse = new _three.Vector2(0, 0);
-        window.addEventListener("mousemove", (event)=>{
-            this.mouse.x = event.clientX / window.innerWidth * 2 - 1;
-            this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-        });
-        // Create the fog
-        this.createFog();
-        // Start the animation loop
-        this.animate();
-    }
-    createFog() {
-        const particleCount = 50;
-        // Create buffer geometry
-        const geometry = new _three.BufferGeometry();
-        const positions = new Float32Array(particleCount * 3);
-        const uvs = new Float32Array(particleCount * 2);
-        const sizes = new Float32Array(particleCount);
-        for(let i = 0; i < particleCount; i++){
-            // Set random positions
-            positions[i * 3] = (Math.random() - 0.5) * 10; // x
-            positions[i * 3 + 1] = (Math.random() - 0.5) * 10; // y
-            positions[i * 3 + 2] = (Math.random() - 0.5) * 10; // z
-            // Set UV coordinates for the texture
-            uvs[i * 2] = Math.random();
-            uvs[i * 2 + 1] = Math.random();
-            // Set random sizes
-            sizes[i] = Math.random(); // Size can be adjusted if needed
-        }
-        geometry.setAttribute("position", new _three.BufferAttribute(positions, 3));
-        geometry.setAttribute("uv", new _three.BufferAttribute(uvs, 2));
-        geometry.setAttribute("size", new _three.BufferAttribute(sizes, 1));
-        // Load texture for the fog
-        // Create shader material
-        this.material = new _three.ShaderMaterial({
-            uniforms: {
-                time: {
-                    value: 0
-                },
-                mouse: {
-                    value: new _three.Vector2()
-                },
-                texture1: {
-                    value: this.texture
-                }
-            },
-            vertexShader: `
-        uniform float time;
-        uniform vec2 mouse;
-        attribute float size;
-        varying vec2 vUv;
-
-        void main() {
-          vUv = uv;
-
-          // Calculate turbulence based on mouse position
-          vec3 pos = position;
-          float turbulence = sin(pos.x * 5.0 + time + mouse.x * 5.0) * 0.2; // Adjust turbulence effect
-          pos.z += turbulence;
-
-          // Set the position
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-          gl_PointSize = size * 1.0; // Size of each point
-        }
-      `,
-            fragmentShader: `
-        uniform sampler2D texture1;
-        varying vec2 vUv;
-
-        void main() {
-          vec4 texColor = texture2D(texture1, vUv);
-          gl_FragColor = vec4(texColor.rgb, texColor.a * 1.0); // Control transparency
-          //gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0); // Control transparency
-        }
-      `,
-            transparent: true,
-            vertexColors: true,
-            depthWrite: false,
-            opacity: 0.6
-        });
-        // Create instanced mesh
-        this.instancedMesh = new _three.Mesh(geometry, this.material);
-        this.scene.add(this.instancedMesh);
-    }
-    animate() {
-        this.material.uniforms.time.value += 0.05; // Update time for animation
-        this.material.uniforms.mouse.value.copy(this.mouse); // Update mouse position
-        requestAnimationFrame(()=>this.animate());
-        this.renderer.render(this.scene, this.camera);
-    }
-}
-exports.default = FogScene;
-
-},{"three":"ktPTu","../img/smoke.png":"d3T18","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"lqZjn":[function(require,module,exports) {
-// SimpleScene.js
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-var _three = require("three");
-class SimpleScene {
-    constructor(container){
-        this.container = container;
-        // Create the scene
-        this.scene = new _three.Scene();
-        // Create the camera
-        this.camera = new _three.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        this.camera.position.z = 5; // Move the camera back
-        // Create the renderer
-        this.renderer = new _three.WebGLRenderer();
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.container.appendChild(this.renderer.domElement);
-        // Create a simple cube
-        const geometry = new _three.BoxGeometry();
-        const material = new _three.MeshBasicMaterial({
-            color: 0x00ff00
-        }); // Green color
-        this.cube = new _three.Mesh(geometry, material);
-        this.scene.add(this.cube);
-        // Event listener for resizing
-        window.addEventListener("resize", ()=>this.onWindowResize(), false);
-        // Start the animation loop
-        this.animate();
-    }
-    // Animation loop
-    animate() {
-        requestAnimationFrame(()=>this.animate());
-        // Rotate the cube
-        this.cube.rotation.x += 0.01;
-        this.cube.rotation.y += 0.01;
-        // Render the scene
-        this.renderer.render(this.scene, this.camera);
-    }
-    // Handle window resize
-    onWindowResize() {
-        this.camera.aspect = window.innerWidth / window.innerHeight;
-        this.camera.updateProjectionMatrix();
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-}
-exports.default = SimpleScene;
-
-},{"three":"ktPTu","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"5QZ6c":[function(require,module,exports) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-var _three = require("three");
-var _smokePng = require("../img/smoke.png");
-var _smokePngDefault = parcelHelpers.interopDefault(_smokePng);
-var _vanilla = require("three-custom-shader-material/vanilla");
-var _vanillaDefault = parcelHelpers.interopDefault(_vanilla);
-class ParticleSystemWithLighting {
-    constructor(container){
-        this.container = container;
-        // Scene setup
-        this.scene = new _three.Scene();
-        this.camera = new _three.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        this.camera.position.z = 5;
-        this.renderer = new _three.WebGLRenderer({
-            alpha: true
-        });
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.container.appendChild(this.renderer.domElement);
-        // Add light
-        this.light = new _three.PointLight(0xffffff, 500, 1);
-        this.light.position.set(0, 0, -4);
-        this.scene.add(this.light);
-        this.light2 = new _three.PointLight(0xff0000, 5, 50);
-        this.light2.position.set(0, 0, -2);
-        //this.scene.add(this.light2);
-        const lightAm = new _three.AmbientLight(0xff0000, 0.9); // soft white light
-        this.scene.add(lightAm);
-        // Load the texture
-        //const loader = new THREE.TextureLoader();
-        //loader.load(smokeTexture, (texture) => {
-        //  this.texture = texture;
-        this.createParticles();
-        this.animate();
-    //});
-    }
-    createParticles() {
-        const particleCount = 100;
-        this.textureLoader = new _three.TextureLoader();
-        this.texture = this.textureLoader.load((0, _smokePngDefault.default));
-        // Create buffer geometry
-        const geometry = new _three.BufferGeometry();
-        const positions = new Float32Array(particleCount * 3);
-        const sizes = new Float32Array(particleCount); // Array for sizes
-        const uvs = new Float32Array(particleCount * 2);
-        for(let i = 0; i < particleCount; i++){
-            // Set random positions
-            positions[i * 3] = (Math.random() - 0.5) * 10; // x
-            positions[i * 3 + 1] = (Math.random() - 0.5) * 10; // y
-            positions[i * 3 + 2] = (Math.random() - 0.5) * 10; // z
-            uvs[i * 2] = Math.random();
-            uvs[i * 2 + 1] = Math.random();
-            // Set random sizes between 0.05 and 0.5
-            sizes[i] = Math.random() * 0.45 + 1.0; // Size
-        }
-        geometry.setAttribute("position", new _three.BufferAttribute(positions, 3));
-        geometry.setAttribute("size", new _three.BufferAttribute(sizes, 1)); // Set size attribute
-        geometry.setAttribute("uv", new _three.BufferAttribute(uvs, 2));
-        // Create custom shader material with texture
-        const material = new (0, _vanillaDefault.default)({
-            baseMaterial: _three.MeshStandardMaterial,
-            uniforms: {
-                pointSize: {
-                    value: 1.0
-                },
-                texture1: {
-                    value: this.texture
-                }
-            },
-            vertexShader: `
-            varying vec2 vUv;
-            void main() {
-                    vUv = uv;
-                // Set the final position of the vertex
-                csm_PositionRaw = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-}               //csm_PointSize = 10.0;
-      `,
-            fragmentShader: `
- 
-        varying vec2 vUv;
-        //uniform vec3 color;
-        uniform sampler2D texture1; // Smoke texture
-        
-
-        void main() {
-            // Sample the diffuse color texture
-    vec4 diffuseColor = texture2D(texture1, vUv);
-
-    // Sample the alpha map (using the same UVs)
-    float alpha = texture2D(texture1, vUv).r; // Use red channel for alpha (grayscale)
-
-    // Apply the alpha value from the alpha map to the diffuse color
-    diffuseColor.a = alpha;
-
-    // Discard fragments with zero alpha (optional)
-    if (diffuseColor.a < 0.01) discard;
-
-    // Output the final color
-    //gl_FragColor = diffuseColor;
-          csm_DiffuseColor = diffuseColor;
-        }
-      `,
-            transparent: true,
-            alphaMap: this.texture,
-            silent: true,
-            vertexColors: true,
-            //side: THREE.DoubleSide,
-            wireframe: false,
-            depthWrite: false
-        });
-        // Create points
-        this.points = new _three.Mesh(geometry, material);
-        this.scene.add(this.points);
-    }
-    animate() {
-        // Rotate the particles for dynamic effect
-        //this.points.rotation.x += 0.001;
-        this.points.rotation.y += 0.001;
-        requestAnimationFrame(()=>this.animate());
-        this.renderer.render(this.scene, this.camera);
-    }
-}
-exports.default = ParticleSystemWithLighting;
-
-},{"three":"ktPTu","../img/smoke.png":"d3T18","three-custom-shader-material/vanilla":"7rL7K","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"a5jmZ":[function(require,module,exports) {
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"e0AFw":[function() {},{}],"a5jmZ":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 var _three = require("three");
@@ -42317,6 +41910,10 @@ class GrassScene {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.container.appendChild(this.renderer.domElement);
         window.addEventListener("resize", ()=>this.onWindowResize(), false);
+        document.addEventListener("visibilitychange", ()=>{
+            if (document.hidden) this.stopRendering();
+            else this.startRendering();
+        });
         this.renderer.setPixelRatio(1.0);
         this.renderer.outputEncoding = _three.SRGBColorSpace;
         this.renderer.toneMapping = _three.ACESFilmicToneMapping;
@@ -42348,6 +41945,7 @@ class GrassScene {
         this.loadModel();
         // Start animation loop
         this.animate();
+    //this.stopRendering();
     }
     setupHDR() {
         const loader = new (0, _rgbeloaderJs.RGBELoader)();
@@ -42490,7 +42088,8 @@ class GrassScene {
     }
     // Animation loop
     animate() {
-        requestAnimationFrame(()=>this.animate());
+        this.renderer.setAnimationLoop(()=>this.animate());
+        //requestAnimationFrame(() => this.animate());
         // Update the shader uniform time for animation
         const elapsedTime = this.clock.getElapsedTime();
         this.scene.traverse((object)=>{
@@ -42505,6 +42104,12 @@ class GrassScene {
         this.camera.aspect = window.innerWidth / window.innerHeight;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+    startRendering() {
+        this.renderer.setAnimationLoop(()=>this.animate());
+    }
+    stopRendering() {
+        this.renderer.setAnimationLoop(null);
     }
 }
 exports.default = GrassScene;
@@ -42882,7 +42487,42 @@ class DRACOLoader extends (0, _three.Loader) {
 },{"three":"ktPTu","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"3HJFe":[function(require,module,exports) {
 module.exports = require("cc56433803bbd96b").getBundleURL("g05j8") + "albedo.169f4e8d.webp" + "?" + Date.now();
 
-},{"cc56433803bbd96b":"lgJ39"}],"eP17o":[function(require,module,exports) {
+},{"cc56433803bbd96b":"lgJ39"}],"lgJ39":[function(require,module,exports) {
+"use strict";
+var bundleURL = {};
+function getBundleURLCached(id) {
+    var value = bundleURL[id];
+    if (!value) {
+        value = getBundleURL();
+        bundleURL[id] = value;
+    }
+    return value;
+}
+function getBundleURL() {
+    try {
+        throw new Error();
+    } catch (err) {
+        var matches = ("" + err.stack).match(/(https?|file|ftp|(chrome|moz|safari-web)-extension):\/\/[^)\n]+/g);
+        if (matches) // The first two stack frames will be this function and getBundleURLCached.
+        // Use the 3rd one, which will be a runtime in the original bundle.
+        return getBaseURL(matches[2]);
+    }
+    return "/";
+}
+function getBaseURL(url) {
+    return ("" + url).replace(/^((?:https?|file|ftp|(chrome|moz|safari-web)-extension):\/\/.+)\/[^/]+$/, "$1") + "/";
+}
+// TODO: Replace uses with `new URL(url).origin` when ie11 is no longer supported.
+function getOrigin(url) {
+    var matches = ("" + url).match(/(https?|file|ftp|(chrome|moz|safari-web)-extension):\/\/[^/]+/);
+    if (!matches) throw new Error("Origin not found");
+    return matches[0];
+}
+exports.getBundleURL = getBundleURLCached;
+exports.getBaseURL = getBaseURL;
+exports.getOrigin = getOrigin;
+
+},{}],"eP17o":[function(require,module,exports) {
 module.exports = require("8a393e804b2800b3").getBundleURL("g05j8") + "Normal.3ce5a148.webp" + "?" + Date.now();
 
 },{"8a393e804b2800b3":"lgJ39"}],"cNzyR":[function(require,module,exports) {
@@ -42912,85 +42552,29 @@ module.exports = require("8dabffa2ef0f7b19").getBundleURL("g05j8") + "introvideo
 },{"8dabffa2ef0f7b19":"lgJ39"}],"24cue":[function(require,module,exports) {
 module.exports = JSON.parse('{"glass":{"title":"The Virtual Glass Harmonica","video_ref":"./assets/glass/video.webm","main_txt":"Together with a fellow peer, the design and development of the virtual glass harmonica was a project completed for the <span class=\'color-glass\'>Danish Music Museum</span>. As part of the <i>Music History - Taken out of the Box</i> project, funded by the Augustinus Foundation, it explores the use of <span class=\'color-glass\'>Virtual Reality</span> to resurrect a forgotten instrument and present its history, sound, and interaction through an immersive virtual environment. The installation can be experienced at the Music Museum, where qualitative evaluations have shown that it establishes a good connection between the virtual instrument and the physical 1780-era glass harmonica on display.","client":"Danish Music Museum","tech":"Unity-C# | Blender | Meta Quest 2 Standalone | Handtracking | Shadergraph","publications":"<h4><a href=\'https://link.springer.com/chapter/10.1007/978-3-031-55312-7_16\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>ArtsIT, Interactivity and Game Creation 2023</a></h4> <h4><a href=\'https://doi.org/10.5281/zenodo.6822203\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>Sound and Music Computing Conference 2022</a></h4>","images":["./assets/glass/showcase-img1.webp","./assets/glass/showcase-img2.webp","./assets/glass/showcase-img3.webp"],"images_alt":["The virtual reality experience leverages the handtracking capabilities of the meta quest 2 device. Virtual environment capture.","Virtual environemnt capture showing interactive buttons for initiating tutorial and storytelling by Benjamin Franklin.","Photograph of excited visitor trying the virtual reality experience, at the Danish Music Museum."]},"nature":{"title":"Through the Eyes of Nature","video_ref":"./assets/glass/video.webm","main_txt":"Together with a fellow peer, the design and development of the virtual glass harmonica was a project completed for the <span class=\'color-glass\'>Danish Music Museum</span>. As part of the <i>Music History - Taken out of the Box</i> project, funded by the Augustinus Foundation, it explores the use of <span class=\'color-glass\'>Virtual Reality</span> to resurrect a forgotten instrument and present its history, sound, and interaction through an immersive virtual environment. The installation can be experienced at the Music Museum, where qualitative evaluations have shown that it establishes a good connection between the virtual instrument and the physical 1780-era glass harmonica on display.","client":"Danish Music Museum","tech":"Unity | Blender | Meta Quest 2 Standalone | Handtracking | Shadergraph","images":["bg.webp","showcase-img1.webp","showcase-img1.webp","showcase-img1.webp"],"images-alt":["alt image 1","alt image 2","alt image 3"]},"dad":{"title":"Through the Eyes of Nature","video_ref":"./assets/dad/video.webm","main_txt":"Together with a fellow peer, the design and development of the virtual glass harmonica was a project completed for the <span class=\'color-glass\'>Danish Music Museum</span>. As part of the <i>Music History - Taken out of the Box</i> project, funded by the Augustinus Foundation, it explores the use of <span class=\'color-glass\'>Virtual Reality</span> to resurrect a forgotten instrument and present its history, sound, and interaction through an immersive virtual environment. The installation can be experienced at the Music Museum, where qualitative evaluations have shown that it establishes a good connection between the virtual instrument and the physical 1780-era glass harmonica on display.","client":"Danish National Museum","link":"<h4><a href=\'https://www.dad.natmus.dk/\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>DAD - Natmus</a></h4>","tech":"Unity | Blender | Meta Quest 2 Standalone | Handtracking | Shadergraph","images":["bg.webp","showcase-img1.webp","showcase-img1.webp","showcase-img1.webp"],"images-alt":["alt image 1","alt image 2","alt image 3"]}}');
 
-},{}],"2AK05":[function(require,module,exports) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-var _three = require("three");
-var _smokePng = require("../img/smoke.png");
-var _smokePngDefault = parcelHelpers.interopDefault(_smokePng);
-class ParticleSystem {
-    constructor(container){
-        this.container = container;
-        this.textureLoader = new _three.TextureLoader();
-        //const heightMap = textureLoader.load(displacementMap);
-        this.texture = this.textureLoader.load((0, _smokePngDefault.default));
-        // Scene setup
-        this.scene = new _three.Scene();
-        this.camera = new _three.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        this.camera.position.z = 5;
-        this.renderer = new _three.WebGLRenderer({
-            alpha: true
-        });
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.container.appendChild(this.renderer.domElement);
-        // Create the particles
-        this.createParticles();
-        // Start the animation loop
-        this.animate();
-    }
-    createParticles() {
-        const particleCount = 300;
-        // Create buffer geometry
-        const geometry = new _three.BufferGeometry();
-        const positions = new Float32Array(particleCount * 3);
-        const sizes = new Float32Array(particleCount);
-        const colors = new Float32Array(particleCount * 3);
-        for(let i = 0; i < particleCount; i++){
-            // Set random positions
-            positions[i * 3] = (Math.random() - 0.5) * 10; // x
-            positions[i * 3 + 1] = (Math.random() - 0.5) * 10; // y
-            positions[i * 3 + 2] = (Math.random() - 0.5) * 10; // z
-            // Set random colors (white-ish)
-            colors[i * 3] = Math.random() * 0.5 + 0.5; // R
-            colors[i * 3 + 1] = Math.random() * 0.5 + 0.5; // G
-            colors[i * 3 + 2] = Math.random() * 0.5 + 0.5; // B
-            // Set random sizes
-            sizes[i] = Math.random() * 80;
-        }
-        geometry.setAttribute("position", new _three.BufferAttribute(positions, 3));
-        geometry.setAttribute("color", new _three.BufferAttribute(colors, 3));
-        geometry.setAttribute("size", new _three.BufferAttribute(sizes, 1));
-        // Create points material
-        this.material = new _three.PointsMaterial({
-            size: 1.0,
-            vertexColors: true,
-            transparent: true,
-            map: this.texture,
-            depthWrite: false,
-            opacity: 0.2
-        });
-        // Create points
-        this.points = new _three.Points(geometry, this.material);
-        console.log(this.points);
-        this.scene.add(this.points);
-        this.sizes = sizes;
-        for(let i = 0; i < this.sizes.length; i++)this.material.size = this.sizes[i]; // Set size from the stored sizes
-        const light = new _three.PointLight(0xff0000, 1000, 100);
-        light.position.set(0, 0, 0);
-        this.scene.add(light);
-    }
-    animate() {
-        // Update particle sizes
-        //console.log(this.renderer.info);
-        // Rotate the particles for dynamic effect
-        ///this.points.rotation.x += 0.001;
-        this.points.rotation.y += 0.0002;
-        requestAnimationFrame(()=>this.animate());
-        this.renderer.render(this.scene, this.camera);
-    }
-}
-exports.default = ParticleSystem;
+},{}],"02A2s":[function(require,module,exports) {
+let workerURL = require("422b1475f0c5a287");
+let bundleURL = require("4d7efceec8fcf58b");
+let url = bundleURL.getBundleURL("g05j8") + "worker.795c99cd.js" + "?" + Date.now();
+module.exports = workerURL(url, bundleURL.getOrigin(url), false);
 
-},{"three":"ktPTu","../img/smoke.png":"d3T18","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}]},["l9Mez","ebWYT"], "ebWYT", "parcelRequire2041")
+},{"422b1475f0c5a287":"cn2gM","4d7efceec8fcf58b":"lgJ39"}],"cn2gM":[function(require,module,exports) {
+"use strict";
+module.exports = function(workerUrl, origin, isESM) {
+    if (origin === self.location.origin) // If the worker bundle's url is on the same origin as the document,
+    // use the worker bundle's own url.
+    return workerUrl;
+    else {
+        // Otherwise, create a blob URL which loads the worker bundle with `importScripts`.
+        var source = isESM ? "import " + JSON.stringify(workerUrl) + ";" : "importScripts(" + JSON.stringify(workerUrl) + ");";
+        return URL.createObjectURL(new Blob([
+            source
+        ], {
+            type: "application/javascript"
+        }));
+    }
+};
+
+},{}]},["l9Mez","ebWYT"], "ebWYT", "parcelRequire2041")
 
 //# sourceMappingURL=index.739bf03c.js.map
