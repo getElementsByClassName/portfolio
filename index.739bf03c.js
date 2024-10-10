@@ -624,7 +624,7 @@ var _grassSceneJsDefault = parcelHelpers.interopDefault(_grassSceneJs);
 ********************************************************************/ const grassContainer = document.getElementById("contact-scene");
 //const simple = new SimpleScene(fogContainer);
 //const particle = new ParticleSystem(fogContainer);
-//const grassScene = new GrassScene(grassContainer);
+const grassScene = new (0, _grassSceneJsDefault.default)(grassContainer);
 //window.addEventListener('resize', () => grassScene.onWindowResize(), false);
 /********************************************************************
 // Vanilla Javascript
@@ -779,11 +779,14 @@ observer.observe(targetElement);
 //intersection observer for detecting opening scene out of view
 const observerContactSceneCallback = (entries)=>{
     entries.forEach((entry)=>{
-        entry.isIntersecting;
+        if (entry.isIntersecting) // Start or resume animation
+        grassScene.startRendering();
+        else // Pause animation
+        grassScene.stopRendering();
     });
 };
 const observerContactScene = new IntersectionObserver(observerContactSceneCallback, observerOptions);
-//observerContactScene.observe(grassContainer);
+observerContactScene.observe(grassContainer);
 //intersection observer for changing button text content
 const navBtn1 = document.getElementById("btn1");
 const navBtn2 = document.getElementById("btn2");
