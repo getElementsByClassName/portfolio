@@ -1401,7 +1401,7 @@ const clock = new _three.Clock();
 let controlsIsLocked = false;
 let controls;
 // Create the FPS controller
-if (!visitedFromMobileDevice) controls = new (0, _pointerLockControlsJs.PointerLockControls)(camera, renderer.domElement);
+visitedFromMobileDevice;
 /*
 //intersection observer for detecting opening scene out of view
 const handleObserver = (entries) => {
@@ -1427,7 +1427,7 @@ const sceneObserver = new IntersectionObserver(handleObserver, obsOptions);
 sceneObserver.observe(targetElement);
 */ // Add event listeners for locking the pointer
 sectionScene.addEventListener("click", function() {
-    if (!controlsIsLocked && gameIsActive) {
+    if (!controlsIsLocked && gameIsActive && !visitedFromMobileDevice) {
         controls.lock();
         controlsIsLocked = true;
     } else {
@@ -1897,7 +1897,7 @@ function animate() {
         const cameraXZ = new _three.Vector2(cameraPosition.x, cameraPosition.z);
         //console.log(cameraXZ);
         const chunkPosition = chunk.position;
-        const chunkMiddlePosition = new _three.Vector2(chunkPosition.x + chunkSize / 2, chunkPosition.y + chunkSize / 2);
+        //const chunkMiddlePosition = new THREE.Vector2(chunkPosition.x + chunkSize / 2, chunkPosition.y + chunkSize / 2);
         //console.log(chunkMiddlePosition);
         const distance = cameraXZ.distanceTo(chunkPosition);
         if (!visitedFromMobileDevice) {
@@ -1924,7 +1924,8 @@ function animate() {
     customMaterial.uniforms.uTime.value += 0.005;
     renderer.render(scene, camera);
 //stats.update();
-} //fnStartRendering();
+}
+fnStartRendering();
 
 },{"three":"ktPTu","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader":"dVRsF","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./GrassScene.js":"a5jmZ","./shaders/grass.js":"cNzyR","../img/grassColor.png":"f6f8d","../img/introvideo.webm":"iF6OC","./content.json":"24cue","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","73d37e91c71236a0":"02A2s"}],"ktPTu":[function(require,module,exports) {
 /**
