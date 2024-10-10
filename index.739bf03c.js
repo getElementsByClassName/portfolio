@@ -605,6 +605,16 @@ var _statsModuleDefault = parcelHelpers.interopDefault(_statsModule);
 var _lenis = require("lenis");
 var _lenisDefault = parcelHelpers.interopDefault(_lenis);
 var _lenisCss = require("lenis/dist/lenis.css");
+var _fogSceneJs = require("./FogScene.js");
+var _fogSceneJsDefault = parcelHelpers.interopDefault(_fogSceneJs);
+var _fogScene2Js = require("./FogScene2.js");
+var _fogScene2JsDefault = parcelHelpers.interopDefault(_fogScene2Js);
+var _simpleSceneJs = require("./SimpleScene.js");
+var _simpleSceneJsDefault = parcelHelpers.interopDefault(_simpleSceneJs);
+var _particleSystemWithLightingJs = require("./ParticleSystemWithLighting.js");
+var _particleSystemWithLightingJsDefault = parcelHelpers.interopDefault(_particleSystemWithLightingJs);
+var _grassSceneJs = require("./GrassScene.js");
+var _grassSceneJsDefault = parcelHelpers.interopDefault(_grassSceneJs);
 var _grassJs = require("./shaders/grass.js");
 var _grassJsDefault = parcelHelpers.interopDefault(_grassJs);
 var _grassColorPng = require("../img/grassColor.png");
@@ -614,9 +624,18 @@ var _introvideoWebm = require("../img/introvideo.webm");
 var _introvideoWebmDefault = parcelHelpers.interopDefault(_introvideoWebm);
 var _contentJson = require("./content.json");
 var _contentJsonDefault = parcelHelpers.interopDefault(_contentJson);
+var _particleSystemJs = require("./ParticleSystem.js");
+var _particleSystemJsDefault = parcelHelpers.interopDefault(_particleSystemJs);
 //var CSSScroll = require('css-scroll')
 //import CSSScroll from "css-scroll";
 //import getPrefixedStyle from 'get-prefixed-style';
+/********************************************************************
+ // Fog background
+********************************************************************/ const grassContainer = document.getElementById("contact-scene");
+//const simple = new SimpleScene(fogContainer);
+//const particle = new ParticleSystem(fogContainer);
+const grassScene = new (0, _grassSceneJsDefault.default)(grassContainer);
+//window.addEventListener('resize', () => grassScene.onWindowResize(), false);
 /********************************************************************
 // Vanilla Javascript
 ********************************************************************/ /********************************************************************
@@ -629,7 +648,7 @@ const testTxt = document.getElementById("contact-txt");
 if (isMobileDevice()) visitedFromMobileDevice = true;
 else visitedFromMobileDevice = false;
 /********************************************************************
-// Check for Tab visibility
+ // Check for Tab visibility
 ********************************************************************/ let gameIsActive = true;
 function fnStartRendering() {
     renderer.setAnimationLoop(animate);
@@ -929,7 +948,6 @@ const grassBladesPerChunk = 15000;
 // Basic scene setup
 const scene = new _three.Scene();
 const camera = new _three.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 900);
-const cntOpeningScene = document.getElementById("container-opening-scene");
 const canvas = document.querySelector("canvas");
 //console.log(canvas)
 const renderer = new _three.WebGLRenderer({
@@ -945,15 +963,15 @@ renderer.toneMapping = _three.ACESFilmicToneMapping;
 //renderer.toneMapping = THREE.ReinhardToneMapping;
 renderer.toneMappingExposure = 0.95;
 //calc width and height
-const pixelRatio = window.devicePixelRatio;
-const canvasWidth = canvas.clientWidth * pixelRatio | 0;
-const canvasHeight = canvas.clientHeight * pixelRatio | 0;
+// const pixelRatio = window.devicePixelRatio;
+// const canvasWidth = canvas.clientWidth * pixelRatio | 0;
+// const canvasHeight = canvas.clientHeight * pixelRatio | 0;
 renderer.setSize(window.innerWidth, window.innerHeight);
 //cntOpeningScene.appendChild(renderer.domElement);
 //show stats, updated in animation loop
-const stats = (0, _statsModuleDefault.default)();
-stats.showPanel(0);
-document.body.appendChild(stats.dom);
+//const stats = Stats();
+//stats.showPanel(0);
+//document.body.appendChild(stats.dom);
 // Vertex and fragment shader code as strings
 const vertexShader = `
     varying float vPositionAlongLine;
@@ -1659,34 +1677,26 @@ instancedGeometryLOD1.attributes.position = bladeGeometryLOD1.attributes.positio
 instancedGeometryLOD1.attributes.uv = bladeGeometryLOD1.attributes.uv;
  
 */ // Shader material for grass blades
-const grassMaterial = new _three.ShaderMaterial({
+/*
+const grassMaterial = new THREE.ShaderMaterial({
     uniforms: {
-        time: {
-            value: 0.0
-        },
+        time: { value: 0.0 },
         //fogColor: { value: new THREE.Color(0x3a3f29) },
         //fogColor: { value: new THREE.Color(0x202020) },
-        fogColor: {
-            value: new _three.Color(0xc5c97d)
-        },
-        fogDensity: {
-            value: 0.0025
-        },
-        grassTexture: {
-            value: grassDiffuseMap
-        },
+        fogColor: { value: new THREE.Color(0xc5c97d) },
+        fogDensity: { value: 0.0025 },
+        grassTexture: { value: grassDiffuseMap },
         //cloudTexture: { type: 't', value: cloudMap },
-        fieldSize: {
-            value: FIELD_SIZE
-        }
+        fieldSize: { value: FIELD_SIZE },
     },
-    vertexShader: (0, _grassJsDefault.default).vert,
-    fragmentShader: (0, _grassJsDefault.default).frag,
-    side: _three.DoubleSide,
+    vertexShader: grassShader.vert,
+    fragmentShader: grassShader.frag,
+    side: THREE.DoubleSide,
     vertexColors: false,
     wireframe: false
+
 });
-//test custom-shader-material
+*/ //test custom-shader-material
 const grassMaterialTest = new (0, _vanillaDefault.default)({
     baseMaterial: _three.MeshStandardMaterial,
     uniforms: {
@@ -1858,19 +1868,24 @@ function assignChunkToWorker(worker, chunk) {
         }
     };
 }
+/*
 // Create the worker pool
-for(let i = 0; i < workerPoolSize; i++){
-    const worker = new Worker(require("73d37e91c71236a0"));
+for (let i = 0; i < workerPoolSize; i++) {
+    const worker = new Worker(
+        new URL('worker.js', import.meta.url),
+        { type: 'module' }
+    );
     workers.push(worker);
 }
+
 // Start processing the chunks with workers
-workers.forEach((worker)=>{
+workers.forEach(worker => {
     if (chunkQueue.length > 0) {
         const chunk = chunkQueue.shift();
         assignChunkToWorker(worker, chunk);
     }
 });
-function animate() {
+*/ function animate() {
     renderer.setAnimationLoop(animate);
     checkOrientation();
     //const delta = clock.getDelta();
@@ -1911,10 +1926,10 @@ function animate() {
     grassMaterialTest.uniforms.time.value += 0.01; // Update time for wind animation
     customMaterial.uniforms.uTime.value += 0.005;
     renderer.render(scene, camera);
-    stats.update();
+//stats.update();
 } //fnStartRendering();
 
-},{"three":"ktPTu","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader":"dVRsF","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./shaders/grass.js":"cNzyR","../img/grassColor.png":"f6f8d","../img/introvideo.webm":"iF6OC","./content.json":"24cue","73d37e91c71236a0":"02A2s","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"ktPTu":[function(require,module,exports) {
+},{"three":"ktPTu","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader":"dVRsF","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./FogScene.js":"3eMIc","./FogScene2.js":"5ECYr","./SimpleScene.js":"lqZjn","./ParticleSystemWithLighting.js":"5QZ6c","./GrassScene.js":"a5jmZ","./shaders/grass.js":"cNzyR","../img/grassColor.png":"f6f8d","../img/introvideo.webm":"iF6OC","./content.json":"24cue","./ParticleSystem.js":"2AK05","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"ktPTu":[function(require,module,exports) {
 /**
  * @license
  * Copyright 2010-2024 Three.js Authors
@@ -41870,28 +41885,91 @@ class Lenis {
     }
 }
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"e0AFw":[function() {},{}],"cNzyR":[function(require,module,exports) {
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"e0AFw":[function() {},{}],"3eMIc":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
-var _grassbladeTestVertGlsl = require("./glsl/grassbladeTest.vert.glsl");
-var _grassbladeTestVertGlslDefault = parcelHelpers.interopDefault(_grassbladeTestVertGlsl);
-var _grassbladeTestFragGlsl = require("./glsl/grassbladeTest.frag.glsl");
-var _grassbladeTestFragGlslDefault = parcelHelpers.interopDefault(_grassbladeTestFragGlsl);
-exports.default = {
-    frag: (0, _grassbladeTestFragGlslDefault.default),
-    vert: (0, _grassbladeTestVertGlslDefault.default)
-};
+var _three = require("three");
+var _smokePng = require("../img/smoke.png");
+var _smokePngDefault = parcelHelpers.interopDefault(_smokePng);
+class FogScene {
+    constructor(container){
+        this.container = container;
+        // Load texture for the fog
+        const textureLoader = new _three.TextureLoader();
+        this.texture = textureLoader.load((0, _smokePngDefault.default)); // Adjust the path to your smoke texture
+        // Scene setup
+        this.scene = new _three.Scene();
+        this.camera = new _three.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.camera.position.z = 5;
+        this.renderer = new _three.WebGLRenderer({
+            alpha: true
+        });
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.container.appendChild(this.renderer.domElement);
+        // Track mouse movement
+        this.mouse = new _three.Vector2(0, 0);
+        window.addEventListener("mousemove", (event)=>{
+            this.mouse.x = event.clientX / window.innerWidth * 2 - 1;
+            this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        });
+        // Create the fog
+        this.createFog();
+        // Start the animation loop
+        this.animate();
+    }
+    createFog() {
+        const particleCount = 50;
+        // Create buffer geometry
+        const geometry = new _three.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+        const uvs = new Float32Array(particleCount * 2);
+        const colors = new Float32Array(particleCount * 3);
+        for(let i = 0; i < particleCount; i++){
+            // Set random positions
+            positions[i * 3] = (Math.random() - 0.5) * 10; // x
+            positions[i * 3 + 1] = (Math.random() - 0.5) * 10; // y
+            positions[i * 3 + 2] = (Math.random() - 0.5) * 10; // z
+            // Set UV coordinates for the texture
+            uvs[i * 2] = Math.random();
+            uvs[i * 2 + 1] = Math.random();
+            // Set random colors (white-ish)
+            colors[i * 3] = Math.random() * 0.5 + 0.5; // R
+            colors[i * 3 + 1] = Math.random() * 0.5 + 0.5; // G
+            colors[i * 3 + 2] = Math.random() * 0.5 + 0.5; // B
+        }
+        geometry.setAttribute("position", new _three.BufferAttribute(positions, 3));
+        //geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+        // Create points material
+        this.material = new _three.PointsMaterial({
+            size: 5.0,
+            vertexColors: false,
+            transparent: true,
+            map: this.texture,
+            depthWrite: false,
+            opacity: 0.2
+        });
+        // Create points
+        this.points = new _three.Points(geometry, this.material);
+        this.scene.add(this.points);
+    }
+    animate() {
+        // Update positions based on mouse movement
+        this.points.rotation.x += 0.001; // Optional rotation for dynamic effect
+        this.points.rotation.y += 0.001;
+        // Simple turbulence effect by updating positions slightly based on mouse
+        const positions = this.points.geometry.attributes.position.array;
+        for(let i = 0; i < positions.length; i += 3)positions[i + 2] += Math.sin(positions[i] * 2 + this.mouse.x * 5) * 0.01; // Add some turbulence
+        this.points.geometry.attributes.position.needsUpdate = true; // Notify Three.js that the position has changed
+        requestAnimationFrame(()=>this.animate());
+        this.renderer.render(this.scene, this.camera);
+    }
+}
+exports.default = FogScene;
 
-},{"./glsl/grassbladeTest.vert.glsl":"h9wIl","./glsl/grassbladeTest.frag.glsl":"f3LHG","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"h9wIl":[function(require,module,exports) {
-module.exports = "uniform float time;\nuniform float windStrength;\nuniform sampler2D displacementMap;\nuniform float fieldSize;\nuniform float displacementScale;\n\nattribute vec3 offset;\nattribute float scale;\nattribute float normalizedHeight;\nattribute mat3 instanceRotationMatrix;\nattribute vec2 uvs; // Incoming UV coordinates\nvarying vec2 sendUV;\n//attribute float rotation;\nvarying vec2 vUv;\nvarying vec2 csm_cloudUV;\nvarying vec3 csm_vWorldPosition;\nvarying vec3 csm_vViewPosition;\nvarying float vHeight;\nvarying vec3 csm_vPosition;\n\nfloat hash(vec2 p) {\n    p = 50.0 * fract(p * 0.3183099 + vec2(0.71));\n    return -1.0 + 2.0 * fract(p.x * p.y * (p.x + p.y));\n}\n\nfloat noise(vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n    vec2 u = f * f * (3.0 - 2.0 * f);\n    \n    return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),\n               mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);\n}\n\nvoid main() {\n    precision highp float;\n#define GLSLIFY 1\n\n            //csm_vPosition = position;\n            //vUv = uv;\n            vUv = uv;\n            //cloudUV = uv;\n            //cloudUV.x += time / 200.;\n            //cloudUV.y += time / 100.;\n            vec3 transformedGrass = position * scale;\n            transformedGrass = instanceRotationMatrix * transformedGrass;\n            transformedGrass += offset;\n            //vec3 test = transformedGrass;\n\n            //vec3 positionTest = offset.xyz + vec3(position.x, 0.0, position.y);\n            csm_vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;\n            //vWorldPosition = worldPosition.xyz;\n            vHeight = position.y * normalizedHeight; \n            \n            // Use time and some arbitrary values to generate noise\n            float n = noise(vec2(time * 0.1, time * 0.05));\n\n            // Scale the noise value to be in the range [0.0, 0.2]\n            float varyingValue = n * 0.3;\n  \n            float noise = noise(offset.xz);\n\n            // varyingValue is now in the range [0.0, 0.2]\n            \n            float dispPower = 1.0 - cos( vHeight * 3.1416 / 0.35 );\n            transformedGrass.z += sin(offset.z * noise  + time * 2.0) * ((0.15 + varyingValue) * dispPower);\n            transformedGrass.x += sin(offset.x * noise  + time * 2.0) * ((0.15 + varyingValue) * dispPower);\n\n            //csm_PositionRaw = projectionMatrix * modelViewMatrix * vec4(transformedGrass, 1.0);\n            csm_Position = transformedGrass;\n            //csm_Position = position * scale * instanceRotationMatrix * vec3(1.0);\n   \n}\n\n";
+},{"three":"ktPTu","../img/smoke.png":"d3T18","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"d3T18":[function(require,module,exports) {
+module.exports = require("955a60be9a36e43c").getBundleURL("g05j8") + "smoke.485bc125.png" + "?" + Date.now();
 
-},{}],"f3LHG":[function(require,module,exports) {
-module.exports = "#define GLSLIFY 1\nuniform sampler2D grassTexture;\n//uniform sampler2D cloudTexture;\nuniform vec3 fogColor;\nuniform float fogDensity;\nuniform vec3 vCameraPosition;\nvarying vec2 vUv;\nvarying vec2 sendUV;\n//varying vec2 cloudUV;\nvarying vec3 vWorldPosition;\nvarying vec3 csm_vWorldPosition;\nvarying float vHeight;\nvarying vec3 vPosition;\n//varying vec3 vViewPosition;\nvarying vec4 csm_DiffuseColor;\n\nfloat contrast = 1.5;\nfloat brightness = 1.1;\n\nvoid main() {\n\n        //precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n    float depth = length(csm_vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    float fogFactor = 1.0 - exp(-fogDensity * depth);\n    fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv/100.0).rgb;\n    //textureColor = textureColor * vec3(brightness, brightness, brightness);\n    textureColor = mix(textureColor, topBladeColor, 0.35);\n    float height = clamp(vHeight, 0.0, 1.0);\n    textureColor *= height * height * height;\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n    //finalColor = mix(csm_DiffuseColor.rgb, topBladeColor, 1.0);\n    //csm_Emissive = textureColor;\n\n    csm_DiffuseColor = vec4(finalColor, 1.0);\n\n    /*\n    //precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n    float depth = length(vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    float fogFactor = 1.0 - exp(-fogDensity * depth);\n    fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv/1000.0).rgb;\n    textureColor = textureColor * vec3(brightness, brightness, brightness);\n    textureColor = mix(textureColor, topBladeColor, 0.75);\n    textureColor *= vHeight * vHeight;\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n\n    csm_DiffuseColor = vec4(finalColor, 1.0);\n    */\n\n}\n\n";
-
-},{}],"f6f8d":[function(require,module,exports) {
-module.exports = require("c8c3637be7158d53").getBundleURL("g05j8") + "grassColor.cd69343f.png" + "?" + Date.now();
-
-},{"c8c3637be7158d53":"lgJ39"}],"lgJ39":[function(require,module,exports) {
+},{"955a60be9a36e43c":"lgJ39"}],"lgJ39":[function(require,module,exports) {
 "use strict";
 var bundleURL = {};
 function getBundleURLCached(id) {
@@ -41926,35 +42004,993 @@ exports.getBundleURL = getBundleURLCached;
 exports.getBaseURL = getBaseURL;
 exports.getOrigin = getOrigin;
 
-},{}],"iF6OC":[function(require,module,exports) {
+},{}],"5ECYr":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _three = require("three");
+var _smokePng = require("../img/smoke.png");
+var _smokePngDefault = parcelHelpers.interopDefault(_smokePng);
+class FogScene {
+    constructor(container){
+        this.container = container;
+        const textureLoader = new _three.TextureLoader();
+        this.texture = textureLoader.load((0, _smokePngDefault.default)); // Adjust the path to your smoke texture
+        // Scene setup
+        this.scene = new _three.Scene();
+        this.camera = new _three.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.camera.position.z = 5;
+        this.renderer = new _three.WebGLRenderer({
+            alpha: true
+        });
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.container.appendChild(this.renderer.domElement);
+        // Track mouse movement
+        this.mouse = new _three.Vector2(0, 0);
+        window.addEventListener("mousemove", (event)=>{
+            this.mouse.x = event.clientX / window.innerWidth * 2 - 1;
+            this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        });
+        // Create the fog
+        this.createFog();
+        // Start the animation loop
+        this.animate();
+    }
+    createFog() {
+        const particleCount = 50;
+        // Create buffer geometry
+        const geometry = new _three.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+        const uvs = new Float32Array(particleCount * 2);
+        const sizes = new Float32Array(particleCount);
+        for(let i = 0; i < particleCount; i++){
+            // Set random positions
+            positions[i * 3] = (Math.random() - 0.5) * 10; // x
+            positions[i * 3 + 1] = (Math.random() - 0.5) * 10; // y
+            positions[i * 3 + 2] = (Math.random() - 0.5) * 10; // z
+            // Set UV coordinates for the texture
+            uvs[i * 2] = Math.random();
+            uvs[i * 2 + 1] = Math.random();
+            // Set random sizes
+            sizes[i] = Math.random(); // Size can be adjusted if needed
+        }
+        geometry.setAttribute("position", new _three.BufferAttribute(positions, 3));
+        geometry.setAttribute("uv", new _three.BufferAttribute(uvs, 2));
+        geometry.setAttribute("size", new _three.BufferAttribute(sizes, 1));
+        // Load texture for the fog
+        // Create shader material
+        this.material = new _three.ShaderMaterial({
+            uniforms: {
+                time: {
+                    value: 0
+                },
+                mouse: {
+                    value: new _three.Vector2()
+                },
+                texture1: {
+                    value: this.texture
+                }
+            },
+            vertexShader: `
+        uniform float time;
+        uniform vec2 mouse;
+        attribute float size;
+        varying vec2 vUv;
+
+        void main() {
+          vUv = uv;
+
+          // Calculate turbulence based on mouse position
+          vec3 pos = position;
+          float turbulence = sin(pos.x * 5.0 + time + mouse.x * 5.0) * 0.2; // Adjust turbulence effect
+          pos.z += turbulence;
+
+          // Set the position
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+          gl_PointSize = size * 1.0; // Size of each point
+        }
+      `,
+            fragmentShader: `
+        uniform sampler2D texture1;
+        varying vec2 vUv;
+
+        void main() {
+          vec4 texColor = texture2D(texture1, vUv);
+          gl_FragColor = vec4(texColor.rgb, texColor.a * 1.0); // Control transparency
+          //gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0); // Control transparency
+        }
+      `,
+            transparent: true,
+            vertexColors: true,
+            depthWrite: false,
+            opacity: 0.6
+        });
+        // Create instanced mesh
+        this.instancedMesh = new _three.Mesh(geometry, this.material);
+        this.scene.add(this.instancedMesh);
+    }
+    animate() {
+        this.material.uniforms.time.value += 0.05; // Update time for animation
+        this.material.uniforms.mouse.value.copy(this.mouse); // Update mouse position
+        requestAnimationFrame(()=>this.animate());
+        this.renderer.render(this.scene, this.camera);
+    }
+}
+exports.default = FogScene;
+
+},{"three":"ktPTu","../img/smoke.png":"d3T18","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"lqZjn":[function(require,module,exports) {
+// SimpleScene.js
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _three = require("three");
+class SimpleScene {
+    constructor(container){
+        this.container = container;
+        // Create the scene
+        this.scene = new _three.Scene();
+        // Create the camera
+        this.camera = new _three.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.camera.position.z = 5; // Move the camera back
+        // Create the renderer
+        this.renderer = new _three.WebGLRenderer();
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.container.appendChild(this.renderer.domElement);
+        // Create a simple cube
+        const geometry = new _three.BoxGeometry();
+        const material = new _three.MeshBasicMaterial({
+            color: 0x00ff00
+        }); // Green color
+        this.cube = new _three.Mesh(geometry, material);
+        this.scene.add(this.cube);
+        // Event listener for resizing
+        window.addEventListener("resize", ()=>this.onWindowResize(), false);
+        // Start the animation loop
+        this.animate();
+    }
+    // Animation loop
+    animate() {
+        requestAnimationFrame(()=>this.animate());
+        // Rotate the cube
+        this.cube.rotation.x += 0.01;
+        this.cube.rotation.y += 0.01;
+        // Render the scene
+        this.renderer.render(this.scene, this.camera);
+    }
+    // Handle window resize
+    onWindowResize() {
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+}
+exports.default = SimpleScene;
+
+},{"three":"ktPTu","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"5QZ6c":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _three = require("three");
+var _smokePng = require("../img/smoke.png");
+var _smokePngDefault = parcelHelpers.interopDefault(_smokePng);
+var _vanilla = require("three-custom-shader-material/vanilla");
+var _vanillaDefault = parcelHelpers.interopDefault(_vanilla);
+class ParticleSystemWithLighting {
+    constructor(container){
+        this.container = container;
+        // Scene setup
+        this.scene = new _three.Scene();
+        this.camera = new _three.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.camera.position.z = 5;
+        this.renderer = new _three.WebGLRenderer({
+            alpha: true
+        });
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.container.appendChild(this.renderer.domElement);
+        // Add light
+        this.light = new _three.PointLight(0xffffff, 500, 1);
+        this.light.position.set(0, 0, -4);
+        this.scene.add(this.light);
+        this.light2 = new _three.PointLight(0xff0000, 5, 50);
+        this.light2.position.set(0, 0, -2);
+        //this.scene.add(this.light2);
+        const lightAm = new _three.AmbientLight(0xff0000, 0.9); // soft white light
+        this.scene.add(lightAm);
+        // Load the texture
+        //const loader = new THREE.TextureLoader();
+        //loader.load(smokeTexture, (texture) => {
+        //  this.texture = texture;
+        this.createParticles();
+        this.animate();
+    //});
+    }
+    createParticles() {
+        const particleCount = 100;
+        this.textureLoader = new _three.TextureLoader();
+        this.texture = this.textureLoader.load((0, _smokePngDefault.default));
+        // Create buffer geometry
+        const geometry = new _three.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+        const sizes = new Float32Array(particleCount); // Array for sizes
+        const uvs = new Float32Array(particleCount * 2);
+        for(let i = 0; i < particleCount; i++){
+            // Set random positions
+            positions[i * 3] = (Math.random() - 0.5) * 10; // x
+            positions[i * 3 + 1] = (Math.random() - 0.5) * 10; // y
+            positions[i * 3 + 2] = (Math.random() - 0.5) * 10; // z
+            uvs[i * 2] = Math.random();
+            uvs[i * 2 + 1] = Math.random();
+            // Set random sizes between 0.05 and 0.5
+            sizes[i] = Math.random() * 0.45 + 1.0; // Size
+        }
+        geometry.setAttribute("position", new _three.BufferAttribute(positions, 3));
+        geometry.setAttribute("size", new _three.BufferAttribute(sizes, 1)); // Set size attribute
+        geometry.setAttribute("uv", new _three.BufferAttribute(uvs, 2));
+        // Create custom shader material with texture
+        const material = new (0, _vanillaDefault.default)({
+            baseMaterial: _three.MeshStandardMaterial,
+            uniforms: {
+                pointSize: {
+                    value: 1.0
+                },
+                texture1: {
+                    value: this.texture
+                }
+            },
+            vertexShader: `
+            varying vec2 vUv;
+            void main() {
+                    vUv = uv;
+                // Set the final position of the vertex
+                csm_PositionRaw = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}               //csm_PointSize = 10.0;
+      `,
+            fragmentShader: `
+ 
+        varying vec2 vUv;
+        //uniform vec3 color;
+        uniform sampler2D texture1; // Smoke texture
+        
+
+        void main() {
+            // Sample the diffuse color texture
+    vec4 diffuseColor = texture2D(texture1, vUv);
+
+    // Sample the alpha map (using the same UVs)
+    float alpha = texture2D(texture1, vUv).r; // Use red channel for alpha (grayscale)
+
+    // Apply the alpha value from the alpha map to the diffuse color
+    diffuseColor.a = alpha;
+
+    // Discard fragments with zero alpha (optional)
+    if (diffuseColor.a < 0.01) discard;
+
+    // Output the final color
+    //gl_FragColor = diffuseColor;
+          csm_DiffuseColor = diffuseColor;
+        }
+      `,
+            transparent: true,
+            alphaMap: this.texture,
+            silent: true,
+            vertexColors: true,
+            //side: THREE.DoubleSide,
+            wireframe: false,
+            depthWrite: false
+        });
+        // Create points
+        this.points = new _three.Mesh(geometry, material);
+        this.scene.add(this.points);
+    }
+    animate() {
+        // Rotate the particles for dynamic effect
+        //this.points.rotation.x += 0.001;
+        this.points.rotation.y += 0.001;
+        requestAnimationFrame(()=>this.animate());
+        this.renderer.render(this.scene, this.camera);
+    }
+}
+exports.default = ParticleSystemWithLighting;
+
+},{"three":"ktPTu","../img/smoke.png":"d3T18","three-custom-shader-material/vanilla":"7rL7K","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"a5jmZ":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _three = require("three");
+var _gltfloaderJs = require("three/examples/jsm/loaders/GLTFLoader.js");
+var _rgbeloaderJs = require("three/examples/jsm/loaders/RGBELoader.js");
+var _dracoloaderJs = require("three/examples/jsm/loaders/DRACOLoader.js");
+var _vanilla = require("three-custom-shader-material/vanilla");
+var _vanillaDefault = parcelHelpers.interopDefault(_vanilla);
+var _statsModule = require("three/examples/jsm/libs/stats.module");
+var _statsModuleDefault = parcelHelpers.interopDefault(_statsModule);
+var _albedoWebp = require("../img/albedo.webp");
+var _albedoWebpDefault = parcelHelpers.interopDefault(_albedoWebp);
+var _normalWebp = require("../img/Normal.webp");
+var _normalWebpDefault = parcelHelpers.interopDefault(_normalWebp);
+class GrassScene {
+    constructor(container){
+        this.container = container;
+        this.scene = new _three.Scene();
+        this.clock = new _three.Clock();
+        this.camera = new _three.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.renderer = new _three.WebGLRenderer({
+            antialias: true,
+            alpha: true
+        });
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.container.appendChild(this.renderer.domElement);
+        window.addEventListener("resize", ()=>this.onWindowResize(), false);
+        this.renderer.setPixelRatio(1.0);
+        this.renderer.outputEncoding = _three.SRGBColorSpace;
+        this.renderer.toneMapping = _three.ACESFilmicToneMapping;
+        //this.renderer.toneMapping = THREE.ReinhardToneMapping;
+        this.renderer.toneMappingExposure = 0.15;
+        this.stats = (0, _statsModuleDefault.default)();
+        this.stats.showPanel(0);
+        this.container.appendChild(this.stats.dom);
+        this.scene.fog = new _three.FogExp2(0xffe38a, 0.45);
+        this.setupHDR();
+        // Lighting
+        //const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        //this.scene.add(ambientLight);
+        const directionalLight = new _three.DirectionalLight(0xffffff, 0.3);
+        directionalLight.position.set(10, 10, 10);
+        //this.scene.add(directionalLight);
+        const light = new _three.PointLight(0xffe38a, 5.5, 20);
+        light.position.set(0, 2.0, 4);
+        this.scene.add(light);
+        const sphereSize = 2;
+        const pointLightHelper = new _three.PointLightHelper(light, sphereSize);
+        //this.scene.add(pointLightHelper);
+        // Camera position
+        this.camera.position.set(0, 0, 5);
+        //this.setupPlane();
+        // Load the textures
+        this.loadTextures();
+        // Load the grass model
+        this.loadModel();
+        // Start animation loop
+        this.animate();
+    }
+    setupHDR() {
+        const loader = new (0, _rgbeloaderJs.RGBELoader)();
+        loader.load("./assets/belfast_sunset_puresky_2k.hdr", (texture)=>{
+            texture.mapping = _three.EquirectangularReflectionMapping; // Set mapping for environment
+            this.scene.environment = texture; // Apply the HDR as the scene environment
+        //this.scene.background = texture;   // Set it as the scene background if desired
+        });
+    }
+    // Load the .glb model and apply shader material
+    loadModel() {
+        const loader = new (0, _gltfloaderJs.GLTFLoader)();
+        const dracoLoader = new (0, _dracoloaderJs.DRACOLoader)();
+        // Set the path to the Draco decoder files
+        dracoLoader.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.4.3/"); // Or your local path
+        loader.setDRACOLoader(dracoLoader);
+        loader.load("./assets/grass_compressed.glb", (gltf)=>{
+            const grassModel = gltf.scene;
+            // Apply shader material to the grass mesh
+            grassModel.traverse((child)=>{
+                if (child.isMesh) child.material = this.createShaderMaterial();
+            });
+            grassModel.scale.set(1.8, 1.8, 1.8);
+            grassModel.position.set(0.2, -0.65, 4);
+            //grassModel.rotateY(Math.PI / 2);
+            this.scene.add(grassModel);
+        });
+    }
+    // Load textures (diffuse, normal, alpha map, etc.)
+    loadTextures() {
+        const textureLoader = new _three.TextureLoader();
+        this.textures = {
+            diffuse: textureLoader.load((0, _albedoWebpDefault.default)),
+            normal: textureLoader.load((0, _normalWebpDefault.default))
+        };
+    }
+    // Create a shader material with vertex animation and texture support
+    createShaderMaterial() {
+        return new (0, _vanillaDefault.default)({
+            baseMaterial: _three.MeshStandardMaterial,
+            uniforms: {
+                time: {
+                    value: 0
+                },
+                windStrength: {
+                    value: 2.0
+                },
+                windDirection: {
+                    value: new _three.Vector2(1.0, 0.0)
+                },
+                diffuseTexture: {
+                    value: this.textures.diffuse
+                }
+            },
+            vertexShader: `
+
+            float hash(vec2 p) {
+                p = 50.0 * fract(p * 0.3183099 + vec2(0.71));
+                return -1.0 + 2.0 * fract(p.x * p.y * (p.x + p.y));
+            }
+
+            float noise(vec2 p) {
+                vec2 i = floor(p);
+                vec2 f = fract(p);
+                vec2 u = f * f * (3.0 - 2.0 * f);
+
+                return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),
+                        mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
+            }
+
+
+            uniform float time;
+            uniform float windStrength;
+            uniform vec2 windDirection; // The XZ direction of the wind
+
+            varying vec2 vUv;
+
+            void main() {
+                vUv = uv;
+
+                // Get the world position of the vertex
+                vec4 worldP = modelMatrix * vec4(position, 1.0);
+
+                vec3 pos = position;
+
+                // Use time and some arbitrary values to generate noise
+                float n = noise(vec2(time * 0.67, pos.x * 0.15));
+
+                // Scale the noise value to be in the range [0.0, 0.2]
+                float varyingValue = n * 0.65;
+
+                // Use the Y component of the world position to control the wind influence
+                float influence = smoothstep(0.0, 2.3, worldP.y + 0.65);  // Adjust based on world Y position
+
+                // Apply wind movement in the XZ plane, using a sin wave for periodic motion
+
+                float wind1 = sin(vUv.y * 1.0 + (time) * windStrength) * 1.55 * influence * varyingValue;
+                float wind2 = sin(worldP.z * 1.0 + (time) * windStrength) * 0.25 * influence * varyingValue;
+                
+
+                pos.x += wind1 * windDirection.x;
+                pos.z += wind2 * windDirection.y * varyingValue;
+
+                // Standard transformation
+                csm_Position = pos;
+                //gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+            }
+            `,
+            fragmentShader: `
+                uniform sampler2D diffuseTexture; // Diffuse texture (color)
+                //uniform sampler2D normalMap;      // Normal map (optional)
+                //uniform sampler2D alphaMap;       // Alpha map for transparency (optional)
+                varying vec2 vUv;
+
+                void main() {
+                    // Sample the diffuse texture for the grass color
+                    vec3 texColor = texture2D(diffuseTexture, vUv).rgb;
+                    //vec4 testColor = (1.0, 0.0, 0.0, 1.0);
+
+                    // Optional: Apply alpha map for transparency
+                    //if (alphaMap != null) {
+                    //    float alpha = texture2D(alphaMap, vUv).r; // Use red channel for transparency
+                    //    diffuseColor.a *= alpha; // Apply alpha from alpha map
+                    //}
+
+                    // Optional: Apply normal map for surface detail (you can add light calculation here)
+
+                    // Discard transparent fragments
+                    //if (diffuseColor.a < 0.01) discard;
+
+                    //gl_FragColor = vec4(diffuseColor, 1.0);
+                    csm_DiffuseColor = vec4(texColor, 1.0);
+                }
+            `,
+            transparent: true,
+            silent: true,
+            normalMap: this.textures.normal,
+            fog: true
+        });
+    }
+    // Animation loop
+    animate() {
+        requestAnimationFrame(()=>this.animate());
+        // Update the shader uniform time for animation
+        const elapsedTime = this.clock.getElapsedTime();
+        this.scene.traverse((object)=>{
+            if (object.isMesh && object.material && object.material.uniforms) object.material.uniforms.time.value = elapsedTime;
+        });
+        this.renderer.render(this.scene, this.camera);
+        this.stats.update();
+    //console.log(this.renderer.info);
+    }
+    // Handle resizing of the window
+    onWindowResize() {
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+}
+exports.default = GrassScene;
+
+},{"three":"ktPTu","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/RGBELoader.js":"cfP3d","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","../img/albedo.webp":"3HJFe","../img/Normal.webp":"eP17o"}],"lkdU4":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "DRACOLoader", ()=>DRACOLoader);
+var _three = require("three");
+const _taskCache = new WeakMap();
+class DRACOLoader extends (0, _three.Loader) {
+    constructor(manager){
+        super(manager);
+        this.decoderPath = "";
+        this.decoderConfig = {};
+        this.decoderBinary = null;
+        this.decoderPending = null;
+        this.workerLimit = 4;
+        this.workerPool = [];
+        this.workerNextTaskID = 1;
+        this.workerSourceURL = "";
+        this.defaultAttributeIDs = {
+            position: "POSITION",
+            normal: "NORMAL",
+            color: "COLOR",
+            uv: "TEX_COORD"
+        };
+        this.defaultAttributeTypes = {
+            position: "Float32Array",
+            normal: "Float32Array",
+            color: "Float32Array",
+            uv: "Float32Array"
+        };
+    }
+    setDecoderPath(path) {
+        this.decoderPath = path;
+        return this;
+    }
+    setDecoderConfig(config) {
+        this.decoderConfig = config;
+        return this;
+    }
+    setWorkerLimit(workerLimit) {
+        this.workerLimit = workerLimit;
+        return this;
+    }
+    load(url, onLoad, onProgress, onError) {
+        const loader = new (0, _three.FileLoader)(this.manager);
+        loader.setPath(this.path);
+        loader.setResponseType("arraybuffer");
+        loader.setRequestHeader(this.requestHeader);
+        loader.setWithCredentials(this.withCredentials);
+        loader.load(url, (buffer)=>{
+            this.parse(buffer, onLoad, onError);
+        }, onProgress, onError);
+    }
+    parse(buffer, onLoad, onError = ()=>{}) {
+        this.decodeDracoFile(buffer, onLoad, null, null, (0, _three.SRGBColorSpace), onError).catch(onError);
+    }
+    decodeDracoFile(buffer, callback, attributeIDs, attributeTypes, vertexColorSpace = (0, _three.LinearSRGBColorSpace), onError = ()=>{}) {
+        const taskConfig = {
+            attributeIDs: attributeIDs || this.defaultAttributeIDs,
+            attributeTypes: attributeTypes || this.defaultAttributeTypes,
+            useUniqueIDs: !!attributeIDs,
+            vertexColorSpace: vertexColorSpace
+        };
+        return this.decodeGeometry(buffer, taskConfig).then(callback).catch(onError);
+    }
+    decodeGeometry(buffer, taskConfig) {
+        const taskKey = JSON.stringify(taskConfig);
+        // Check for an existing task using this buffer. A transferred buffer cannot be transferred
+        // again from this thread.
+        if (_taskCache.has(buffer)) {
+            const cachedTask = _taskCache.get(buffer);
+            if (cachedTask.key === taskKey) return cachedTask.promise;
+            else if (buffer.byteLength === 0) // Technically, it would be possible to wait for the previous task to complete,
+            // transfer the buffer back, and decode again with the second configuration. That
+            // is complex, and I don't know of any reason to decode a Draco buffer twice in
+            // different ways, so this is left unimplemented.
+            throw new Error("THREE.DRACOLoader: Unable to re-decode a buffer with different settings. Buffer has already been transferred.");
+        }
+        //
+        let worker;
+        const taskID = this.workerNextTaskID++;
+        const taskCost = buffer.byteLength;
+        // Obtain a worker and assign a task, and construct a geometry instance
+        // when the task completes.
+        const geometryPending = this._getWorker(taskID, taskCost).then((_worker)=>{
+            worker = _worker;
+            return new Promise((resolve, reject)=>{
+                worker._callbacks[taskID] = {
+                    resolve,
+                    reject
+                };
+                worker.postMessage({
+                    type: "decode",
+                    id: taskID,
+                    taskConfig,
+                    buffer
+                }, [
+                    buffer
+                ]);
+            // this.debug();
+            });
+        }).then((message)=>this._createGeometry(message.geometry));
+        // Remove task from the task list.
+        // Note: replaced '.finally()' with '.catch().then()' block - iOS 11 support (#19416)
+        geometryPending.catch(()=>true).then(()=>{
+            if (worker && taskID) this._releaseTask(worker, taskID);
+        });
+        // Cache the task result.
+        _taskCache.set(buffer, {
+            key: taskKey,
+            promise: geometryPending
+        });
+        return geometryPending;
+    }
+    _createGeometry(geometryData) {
+        const geometry = new (0, _three.BufferGeometry)();
+        if (geometryData.index) geometry.setIndex(new (0, _three.BufferAttribute)(geometryData.index.array, 1));
+        for(let i = 0; i < geometryData.attributes.length; i++){
+            const result = geometryData.attributes[i];
+            const name = result.name;
+            const array = result.array;
+            const itemSize = result.itemSize;
+            const attribute = new (0, _three.BufferAttribute)(array, itemSize);
+            if (name === "color") {
+                this._assignVertexColorSpace(attribute, result.vertexColorSpace);
+                attribute.normalized = array instanceof Float32Array === false;
+            }
+            geometry.setAttribute(name, attribute);
+        }
+        return geometry;
+    }
+    _assignVertexColorSpace(attribute, inputColorSpace) {
+        // While .drc files do not specify colorspace, the only 'official' tooling
+        // is PLY and OBJ converters, which use sRGB. We'll assume sRGB when a .drc
+        // file is passed into .load() or .parse(). GLTFLoader uses internal APIs
+        // to decode geometry, and vertex colors are already Linear-sRGB in there.
+        if (inputColorSpace !== (0, _three.SRGBColorSpace)) return;
+        const _color = new (0, _three.Color)();
+        for(let i = 0, il = attribute.count; i < il; i++){
+            _color.fromBufferAttribute(attribute, i).convertSRGBToLinear();
+            attribute.setXYZ(i, _color.r, _color.g, _color.b);
+        }
+    }
+    _loadLibrary(url, responseType) {
+        const loader = new (0, _three.FileLoader)(this.manager);
+        loader.setPath(this.decoderPath);
+        loader.setResponseType(responseType);
+        loader.setWithCredentials(this.withCredentials);
+        return new Promise((resolve, reject)=>{
+            loader.load(url, resolve, undefined, reject);
+        });
+    }
+    preload() {
+        this._initDecoder();
+        return this;
+    }
+    _initDecoder() {
+        if (this.decoderPending) return this.decoderPending;
+        const useJS = typeof WebAssembly !== "object" || this.decoderConfig.type === "js";
+        const librariesPending = [];
+        if (useJS) librariesPending.push(this._loadLibrary("draco_decoder.js", "text"));
+        else {
+            librariesPending.push(this._loadLibrary("draco_wasm_wrapper.js", "text"));
+            librariesPending.push(this._loadLibrary("draco_decoder.wasm", "arraybuffer"));
+        }
+        this.decoderPending = Promise.all(librariesPending).then((libraries)=>{
+            const jsContent = libraries[0];
+            if (!useJS) this.decoderConfig.wasmBinary = libraries[1];
+            const fn = DRACOWorker.toString();
+            const body = [
+                "/* draco decoder */",
+                jsContent,
+                "",
+                "/* worker */",
+                fn.substring(fn.indexOf("{") + 1, fn.lastIndexOf("}"))
+            ].join("\n");
+            this.workerSourceURL = URL.createObjectURL(new Blob([
+                body
+            ]));
+        });
+        return this.decoderPending;
+    }
+    _getWorker(taskID, taskCost) {
+        return this._initDecoder().then(()=>{
+            if (this.workerPool.length < this.workerLimit) {
+                const worker = new Worker(this.workerSourceURL);
+                worker._callbacks = {};
+                worker._taskCosts = {};
+                worker._taskLoad = 0;
+                worker.postMessage({
+                    type: "init",
+                    decoderConfig: this.decoderConfig
+                });
+                worker.onmessage = function(e) {
+                    const message = e.data;
+                    switch(message.type){
+                        case "decode":
+                            worker._callbacks[message.id].resolve(message);
+                            break;
+                        case "error":
+                            worker._callbacks[message.id].reject(message);
+                            break;
+                        default:
+                            console.error('THREE.DRACOLoader: Unexpected message, "' + message.type + '"');
+                    }
+                };
+                this.workerPool.push(worker);
+            } else this.workerPool.sort(function(a, b) {
+                return a._taskLoad > b._taskLoad ? -1 : 1;
+            });
+            const worker = this.workerPool[this.workerPool.length - 1];
+            worker._taskCosts[taskID] = taskCost;
+            worker._taskLoad += taskCost;
+            return worker;
+        });
+    }
+    _releaseTask(worker, taskID) {
+        worker._taskLoad -= worker._taskCosts[taskID];
+        delete worker._callbacks[taskID];
+        delete worker._taskCosts[taskID];
+    }
+    debug() {
+        console.log("Task load: ", this.workerPool.map((worker)=>worker._taskLoad));
+    }
+    dispose() {
+        for(let i = 0; i < this.workerPool.length; ++i)this.workerPool[i].terminate();
+        this.workerPool.length = 0;
+        if (this.workerSourceURL !== "") URL.revokeObjectURL(this.workerSourceURL);
+        return this;
+    }
+}
+/* WEB WORKER */ function DRACOWorker() {
+    let decoderConfig;
+    let decoderPending;
+    onmessage = function(e) {
+        const message = e.data;
+        switch(message.type){
+            case "init":
+                decoderConfig = message.decoderConfig;
+                decoderPending = new Promise(function(resolve /*, reject*/ ) {
+                    decoderConfig.onModuleLoaded = function(draco) {
+                        // Module is Promise-like. Wrap before resolving to avoid loop.
+                        resolve({
+                            draco: draco
+                        });
+                    };
+                    DracoDecoderModule(decoderConfig); // eslint-disable-line no-undef
+                });
+                break;
+            case "decode":
+                const buffer = message.buffer;
+                const taskConfig = message.taskConfig;
+                decoderPending.then((module)=>{
+                    const draco = module.draco;
+                    const decoder = new draco.Decoder();
+                    try {
+                        const geometry = decodeGeometry(draco, decoder, new Int8Array(buffer), taskConfig);
+                        const buffers = geometry.attributes.map((attr)=>attr.array.buffer);
+                        if (geometry.index) buffers.push(geometry.index.array.buffer);
+                        self.postMessage({
+                            type: "decode",
+                            id: message.id,
+                            geometry
+                        }, buffers);
+                    } catch (error) {
+                        console.error(error);
+                        self.postMessage({
+                            type: "error",
+                            id: message.id,
+                            error: error.message
+                        });
+                    } finally{
+                        draco.destroy(decoder);
+                    }
+                });
+                break;
+        }
+    };
+    function decodeGeometry(draco, decoder, array, taskConfig) {
+        const attributeIDs = taskConfig.attributeIDs;
+        const attributeTypes = taskConfig.attributeTypes;
+        let dracoGeometry;
+        let decodingStatus;
+        const geometryType = decoder.GetEncodedGeometryType(array);
+        if (geometryType === draco.TRIANGULAR_MESH) {
+            dracoGeometry = new draco.Mesh();
+            decodingStatus = decoder.DecodeArrayToMesh(array, array.byteLength, dracoGeometry);
+        } else if (geometryType === draco.POINT_CLOUD) {
+            dracoGeometry = new draco.PointCloud();
+            decodingStatus = decoder.DecodeArrayToPointCloud(array, array.byteLength, dracoGeometry);
+        } else throw new Error("THREE.DRACOLoader: Unexpected geometry type.");
+        if (!decodingStatus.ok() || dracoGeometry.ptr === 0) throw new Error("THREE.DRACOLoader: Decoding failed: " + decodingStatus.error_msg());
+        const geometry = {
+            index: null,
+            attributes: []
+        };
+        // Gather all vertex attributes.
+        for(const attributeName in attributeIDs){
+            const attributeType = self[attributeTypes[attributeName]];
+            let attribute;
+            let attributeID;
+            // A Draco file may be created with default vertex attributes, whose attribute IDs
+            // are mapped 1:1 from their semantic name (POSITION, NORMAL, ...). Alternatively,
+            // a Draco file may contain a custom set of attributes, identified by known unique
+            // IDs. glTF files always do the latter, and `.drc` files typically do the former.
+            if (taskConfig.useUniqueIDs) {
+                attributeID = attributeIDs[attributeName];
+                attribute = decoder.GetAttributeByUniqueId(dracoGeometry, attributeID);
+            } else {
+                attributeID = decoder.GetAttributeId(dracoGeometry, draco[attributeIDs[attributeName]]);
+                if (attributeID === -1) continue;
+                attribute = decoder.GetAttribute(dracoGeometry, attributeID);
+            }
+            const attributeResult = decodeAttribute(draco, decoder, dracoGeometry, attributeName, attributeType, attribute);
+            if (attributeName === "color") attributeResult.vertexColorSpace = taskConfig.vertexColorSpace;
+            geometry.attributes.push(attributeResult);
+        }
+        // Add index.
+        if (geometryType === draco.TRIANGULAR_MESH) geometry.index = decodeIndex(draco, decoder, dracoGeometry);
+        draco.destroy(dracoGeometry);
+        return geometry;
+    }
+    function decodeIndex(draco, decoder, dracoGeometry) {
+        const numFaces = dracoGeometry.num_faces();
+        const numIndices = numFaces * 3;
+        const byteLength = numIndices * 4;
+        const ptr = draco._malloc(byteLength);
+        decoder.GetTrianglesUInt32Array(dracoGeometry, byteLength, ptr);
+        const index = new Uint32Array(draco.HEAPF32.buffer, ptr, numIndices).slice();
+        draco._free(ptr);
+        return {
+            array: index,
+            itemSize: 1
+        };
+    }
+    function decodeAttribute(draco, decoder, dracoGeometry, attributeName, attributeType, attribute) {
+        const numComponents = attribute.num_components();
+        const numPoints = dracoGeometry.num_points();
+        const numValues = numPoints * numComponents;
+        const byteLength = numValues * attributeType.BYTES_PER_ELEMENT;
+        const dataType = getDracoDataType(draco, attributeType);
+        const ptr = draco._malloc(byteLength);
+        decoder.GetAttributeDataArrayForAllPoints(dracoGeometry, attribute, dataType, byteLength, ptr);
+        const array = new attributeType(draco.HEAPF32.buffer, ptr, numValues).slice();
+        draco._free(ptr);
+        return {
+            name: attributeName,
+            array: array,
+            itemSize: numComponents
+        };
+    }
+    function getDracoDataType(draco, attributeType) {
+        switch(attributeType){
+            case Float32Array:
+                return draco.DT_FLOAT32;
+            case Int8Array:
+                return draco.DT_INT8;
+            case Int16Array:
+                return draco.DT_INT16;
+            case Int32Array:
+                return draco.DT_INT32;
+            case Uint8Array:
+                return draco.DT_UINT8;
+            case Uint16Array:
+                return draco.DT_UINT16;
+            case Uint32Array:
+                return draco.DT_UINT32;
+        }
+    }
+}
+
+},{"three":"ktPTu","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"3HJFe":[function(require,module,exports) {
+module.exports = require("cc56433803bbd96b").getBundleURL("g05j8") + "albedo.169f4e8d.webp" + "?" + Date.now();
+
+},{"cc56433803bbd96b":"lgJ39"}],"eP17o":[function(require,module,exports) {
+module.exports = require("8a393e804b2800b3").getBundleURL("g05j8") + "Normal.3ce5a148.webp" + "?" + Date.now();
+
+},{"8a393e804b2800b3":"lgJ39"}],"cNzyR":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _grassbladeTestVertGlsl = require("./glsl/grassbladeTest.vert.glsl");
+var _grassbladeTestVertGlslDefault = parcelHelpers.interopDefault(_grassbladeTestVertGlsl);
+var _grassbladeTestFragGlsl = require("./glsl/grassbladeTest.frag.glsl");
+var _grassbladeTestFragGlslDefault = parcelHelpers.interopDefault(_grassbladeTestFragGlsl);
+exports.default = {
+    frag: (0, _grassbladeTestFragGlslDefault.default),
+    vert: (0, _grassbladeTestVertGlslDefault.default)
+};
+
+},{"./glsl/grassbladeTest.vert.glsl":"h9wIl","./glsl/grassbladeTest.frag.glsl":"f3LHG","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"h9wIl":[function(require,module,exports) {
+module.exports = "uniform float time;\nuniform float windStrength;\nuniform sampler2D displacementMap;\nuniform float fieldSize;\nuniform float displacementScale;\n\nattribute vec3 offset;\nattribute float scale;\nattribute float normalizedHeight;\nattribute mat3 instanceRotationMatrix;\nattribute vec2 uvs; // Incoming UV coordinates\nvarying vec2 sendUV;\n//attribute float rotation;\nvarying vec2 vUv;\nvarying vec2 csm_cloudUV;\nvarying vec3 csm_vWorldPosition;\nvarying vec3 csm_vViewPosition;\nvarying float vHeight;\nvarying vec3 csm_vPosition;\n\nfloat hash(vec2 p) {\n    p = 50.0 * fract(p * 0.3183099 + vec2(0.71));\n    return -1.0 + 2.0 * fract(p.x * p.y * (p.x + p.y));\n}\n\nfloat noise(vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n    vec2 u = f * f * (3.0 - 2.0 * f);\n    \n    return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),\n               mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);\n}\n\nvoid main() {\n    precision highp float;\n#define GLSLIFY 1\n\n            //csm_vPosition = position;\n            //vUv = uv;\n            vUv = uv;\n            //cloudUV = uv;\n            //cloudUV.x += time / 200.;\n            //cloudUV.y += time / 100.;\n            vec3 transformedGrass = position * scale;\n            transformedGrass = instanceRotationMatrix * transformedGrass;\n            transformedGrass += offset;\n            //vec3 test = transformedGrass;\n\n            //vec3 positionTest = offset.xyz + vec3(position.x, 0.0, position.y);\n            //csm_vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;\n            //vWorldPosition = worldPosition.xyz;\n            vHeight = position.y * normalizedHeight; \n            \n            // Use time and some arbitrary values to generate noise\n            float n = noise(vec2(time * 0.1, time * 0.05));\n\n            // Scale the noise value to be in the range [0.0, 0.2]\n            float varyingValue = n * 0.3;\n  \n            float noise = noise(offset.xz);\n\n            // varyingValue is now in the range [0.0, 0.2]\n            \n            float dispPower = 1.0 - cos( vHeight * 3.1416 / 0.35 );\n            transformedGrass.z += sin(offset.z * noise  + time * 2.0) * ((0.15 + varyingValue) * dispPower);\n            transformedGrass.x += sin(offset.x * noise  + time * 2.0) * ((0.15 + varyingValue) * dispPower);\n\n            //csm_PositionRaw = projectionMatrix * modelViewMatrix * vec4(transformedGrass, 1.0);\n            csm_Position = transformedGrass;\n            //csm_Position = position * scale * instanceRotationMatrix * vec3(1.0);\n   \n}\n\n";
+
+},{}],"f3LHG":[function(require,module,exports) {
+module.exports = "#define GLSLIFY 1\nuniform sampler2D grassTexture;\n//uniform sampler2D cloudTexture;\nuniform vec3 fogColor;\nuniform float fogDensity;\nuniform vec3 vCameraPosition;\nvarying vec2 vUv;\nvarying vec2 sendUV;\n//varying vec2 cloudUV;\nvarying vec3 vWorldPosition;\nvarying vec3 csm_vWorldPosition;\nvarying float vHeight;\nvarying vec3 vPosition;\n//varying vec3 vViewPosition;\nvarying vec4 csm_DiffuseColor;\n\nfloat contrast = 1.5;\nfloat brightness = 1.1;\n\nvoid main() {\n\n        //precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n    float depth = length(csm_vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    float fogFactor = 1.0 - exp(-fogDensity * depth);\n    fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv/100.0).rgb;\n    //textureColor = textureColor * vec3(brightness, brightness, brightness);\n    textureColor = mix(textureColor, topBladeColor, 0.35);\n    float height = clamp(vHeight, 0.0, 1.0);\n    textureColor *= height * height * height;\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n    //finalColor = mix(csm_DiffuseColor.rgb, topBladeColor, 1.0);\n    //csm_Emissive = textureColor;\n\n    csm_DiffuseColor = vec4(finalColor, 1.0);\n\n    /*\n    //precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n    float depth = length(vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    float fogFactor = 1.0 - exp(-fogDensity * depth);\n    fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv/1000.0).rgb;\n    textureColor = textureColor * vec3(brightness, brightness, brightness);\n    textureColor = mix(textureColor, topBladeColor, 0.75);\n    textureColor *= vHeight * vHeight;\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n\n    csm_DiffuseColor = vec4(finalColor, 1.0);\n    */\n\n}\n\n";
+
+},{}],"f6f8d":[function(require,module,exports) {
+module.exports = require("c8c3637be7158d53").getBundleURL("g05j8") + "grassColor.cd69343f.png" + "?" + Date.now();
+
+},{"c8c3637be7158d53":"lgJ39"}],"iF6OC":[function(require,module,exports) {
 module.exports = require("8dabffa2ef0f7b19").getBundleURL("g05j8") + "introvideo.149b9427.webm" + "?" + Date.now();
 
 },{"8dabffa2ef0f7b19":"lgJ39"}],"24cue":[function(require,module,exports) {
 module.exports = JSON.parse('{"glass":{"title":"The Virtual Glass Harmonica","video_ref":"./assets/glass/video.webm","main_txt":"Together with a fellow peer, the design and development of the virtual glass harmonica was a project completed for the <span class=\'color-glass\'>Danish Music Museum</span>. As part of the <i>Music History - Taken out of the Box</i> project, funded by the Augustinus Foundation, it explores the use of <span class=\'color-glass\'>Virtual Reality</span> to resurrect a forgotten instrument and present its history, sound, and interaction through an immersive virtual environment. The installation can be experienced at the Music Museum, where qualitative evaluations have shown that it establishes a good connection between the virtual instrument and the physical 1780-era glass harmonica on display.","client":"Danish Music Museum","tech":"Unity-C# | Blender | Meta Quest 2 Standalone | Handtracking | Shadergraph","publications":"<h4><a href=\'https://link.springer.com/chapter/10.1007/978-3-031-55312-7_16\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>ArtsIT, Interactivity and Game Creation 2023</a></h4> <h4><a href=\'https://doi.org/10.5281/zenodo.6822203\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>Sound and Music Computing Conference 2022</a></h4>","images":["./assets/glass/showcase-img1.webp","./assets/glass/showcase-img2.webp","./assets/glass/showcase-img3.webp"],"images_alt":["The virtual reality experience leverages the handtracking capabilities of the meta quest 2 device. Virtual environment capture.","Virtual environemnt capture showing interactive buttons for initiating tutorial and storytelling by Benjamin Franklin.","Photograph of excited visitor trying the virtual reality experience, at the Danish Music Museum."]},"nature":{"title":"Through the Eyes of Nature","video_ref":"./assets/glass/video.webm","main_txt":"Together with a fellow peer, the design and development of the virtual glass harmonica was a project completed for the <span class=\'color-glass\'>Danish Music Museum</span>. As part of the <i>Music History - Taken out of the Box</i> project, funded by the Augustinus Foundation, it explores the use of <span class=\'color-glass\'>Virtual Reality</span> to resurrect a forgotten instrument and present its history, sound, and interaction through an immersive virtual environment. The installation can be experienced at the Music Museum, where qualitative evaluations have shown that it establishes a good connection between the virtual instrument and the physical 1780-era glass harmonica on display.","client":"Danish Music Museum","tech":"Unity | Blender | Meta Quest 2 Standalone | Handtracking | Shadergraph","images":["bg.webp","showcase-img1.webp","showcase-img1.webp","showcase-img1.webp"],"images-alt":["alt image 1","alt image 2","alt image 3"]},"dad":{"title":"Through the Eyes of Nature","video_ref":"./assets/dad/video.webm","main_txt":"Together with a fellow peer, the design and development of the virtual glass harmonica was a project completed for the <span class=\'color-glass\'>Danish Music Museum</span>. As part of the <i>Music History - Taken out of the Box</i> project, funded by the Augustinus Foundation, it explores the use of <span class=\'color-glass\'>Virtual Reality</span> to resurrect a forgotten instrument and present its history, sound, and interaction through an immersive virtual environment. The installation can be experienced at the Music Museum, where qualitative evaluations have shown that it establishes a good connection between the virtual instrument and the physical 1780-era glass harmonica on display.","client":"Danish National Museum","link":"<h4><a href=\'https://www.dad.natmus.dk/\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>DAD - Natmus</a></h4>","tech":"Unity | Blender | Meta Quest 2 Standalone | Handtracking | Shadergraph","images":["bg.webp","showcase-img1.webp","showcase-img1.webp","showcase-img1.webp"],"images-alt":["alt image 1","alt image 2","alt image 3"]}}');
 
-},{}],"02A2s":[function(require,module,exports) {
-let workerURL = require("422b1475f0c5a287");
-let bundleURL = require("4d7efceec8fcf58b");
-let url = bundleURL.getBundleURL("g05j8") + "worker.795c99cd.js" + "?" + Date.now();
-module.exports = workerURL(url, bundleURL.getOrigin(url), false);
-
-},{"422b1475f0c5a287":"cn2gM","4d7efceec8fcf58b":"lgJ39"}],"cn2gM":[function(require,module,exports) {
-"use strict";
-module.exports = function(workerUrl, origin, isESM) {
-    if (origin === self.location.origin) // If the worker bundle's url is on the same origin as the document,
-    // use the worker bundle's own url.
-    return workerUrl;
-    else {
-        // Otherwise, create a blob URL which loads the worker bundle with `importScripts`.
-        var source = isESM ? "import " + JSON.stringify(workerUrl) + ";" : "importScripts(" + JSON.stringify(workerUrl) + ");";
-        return URL.createObjectURL(new Blob([
-            source
-        ], {
-            type: "application/javascript"
-        }));
+},{}],"2AK05":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _three = require("three");
+var _smokePng = require("../img/smoke.png");
+var _smokePngDefault = parcelHelpers.interopDefault(_smokePng);
+class ParticleSystem {
+    constructor(container){
+        this.container = container;
+        this.textureLoader = new _three.TextureLoader();
+        //const heightMap = textureLoader.load(displacementMap);
+        this.texture = this.textureLoader.load((0, _smokePngDefault.default));
+        // Scene setup
+        this.scene = new _three.Scene();
+        this.camera = new _three.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.camera.position.z = 5;
+        this.renderer = new _three.WebGLRenderer({
+            alpha: true
+        });
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.container.appendChild(this.renderer.domElement);
+        // Create the particles
+        this.createParticles();
+        // Start the animation loop
+        this.animate();
     }
-};
+    createParticles() {
+        const particleCount = 300;
+        // Create buffer geometry
+        const geometry = new _three.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+        const sizes = new Float32Array(particleCount);
+        const colors = new Float32Array(particleCount * 3);
+        for(let i = 0; i < particleCount; i++){
+            // Set random positions
+            positions[i * 3] = (Math.random() - 0.5) * 10; // x
+            positions[i * 3 + 1] = (Math.random() - 0.5) * 10; // y
+            positions[i * 3 + 2] = (Math.random() - 0.5) * 10; // z
+            // Set random colors (white-ish)
+            colors[i * 3] = Math.random() * 0.5 + 0.5; // R
+            colors[i * 3 + 1] = Math.random() * 0.5 + 0.5; // G
+            colors[i * 3 + 2] = Math.random() * 0.5 + 0.5; // B
+            // Set random sizes
+            sizes[i] = Math.random() * 80;
+        }
+        geometry.setAttribute("position", new _three.BufferAttribute(positions, 3));
+        geometry.setAttribute("color", new _three.BufferAttribute(colors, 3));
+        geometry.setAttribute("size", new _three.BufferAttribute(sizes, 1));
+        // Create points material
+        this.material = new _three.PointsMaterial({
+            size: 1.0,
+            vertexColors: true,
+            transparent: true,
+            map: this.texture,
+            depthWrite: false,
+            opacity: 0.2
+        });
+        // Create points
+        this.points = new _three.Points(geometry, this.material);
+        console.log(this.points);
+        this.scene.add(this.points);
+        this.sizes = sizes;
+        for(let i = 0; i < this.sizes.length; i++)this.material.size = this.sizes[i]; // Set size from the stored sizes
+        const light = new _three.PointLight(0xff0000, 1000, 100);
+        light.position.set(0, 0, 0);
+        this.scene.add(light);
+    }
+    animate() {
+        // Update particle sizes
+        //console.log(this.renderer.info);
+        // Rotate the particles for dynamic effect
+        ///this.points.rotation.x += 0.001;
+        this.points.rotation.y += 0.0002;
+        requestAnimationFrame(()=>this.animate());
+        this.renderer.render(this.scene, this.camera);
+    }
+}
+exports.default = ParticleSystem;
 
-},{}]},["l9Mez","ebWYT"], "ebWYT", "parcelRequire2041")
+},{"three":"ktPTu","../img/smoke.png":"d3T18","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}]},["l9Mez","ebWYT"], "ebWYT", "parcelRequire2041")
 
 //# sourceMappingURL=index.739bf03c.js.map
