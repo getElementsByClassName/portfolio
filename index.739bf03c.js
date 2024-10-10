@@ -624,7 +624,7 @@ var _grassSceneJsDefault = parcelHelpers.interopDefault(_grassSceneJs);
 ********************************************************************/ const grassContainer = document.getElementById("contact-scene");
 //const simple = new SimpleScene(fogContainer);
 //const particle = new ParticleSystem(fogContainer);
-const grassScene = new (0, _grassSceneJsDefault.default)(grassContainer);
+//const grassScene = new GrassScene(grassContainer);
 //window.addEventListener('resize', () => grassScene.onWindowResize(), false);
 /********************************************************************
 // Vanilla Javascript
@@ -779,14 +779,11 @@ observer.observe(targetElement);
 //intersection observer for detecting opening scene out of view
 const observerContactSceneCallback = (entries)=>{
     entries.forEach((entry)=>{
-        if (entry.isIntersecting) // Start or resume animation
-        grassScene.startRendering();
-        else // Pause animation
-        grassScene.stopRendering();
+        entry.isIntersecting;
     });
 };
 const observerContactScene = new IntersectionObserver(observerContactSceneCallback, observerOptions);
-observerContactScene.observe(grassContainer);
+//observerContactScene.observe(grassContainer);
 //intersection observer for changing button text content
 const navBtn1 = document.getElementById("btn1");
 const navBtn2 = document.getElementById("btn2");
@@ -1401,7 +1398,7 @@ const clock = new _three.Clock();
 let controlsIsLocked = false;
 let controls;
 // Create the FPS controller
-visitedFromMobileDevice;
+if (!visitedFromMobileDevice) controls = new (0, _pointerLockControlsJs.PointerLockControls)(camera, renderer.domElement);
 /*
 //intersection observer for detecting opening scene out of view
 const handleObserver = (entries) => {
@@ -1536,6 +1533,7 @@ function fnUpdateControls() {
 if (visitedFromMobileDevice) {
     camera.far = 1100;
     camera.updateProjectionMatrix();
+//controls.unlock();
 }
 //camera.position.set(0, getHeight(0, 0) + PERSON_HEIGHT, 0);
 camera.position.set(0, getHeight(0, 300) + PERSON_HEIGHT, 300);
@@ -1549,7 +1547,7 @@ const checkOrientation = ()=>{
     } else if (window.matchMedia("(orientation: portrait)").matches && visitedFromMobileDevice) {
         camera.rotation.x = 0;
         camera.position.set(0, getHeight(0, 500) + PERSON_HEIGHT, 500);
-        testTxt.innerHTML = "We are here";
+    //testTxt.innerHTML = 'We are here';
     //console.log("Portrait mode");
     // controls.unlock();
     //controlsIsLocked = false;
@@ -1927,7 +1925,7 @@ function animate() {
 }
 fnStartRendering();
 
-},{"three":"ktPTu","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader":"dVRsF","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./GrassScene.js":"a5jmZ","./shaders/grass.js":"cNzyR","../img/grassColor.png":"f6f8d","../img/introvideo.webm":"iF6OC","./content.json":"24cue","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","73d37e91c71236a0":"02A2s"}],"ktPTu":[function(require,module,exports) {
+},{"three":"ktPTu","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader":"dVRsF","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./shaders/grass.js":"cNzyR","../img/grassColor.png":"f6f8d","../img/introvideo.webm":"iF6OC","./content.json":"24cue","./GrassScene.js":"a5jmZ","73d37e91c71236a0":"02A2s","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"ktPTu":[function(require,module,exports) {
 /**
  * @license
  * Copyright 2010-2024 Three.js Authors
@@ -41883,7 +41881,69 @@ class Lenis {
     }
 }
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"e0AFw":[function() {},{}],"a5jmZ":[function(require,module,exports) {
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"e0AFw":[function() {},{}],"cNzyR":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _grassbladeTestVertGlsl = require("./glsl/grassbladeTest.vert.glsl");
+var _grassbladeTestVertGlslDefault = parcelHelpers.interopDefault(_grassbladeTestVertGlsl);
+var _grassbladeTestFragGlsl = require("./glsl/grassbladeTest.frag.glsl");
+var _grassbladeTestFragGlslDefault = parcelHelpers.interopDefault(_grassbladeTestFragGlsl);
+exports.default = {
+    frag: (0, _grassbladeTestFragGlslDefault.default),
+    vert: (0, _grassbladeTestVertGlslDefault.default)
+};
+
+},{"./glsl/grassbladeTest.vert.glsl":"h9wIl","./glsl/grassbladeTest.frag.glsl":"f3LHG","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"h9wIl":[function(require,module,exports) {
+module.exports = "uniform float time;\nuniform float windStrength;\nuniform sampler2D displacementMap;\nuniform float fieldSize;\nuniform float displacementScale;\n\nattribute vec3 offset;\nattribute float scale;\nattribute float normalizedHeight;\nattribute mat3 instanceRotationMatrix;\nattribute vec2 uvs; // Incoming UV coordinates\nvarying vec2 sendUV;\n//attribute float rotation;\nvarying vec2 vUv;\nvarying vec2 csm_cloudUV;\nvarying vec3 csm_vWorldPosition;\nvarying vec3 csm_vViewPosition;\nvarying float vHeight;\nvarying vec3 csm_vPosition;\n\nfloat hash(vec2 p) {\n    p = 50.0 * fract(p * 0.3183099 + vec2(0.71));\n    return -1.0 + 2.0 * fract(p.x * p.y * (p.x + p.y));\n}\n\nfloat noise(vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n    vec2 u = f * f * (3.0 - 2.0 * f);\n    \n    return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),\n               mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);\n}\n\nvoid main() {\n    precision highp float;\n#define GLSLIFY 1\n\n            //csm_vPosition = position;\n            //vUv = uv;\n            vUv = uv;\n            //cloudUV = uv;\n            //cloudUV.x += time / 200.;\n            //cloudUV.y += time / 100.;\n            vec3 transformedGrass = position * scale;\n            transformedGrass = instanceRotationMatrix * transformedGrass;\n            transformedGrass += offset;\n            //vec3 test = transformedGrass;\n\n            //vec3 positionTest = offset.xyz + vec3(position.x, 0.0, position.y);\n            //csm_vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;\n            //vWorldPosition = worldPosition.xyz;\n            vHeight = position.y * normalizedHeight; \n            \n            // Use time and some arbitrary values to generate noise\n            float n = noise(vec2(time * 0.1, time * 0.05));\n\n            // Scale the noise value to be in the range [0.0, 0.2]\n            float varyingValue = n * 0.3;\n  \n            float noise = noise(offset.xz);\n\n            // varyingValue is now in the range [0.0, 0.2]\n            \n            float dispPower = 1.0 - cos( vHeight * 3.1416 / 0.35 );\n            transformedGrass.z += sin(offset.z * noise  + time * 2.0) * ((0.15 + varyingValue) * dispPower);\n            transformedGrass.x += sin(offset.x * noise  + time * 2.0) * ((0.15 + varyingValue) * dispPower);\n\n            //csm_PositionRaw = projectionMatrix * modelViewMatrix * vec4(transformedGrass, 1.0);\n            csm_Position = transformedGrass;\n            //csm_Position = position * scale * instanceRotationMatrix * vec3(1.0);\n   \n}\n\n";
+
+},{}],"f3LHG":[function(require,module,exports) {
+module.exports = "#define GLSLIFY 1\nuniform sampler2D grassTexture;\n//uniform sampler2D cloudTexture;\nuniform vec3 fogColor;\nuniform float fogDensity;\nuniform vec3 vCameraPosition;\nvarying vec2 vUv;\nvarying vec2 sendUV;\n//varying vec2 cloudUV;\nvarying vec3 vWorldPosition;\nvarying vec3 csm_vWorldPosition;\nvarying float vHeight;\nvarying vec3 vPosition;\n//varying vec3 vViewPosition;\nvarying vec4 csm_DiffuseColor;\n\nfloat contrast = 1.5;\nfloat brightness = 1.1;\n\nvoid main() {\n\n        //precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n    float depth = length(csm_vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    float fogFactor = 1.0 - exp(-fogDensity * depth);\n    fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv/100.0).rgb;\n    //textureColor = textureColor * vec3(brightness, brightness, brightness);\n    textureColor = mix(textureColor, topBladeColor, 0.35);\n    float height = clamp(vHeight, 0.0, 1.0);\n    textureColor *= height * height * height;\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n    //finalColor = mix(csm_DiffuseColor.rgb, topBladeColor, 1.0);\n    //csm_Emissive = textureColor;\n\n    csm_DiffuseColor = vec4(finalColor, 1.0);\n\n    /*\n    //precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n    float depth = length(vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    float fogFactor = 1.0 - exp(-fogDensity * depth);\n    fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv/1000.0).rgb;\n    textureColor = textureColor * vec3(brightness, brightness, brightness);\n    textureColor = mix(textureColor, topBladeColor, 0.75);\n    textureColor *= vHeight * vHeight;\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n\n    csm_DiffuseColor = vec4(finalColor, 1.0);\n    */\n\n}\n\n";
+
+},{}],"f6f8d":[function(require,module,exports) {
+module.exports = require("c8c3637be7158d53").getBundleURL("g05j8") + "grassColor.cd69343f.png" + "?" + Date.now();
+
+},{"c8c3637be7158d53":"lgJ39"}],"lgJ39":[function(require,module,exports) {
+"use strict";
+var bundleURL = {};
+function getBundleURLCached(id) {
+    var value = bundleURL[id];
+    if (!value) {
+        value = getBundleURL();
+        bundleURL[id] = value;
+    }
+    return value;
+}
+function getBundleURL() {
+    try {
+        throw new Error();
+    } catch (err) {
+        var matches = ("" + err.stack).match(/(https?|file|ftp|(chrome|moz|safari-web)-extension):\/\/[^)\n]+/g);
+        if (matches) // The first two stack frames will be this function and getBundleURLCached.
+        // Use the 3rd one, which will be a runtime in the original bundle.
+        return getBaseURL(matches[2]);
+    }
+    return "/";
+}
+function getBaseURL(url) {
+    return ("" + url).replace(/^((?:https?|file|ftp|(chrome|moz|safari-web)-extension):\/\/.+)\/[^/]+$/, "$1") + "/";
+}
+// TODO: Replace uses with `new URL(url).origin` when ie11 is no longer supported.
+function getOrigin(url) {
+    var matches = ("" + url).match(/(https?|file|ftp|(chrome|moz|safari-web)-extension):\/\/[^/]+/);
+    if (!matches) throw new Error("Origin not found");
+    return matches[0];
+}
+exports.getBundleURL = getBundleURLCached;
+exports.getBaseURL = getBaseURL;
+exports.getOrigin = getOrigin;
+
+},{}],"iF6OC":[function(require,module,exports) {
+module.exports = require("8dabffa2ef0f7b19").getBundleURL("g05j8") + "introvideo.149b9427.webm" + "?" + Date.now();
+
+},{"8dabffa2ef0f7b19":"lgJ39"}],"24cue":[function(require,module,exports) {
+module.exports = JSON.parse('{"glass":{"title":"The Virtual Glass Harmonica","video_ref":"./assets/glass/video.webm","main_txt":"Together with a fellow peer, the design and development of the virtual glass harmonica was a project completed for the <span class=\'color-glass\'>Danish Music Museum</span>. As part of the <i>Music History - Taken out of the Box</i> project, funded by the Augustinus Foundation, it explores the use of <span class=\'color-glass\'>Virtual Reality</span> to resurrect a forgotten instrument and present its history, sound, and interaction through an immersive virtual environment. The installation can be experienced at the Music Museum, where qualitative evaluations have shown that it establishes a good connection between the virtual instrument and the physical 1780-era glass harmonica on display.","client":"Danish Music Museum","tech":"Unity-C# | Blender | Meta Quest 2 Standalone | Handtracking | Shadergraph","publications":"<h4><a href=\'https://link.springer.com/chapter/10.1007/978-3-031-55312-7_16\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>ArtsIT, Interactivity and Game Creation 2023</a></h4> <h4><a href=\'https://doi.org/10.5281/zenodo.6822203\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>Sound and Music Computing Conference 2022</a></h4>","images":["./assets/glass/showcase-img1.webp","./assets/glass/showcase-img2.webp","./assets/glass/showcase-img3.webp"],"images_alt":["The virtual reality experience leverages the handtracking capabilities of the meta quest 2 device. Virtual environment capture.","Virtual environemnt capture showing interactive buttons for initiating tutorial and storytelling by Benjamin Franklin.","Photograph of excited visitor trying the virtual reality experience, at the Danish Music Museum."]},"nature":{"title":"Through the Eyes of Nature","video_ref":"./assets/glass/video.webm","main_txt":"Together with a fellow peer, the design and development of the virtual glass harmonica was a project completed for the <span class=\'color-glass\'>Danish Music Museum</span>. As part of the <i>Music History - Taken out of the Box</i> project, funded by the Augustinus Foundation, it explores the use of <span class=\'color-glass\'>Virtual Reality</span> to resurrect a forgotten instrument and present its history, sound, and interaction through an immersive virtual environment. The installation can be experienced at the Music Museum, where qualitative evaluations have shown that it establishes a good connection between the virtual instrument and the physical 1780-era glass harmonica on display.","client":"Danish Music Museum","tech":"Unity | Blender | Meta Quest 2 Standalone | Handtracking | Shadergraph","images":["bg.webp","showcase-img1.webp","showcase-img1.webp","showcase-img1.webp"],"images-alt":["alt image 1","alt image 2","alt image 3"]},"dad":{"title":"Through the Eyes of Nature","video_ref":"./assets/dad/video.webm","main_txt":"Together with a fellow peer, the design and development of the virtual glass harmonica was a project completed for the <span class=\'color-glass\'>Danish Music Museum</span>. As part of the <i>Music History - Taken out of the Box</i> project, funded by the Augustinus Foundation, it explores the use of <span class=\'color-glass\'>Virtual Reality</span> to resurrect a forgotten instrument and present its history, sound, and interaction through an immersive virtual environment. The installation can be experienced at the Music Museum, where qualitative evaluations have shown that it establishes a good connection between the virtual instrument and the physical 1780-era glass harmonica on display.","client":"Danish National Museum","link":"<h4><a href=\'https://www.dad.natmus.dk/\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>DAD - Natmus</a></h4>","tech":"Unity | Blender | Meta Quest 2 Standalone | Handtracking | Shadergraph","images":["bg.webp","showcase-img1.webp","showcase-img1.webp","showcase-img1.webp"],"images-alt":["alt image 1","alt image 2","alt image 3"]}}');
+
+},{}],"a5jmZ":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 var _three = require("three");
@@ -42115,7 +42175,7 @@ class GrassScene {
 }
 exports.default = GrassScene;
 
-},{"three":"ktPTu","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/RGBELoader.js":"cfP3d","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","../img/albedo.webp":"3HJFe","../img/Normal.webp":"eP17o"}],"lkdU4":[function(require,module,exports) {
+},{"three":"ktPTu","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/RGBELoader.js":"cfP3d","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","../img/albedo.webp":"3HJFe","../img/Normal.webp":"eP17o","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"lkdU4":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "DRACOLoader", ()=>DRACOLoader);
@@ -42488,72 +42548,10 @@ class DRACOLoader extends (0, _three.Loader) {
 },{"three":"ktPTu","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"3HJFe":[function(require,module,exports) {
 module.exports = require("cc56433803bbd96b").getBundleURL("g05j8") + "albedo.169f4e8d.webp" + "?" + Date.now();
 
-},{"cc56433803bbd96b":"lgJ39"}],"lgJ39":[function(require,module,exports) {
-"use strict";
-var bundleURL = {};
-function getBundleURLCached(id) {
-    var value = bundleURL[id];
-    if (!value) {
-        value = getBundleURL();
-        bundleURL[id] = value;
-    }
-    return value;
-}
-function getBundleURL() {
-    try {
-        throw new Error();
-    } catch (err) {
-        var matches = ("" + err.stack).match(/(https?|file|ftp|(chrome|moz|safari-web)-extension):\/\/[^)\n]+/g);
-        if (matches) // The first two stack frames will be this function and getBundleURLCached.
-        // Use the 3rd one, which will be a runtime in the original bundle.
-        return getBaseURL(matches[2]);
-    }
-    return "/";
-}
-function getBaseURL(url) {
-    return ("" + url).replace(/^((?:https?|file|ftp|(chrome|moz|safari-web)-extension):\/\/.+)\/[^/]+$/, "$1") + "/";
-}
-// TODO: Replace uses with `new URL(url).origin` when ie11 is no longer supported.
-function getOrigin(url) {
-    var matches = ("" + url).match(/(https?|file|ftp|(chrome|moz|safari-web)-extension):\/\/[^/]+/);
-    if (!matches) throw new Error("Origin not found");
-    return matches[0];
-}
-exports.getBundleURL = getBundleURLCached;
-exports.getBaseURL = getBaseURL;
-exports.getOrigin = getOrigin;
-
-},{}],"eP17o":[function(require,module,exports) {
+},{"cc56433803bbd96b":"lgJ39"}],"eP17o":[function(require,module,exports) {
 module.exports = require("8a393e804b2800b3").getBundleURL("g05j8") + "Normal.3ce5a148.webp" + "?" + Date.now();
 
-},{"8a393e804b2800b3":"lgJ39"}],"cNzyR":[function(require,module,exports) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-var _grassbladeTestVertGlsl = require("./glsl/grassbladeTest.vert.glsl");
-var _grassbladeTestVertGlslDefault = parcelHelpers.interopDefault(_grassbladeTestVertGlsl);
-var _grassbladeTestFragGlsl = require("./glsl/grassbladeTest.frag.glsl");
-var _grassbladeTestFragGlslDefault = parcelHelpers.interopDefault(_grassbladeTestFragGlsl);
-exports.default = {
-    frag: (0, _grassbladeTestFragGlslDefault.default),
-    vert: (0, _grassbladeTestVertGlslDefault.default)
-};
-
-},{"./glsl/grassbladeTest.vert.glsl":"h9wIl","./glsl/grassbladeTest.frag.glsl":"f3LHG","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"h9wIl":[function(require,module,exports) {
-module.exports = "uniform float time;\nuniform float windStrength;\nuniform sampler2D displacementMap;\nuniform float fieldSize;\nuniform float displacementScale;\n\nattribute vec3 offset;\nattribute float scale;\nattribute float normalizedHeight;\nattribute mat3 instanceRotationMatrix;\nattribute vec2 uvs; // Incoming UV coordinates\nvarying vec2 sendUV;\n//attribute float rotation;\nvarying vec2 vUv;\nvarying vec2 csm_cloudUV;\nvarying vec3 csm_vWorldPosition;\nvarying vec3 csm_vViewPosition;\nvarying float vHeight;\nvarying vec3 csm_vPosition;\n\nfloat hash(vec2 p) {\n    p = 50.0 * fract(p * 0.3183099 + vec2(0.71));\n    return -1.0 + 2.0 * fract(p.x * p.y * (p.x + p.y));\n}\n\nfloat noise(vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n    vec2 u = f * f * (3.0 - 2.0 * f);\n    \n    return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),\n               mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);\n}\n\nvoid main() {\n    precision highp float;\n#define GLSLIFY 1\n\n            //csm_vPosition = position;\n            //vUv = uv;\n            vUv = uv;\n            //cloudUV = uv;\n            //cloudUV.x += time / 200.;\n            //cloudUV.y += time / 100.;\n            vec3 transformedGrass = position * scale;\n            transformedGrass = instanceRotationMatrix * transformedGrass;\n            transformedGrass += offset;\n            //vec3 test = transformedGrass;\n\n            //vec3 positionTest = offset.xyz + vec3(position.x, 0.0, position.y);\n            //csm_vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;\n            //vWorldPosition = worldPosition.xyz;\n            vHeight = position.y * normalizedHeight; \n            \n            // Use time and some arbitrary values to generate noise\n            float n = noise(vec2(time * 0.1, time * 0.05));\n\n            // Scale the noise value to be in the range [0.0, 0.2]\n            float varyingValue = n * 0.3;\n  \n            float noise = noise(offset.xz);\n\n            // varyingValue is now in the range [0.0, 0.2]\n            \n            float dispPower = 1.0 - cos( vHeight * 3.1416 / 0.35 );\n            transformedGrass.z += sin(offset.z * noise  + time * 2.0) * ((0.15 + varyingValue) * dispPower);\n            transformedGrass.x += sin(offset.x * noise  + time * 2.0) * ((0.15 + varyingValue) * dispPower);\n\n            //csm_PositionRaw = projectionMatrix * modelViewMatrix * vec4(transformedGrass, 1.0);\n            csm_Position = transformedGrass;\n            //csm_Position = position * scale * instanceRotationMatrix * vec3(1.0);\n   \n}\n\n";
-
-},{}],"f3LHG":[function(require,module,exports) {
-module.exports = "#define GLSLIFY 1\nuniform sampler2D grassTexture;\n//uniform sampler2D cloudTexture;\nuniform vec3 fogColor;\nuniform float fogDensity;\nuniform vec3 vCameraPosition;\nvarying vec2 vUv;\nvarying vec2 sendUV;\n//varying vec2 cloudUV;\nvarying vec3 vWorldPosition;\nvarying vec3 csm_vWorldPosition;\nvarying float vHeight;\nvarying vec3 vPosition;\n//varying vec3 vViewPosition;\nvarying vec4 csm_DiffuseColor;\n\nfloat contrast = 1.5;\nfloat brightness = 1.1;\n\nvoid main() {\n\n        //precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n    float depth = length(csm_vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    float fogFactor = 1.0 - exp(-fogDensity * depth);\n    fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv/100.0).rgb;\n    //textureColor = textureColor * vec3(brightness, brightness, brightness);\n    textureColor = mix(textureColor, topBladeColor, 0.35);\n    float height = clamp(vHeight, 0.0, 1.0);\n    textureColor *= height * height * height;\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n    //finalColor = mix(csm_DiffuseColor.rgb, topBladeColor, 1.0);\n    //csm_Emissive = textureColor;\n\n    csm_DiffuseColor = vec4(finalColor, 1.0);\n\n    /*\n    //precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n    float depth = length(vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    float fogFactor = 1.0 - exp(-fogDensity * depth);\n    fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv/1000.0).rgb;\n    textureColor = textureColor * vec3(brightness, brightness, brightness);\n    textureColor = mix(textureColor, topBladeColor, 0.75);\n    textureColor *= vHeight * vHeight;\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n\n    csm_DiffuseColor = vec4(finalColor, 1.0);\n    */\n\n}\n\n";
-
-},{}],"f6f8d":[function(require,module,exports) {
-module.exports = require("c8c3637be7158d53").getBundleURL("g05j8") + "grassColor.cd69343f.png" + "?" + Date.now();
-
-},{"c8c3637be7158d53":"lgJ39"}],"iF6OC":[function(require,module,exports) {
-module.exports = require("8dabffa2ef0f7b19").getBundleURL("g05j8") + "introvideo.149b9427.webm" + "?" + Date.now();
-
-},{"8dabffa2ef0f7b19":"lgJ39"}],"24cue":[function(require,module,exports) {
-module.exports = JSON.parse('{"glass":{"title":"The Virtual Glass Harmonica","video_ref":"./assets/glass/video.webm","main_txt":"Together with a fellow peer, the design and development of the virtual glass harmonica was a project completed for the <span class=\'color-glass\'>Danish Music Museum</span>. As part of the <i>Music History - Taken out of the Box</i> project, funded by the Augustinus Foundation, it explores the use of <span class=\'color-glass\'>Virtual Reality</span> to resurrect a forgotten instrument and present its history, sound, and interaction through an immersive virtual environment. The installation can be experienced at the Music Museum, where qualitative evaluations have shown that it establishes a good connection between the virtual instrument and the physical 1780-era glass harmonica on display.","client":"Danish Music Museum","tech":"Unity-C# | Blender | Meta Quest 2 Standalone | Handtracking | Shadergraph","publications":"<h4><a href=\'https://link.springer.com/chapter/10.1007/978-3-031-55312-7_16\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>ArtsIT, Interactivity and Game Creation 2023</a></h4> <h4><a href=\'https://doi.org/10.5281/zenodo.6822203\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>Sound and Music Computing Conference 2022</a></h4>","images":["./assets/glass/showcase-img1.webp","./assets/glass/showcase-img2.webp","./assets/glass/showcase-img3.webp"],"images_alt":["The virtual reality experience leverages the handtracking capabilities of the meta quest 2 device. Virtual environment capture.","Virtual environemnt capture showing interactive buttons for initiating tutorial and storytelling by Benjamin Franklin.","Photograph of excited visitor trying the virtual reality experience, at the Danish Music Museum."]},"nature":{"title":"Through the Eyes of Nature","video_ref":"./assets/glass/video.webm","main_txt":"Together with a fellow peer, the design and development of the virtual glass harmonica was a project completed for the <span class=\'color-glass\'>Danish Music Museum</span>. As part of the <i>Music History - Taken out of the Box</i> project, funded by the Augustinus Foundation, it explores the use of <span class=\'color-glass\'>Virtual Reality</span> to resurrect a forgotten instrument and present its history, sound, and interaction through an immersive virtual environment. The installation can be experienced at the Music Museum, where qualitative evaluations have shown that it establishes a good connection between the virtual instrument and the physical 1780-era glass harmonica on display.","client":"Danish Music Museum","tech":"Unity | Blender | Meta Quest 2 Standalone | Handtracking | Shadergraph","images":["bg.webp","showcase-img1.webp","showcase-img1.webp","showcase-img1.webp"],"images-alt":["alt image 1","alt image 2","alt image 3"]},"dad":{"title":"Through the Eyes of Nature","video_ref":"./assets/dad/video.webm","main_txt":"Together with a fellow peer, the design and development of the virtual glass harmonica was a project completed for the <span class=\'color-glass\'>Danish Music Museum</span>. As part of the <i>Music History - Taken out of the Box</i> project, funded by the Augustinus Foundation, it explores the use of <span class=\'color-glass\'>Virtual Reality</span> to resurrect a forgotten instrument and present its history, sound, and interaction through an immersive virtual environment. The installation can be experienced at the Music Museum, where qualitative evaluations have shown that it establishes a good connection between the virtual instrument and the physical 1780-era glass harmonica on display.","client":"Danish National Museum","link":"<h4><a href=\'https://www.dad.natmus.dk/\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>DAD - Natmus</a></h4>","tech":"Unity | Blender | Meta Quest 2 Standalone | Handtracking | Shadergraph","images":["bg.webp","showcase-img1.webp","showcase-img1.webp","showcase-img1.webp"],"images-alt":["alt image 1","alt image 2","alt image 3"]}}');
-
-},{}],"02A2s":[function(require,module,exports) {
+},{"8a393e804b2800b3":"lgJ39"}],"02A2s":[function(require,module,exports) {
 let workerURL = require("422b1475f0c5a287");
 let bundleURL = require("4d7efceec8fcf58b");
 let url = bundleURL.getBundleURL("g05j8") + "worker.795c99cd.js" + "?" + Date.now();
