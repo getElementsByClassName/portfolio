@@ -657,7 +657,7 @@ document.addEventListener("visibilitychange", ()=>{
 // Mouse Wheel Scroll Function
 ********************************************************************/ const overlay = document.getElementById("overlay");
 const lenisOverlayOptions = {
-    duration: 1.5,
+    duration: 1.75,
     //easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // https://www.desmos.com/calculator/brs54l4xou
     direction: "vertical",
     gestureDirection: "vertical",
@@ -670,7 +670,7 @@ const lenisOverlayOptions = {
     content: overlay.children[0]
 };
 const lenisSiteOptions = {
-    duration: 1.5,
+    duration: 1.75,
     //easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // Easing function
     smooth: true
 };
@@ -840,9 +840,11 @@ let overlayTouchStart = 0;
 imageContainers.forEach((container)=>{
     container.addEventListener("click", ()=>{
         overlay.classList.add("show");
+        lenisOverlay.start();
         lenisSite.stop();
-        //lenisOverlay.start();
         //overlayIsOpen = true;
+        console.log("clicking image");
+        isScrolling = true;
         closeBtn.classList.add("show");
     });
 });
@@ -1028,7 +1030,7 @@ loader.load("./assets/powerlines.glb", function(gltf) {
     model.children[4].material = shaderMaterialLine;
     model.children[6].material = shaderMaterialLine;
     // Optionally, position the model
-    model.position.set(360, getHeight(360, -275), -275);
+    model.position.set(360, getHeight(360, -275) - 2, -275);
     model.rotateY(-Math.PI / 4);
     model.scale.set(10, 12, 10);
 }, undefined, function(error) {
@@ -1229,8 +1231,8 @@ rgbeLoader.load("./assets/belfast_sunset_puresky_2k.hdr", function(texture) {
         scene.add(cube);
     */ // Dispose of the PMREMGenerator to free up resources
     pmremGenerator.dispose();
-    // Dispose of the original HDR texture
-    texture.dispose();
+// Dispose of the original HDR texture
+//texture.dispose();
 });
 /********************************************************************
 // Video Plane
@@ -41974,6 +41976,7 @@ class GrassScene {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.container.appendChild(this.renderer.domElement);
         window.addEventListener("resize", ()=>this.onWindowResize(), false);
+        this.mouse = new _three.Vector2(); // Store mouse position in normalized coordinates (-1 to 1)
         document.addEventListener("visibilitychange", ()=>{
             if (document.hidden) this.stopRendering();
             else this.startRendering();
@@ -41982,7 +41985,7 @@ class GrassScene {
         this.renderer.outputEncoding = _three.SRGBColorSpace;
         this.renderer.toneMapping = _three.ACESFilmicToneMapping;
         //this.renderer.toneMapping = THREE.ReinhardToneMapping;
-        this.renderer.toneMappingExposure = 0.15;
+        this.renderer.toneMappingExposure = 0.2;
         this.stats = (0, _statsModuleDefault.default)();
         this.stats.showPanel(0);
         this.container.appendChild(this.stats.dom);
@@ -41994,11 +41997,11 @@ class GrassScene {
         const directionalLight = new _three.DirectionalLight(0xffffff, 0.3);
         directionalLight.position.set(10, 10, 10);
         //this.scene.add(directionalLight);
-        const light = new _three.PointLight(0xffe38a, 5.5, 20);
-        light.position.set(0, 2.0, 4);
-        this.scene.add(light);
-        const sphereSize = 2;
-        const pointLightHelper = new _three.PointLightHelper(light, sphereSize);
+        this.pointLight = new _three.PointLight(0xfcb43a, 6.5, 15);
+        this.pointLight.position.set(0, 2.0, 4);
+        this.scene.add(this.pointLight);
+        //const sphereSize = 2;
+        //const pointLightHelper = new THREE.PointLightHelper(light, sphereSize);
         //this.scene.add(pointLightHelper);
         // Camera position
         this.camera.position.set(0, 0, 5);
@@ -42009,7 +42012,26 @@ class GrassScene {
         this.loadModel();
         // Start animation loop
         this.animate();
+        this.addEventListeners();
     //this.stopRendering();
+    }
+    onMouseMove(e) {
+        console.log("this runs");
+        // Calculate mouse position in normalized device coordinates (-1 to +1) for both components
+        this.mouse.x = e.clientX / window.innerWidth * 2 - 1;
+        this.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        // Use a raycaster to project the mouse position into 3D space
+        const raycaster = new _three.Raycaster();
+        raycaster.setFromCamera(this.mouse, this.camera);
+        // Set the distance at which the light should move (adjust as needed)
+        const targetDistance = 1;
+        const intersectPoint = raycaster.ray.origin.clone().add(raycaster.ray.direction.multiplyScalar(targetDistance));
+        // Update the point light position
+        this.pointLight.position.copy(intersectPoint);
+    }
+    addEventListeners() {
+        // Event listener for mouse movement
+        this.container.addEventListener("mousemove", (event)=>this.onMouseMove(event));
     }
     setupHDR() {
         const loader = new (0, _rgbeloaderJs.RGBELoader)();
