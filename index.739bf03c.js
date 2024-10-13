@@ -1100,7 +1100,7 @@ scene.add(rectLight);
 ********************************************************************/ window.addEventListener("resize", onWindowResize, false);
 function onWindowResize() {
     // Update renderer size
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(window.clientWidth, window.clientHeight);
     // Update camera aspect ratio and projection matrix
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();

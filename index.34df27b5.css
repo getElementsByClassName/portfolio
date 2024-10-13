@@ -23,7 +23,7 @@
   box-sizing: border-box;
   scrollbar-width: none;
   scrollbar-color: #8b5858 #f8f0fb;
-  touch-action: pan-y;
+  touch-action: pan-x pan-y;
   margin: 0;
   padding: 0;
   overflow-x: hidden;
@@ -50,7 +50,7 @@ canvas {
 
 @media (width <= 768px) and (orientation: portrait) {
   #contact-scene {
-    width: 90svw;
+    width: 100svw;
   }
 }
 
