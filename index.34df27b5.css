@@ -97,7 +97,7 @@ body {
   scrollbar-width: none;
   scroll-behavior: initial;
   -webkit-font-smoothing: antialiased;
-  width: 100svw;
+  max-width: 100svw;
   font-family: AvenirNextLTPro-UltLt;
 }
 

@@ -667,14 +667,12 @@ const lenisOverlayOptions = {
     touchMultiplier: 2,
     infinite: false,
     wrapper: overlay,
-    content: overlay.children[0],
-    autoResize: false
+    content: overlay.children[0]
 };
 const lenisSiteOptions = {
     duration: 1.75,
     //easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // Easing function
-    smooth: true,
-    autoResize: false
+    smooth: true
 };
 const lenisOverlay = new (0, _lenisDefault.default)(lenisOverlayOptions);
 const lenisSite = new (0, _lenisDefault.default)(lenisSiteOptions);
@@ -1102,7 +1100,7 @@ scene.add(rectLight);
 ********************************************************************/ window.addEventListener("resize", onWindowResize, false);
 function onWindowResize() {
     // Update renderer size
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
     // Update camera aspect ratio and projection matrix
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
