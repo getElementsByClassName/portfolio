@@ -30,21 +30,10 @@
 }
 
 canvas {
-  max-width: 100svw;
-  height: 100svh;
-  max-height: 100svh;
-  display: block;
-  overflow: hidden;
-}
-
-#container-opening-scene {
   width: 100svw;
   height: 100svh;
-}
-
-#contact-scene {
-  max-width: 100svw;
-  overflow-x: hidden;
+  display: block;
+  overflow: hidden;
 }
 
 @media (width <= 768px) and (orientation: portrait) {

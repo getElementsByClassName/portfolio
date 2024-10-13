@@ -41976,11 +41976,11 @@ class GrassScene {
             alpha: true,
             canvas
         });
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
         this.container.appendChild(this.renderer.domElement);
         window.addEventListener("resize", ()=>this.onWindowResize(), false);
         this.mouse = new _three.Vector2(); // Store mouse position in normalized coordinates (-1 to 1)
-        document.addEventListener("visibilitychange", ()=>{
+        this.canvas.addEventListener("visibilitychange", ()=>{
             if (document.hidden) this.stopRendering();
             else this.startRendering();
         });
@@ -42058,7 +42058,7 @@ class GrassScene {
                 if (child.isMesh) child.material = this.createShaderMaterial();
             });
             grassModel.scale.set(1.8, 1.8, 1.8);
-            grassModel.position.set(0.2, -0.65, 4);
+            grassModel.position.set(0.2, -0.75, 4);
             //grassModel.rotateY(Math.PI / 2);
             this.scene.add(grassModel);
         });
@@ -42127,7 +42127,7 @@ class GrassScene {
                 float varyingValue = n * 0.65;
 
                 // Use the Y component of the world position to control the wind influence
-                float influence = smoothstep(0.0, 2.3, worldP.y + 0.65);  // Adjust based on world Y position
+                float influence = smoothstep(0.0, 2.3, worldP.y + 0.75);  // Adjust based on world Y position
 
                 // Apply wind movement in the XZ plane, using a sin wave for periodic motion
 
@@ -42190,9 +42190,9 @@ class GrassScene {
     }
     // Handle resizing of the window
     onWindowResize() {
-        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
+        this.camera.aspect = this.canvas.clientWidth / this.canvas.clientHeight;
         this.camera.updateProjectionMatrix();
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
     startRendering() {
         this.renderer.setAnimationLoop(()=>this.animate());
