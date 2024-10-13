@@ -667,12 +667,14 @@ const lenisOverlayOptions = {
     touchMultiplier: 2,
     infinite: false,
     wrapper: overlay,
-    content: overlay.children[0]
+    content: overlay.children[0],
+    autoResize: false
 };
 const lenisSiteOptions = {
     duration: 1.75,
     //easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // Easing function
-    smooth: true
+    smooth: true,
+    autoResize: false
 };
 const lenisOverlay = new (0, _lenisDefault.default)(lenisOverlayOptions);
 const lenisSite = new (0, _lenisDefault.default)(lenisSiteOptions);
