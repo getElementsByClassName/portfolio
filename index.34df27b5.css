@@ -28,7 +28,7 @@
 }
 
 canvas {
-  max-width: 100svw;
+  width: 100svw;
   height: 100svh;
   max-height: 100svh;
   display: block;
