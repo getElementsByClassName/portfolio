@@ -29,27 +29,6 @@
   overflow-x: hidden;
 }
 
-canvas {
-  width: 100svw;
-  height: 100svh;
-  display: block;
-  overflow: hidden;
-}
-
-@media (width <= 768px) and (orientation: portrait) {
-  canvas {
-    width: 100svw;
-    height: 100svh;
-  }
-}
-
-@media (width <= 1024px) and (orientation: landscape) {
-  canvas {
-    width: 100svw;
-    height: 100svh;
-  }
-}
-
 #container-opening-scene {
   width: 100svw;
   height: 100svh;
@@ -127,14 +106,6 @@ body {
   -webkit-font-smoothing: antialiased;
   max-width: 100svw;
   font-family: AvenirNextLTPro-UltLt;
-}
-
-body::-webkit-scrollbar {
-  display: none;
-}
-
-html::-webkit-scrollbar {
-  display: none;
 }
 
 footer {

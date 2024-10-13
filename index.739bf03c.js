@@ -1069,7 +1069,9 @@ video.src = (0, _introvideoWebmDefault.default); // Set the path to your video f
 //video.style.filter = 'brightness(0.8) contrast(1.9)';
 video.muted = true;
 video.loop = true;
+video.autoplay = true;
 video.playsInline = true;
+video.crossOrigin = "anonymous";
 video.load(); // Load the video
 video.play(); // Play the video
 // Create a texture from the video element
@@ -1108,6 +1110,7 @@ function onWindowResize() {
 //windowHeight = window.innerHeight;
 //console.log(window.innerHeight);
 }
+//observe resize
 const resizeObserver = new ResizeObserver((entries)=>{
     for (let entry of entries){
         const { width, height } = entry.contentRect;
