@@ -31,14 +31,21 @@
 
 canvas {
   background-color: #dc136c;
-  width: 100%;
-  height: 100%;
+  width: 100svw;
+  height: 100svh;
   display: block;
+  overflow: hidden;
 }
 
 #container-opening-scene {
   width: 100svw;
   height: 100svh;
+}
+
+#contact-scene {
+  width: 100svw;
+  min-height: 100svh;
+  overflow: hidden;
 }
 
 @media (width <= 768px) and (orientation: portrait) {
@@ -51,16 +58,16 @@ canvas {
 @media (width <= 1024px) and (orientation: landscape) {
   #contact-scene {
     width: 100svw;
-    height: 100svh;
+    min-height: 100svh;
   }
 }
 
 #container-contact {
   background-image: linear-gradient(130deg, #c37d04 0%, #b57308 0%, #a86c0b -1%, #9b650d -1%, #8f5c0f -1%, #845510 -1%, #744b11 -1%, #6a4511 -1%, #5f3f11 0%, #513510 0%, #472f10 2%, #3d290f 4%, #30210d 7%, #281b0b 12%, #1d1407 20%, #110b03 35%, #000 99%);
   width: 100svw;
-  height: 100vh;
+  height: 100svh;
   position: relative;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 .contact-overlay {
