@@ -624,7 +624,8 @@ var _grassSceneJsDefault = parcelHelpers.interopDefault(_grassSceneJs);
 ********************************************************************/ const grassContainer = document.getElementById("contact-scene");
 //const simple = new SimpleScene(fogContainer);
 //const particle = new ParticleSystem(fogContainer);
-const grassScene = new (0, _grassSceneJsDefault.default)(grassContainer);
+const canvasContact = document.querySelector("#canvas-contact-scene");
+const grassScene = new (0, _grassSceneJsDefault.default)(grassContainer, canvasContact);
 //window.addEventListener('resize', () => grassScene.onWindowResize(), false);
 /********************************************************************
 // Vanilla Javascript
@@ -952,8 +953,7 @@ const grassBladesPerChunk = 15000;
 // Basic scene setup
 const scene = new _three.Scene();
 const camera = new _three.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 900);
-const canvas = document.querySelector("canvas");
-//console.log(canvas)
+const canvas = document.querySelector("#canvas-opening-scene");
 const renderer = new _three.WebGLRenderer({
     antialias: true,
     alpha: false,
@@ -970,7 +970,8 @@ renderer.toneMappingExposure = 0.95;
 // const pixelRatio = window.devicePixelRatio;
 // const canvasWidth = canvas.clientWidth * pixelRatio | 0;
 // const canvasHeight = canvas.clientHeight * pixelRatio | 0;
-renderer.setSize(window.innerWidth, window.innerHeight);
+const body = document.querySelector("body");
+renderer.setSize(canvas.clientWidth, canvas.clientHeight);
 //cntOpeningScene.appendChild(renderer.domElement);
 //show stats, updated in animation loop
 //const stats = Stats();
@@ -1102,7 +1103,7 @@ function onWindowResize() {
     // Update renderer size
     renderer.setSize(canvas.clientWidth, canvas.clientHeight);
     // Update camera aspect ratio and projection matrix
-    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.aspect = canvas.clientWidth / canvas.clientHeight;
     camera.updateProjectionMatrix();
 //windowHeight = window.innerHeight;
 //console.log(window.innerHeight);
@@ -41964,14 +41965,16 @@ var _albedoWebpDefault = parcelHelpers.interopDefault(_albedoWebp);
 var _normalWebp = require("../img/Normal.webp");
 var _normalWebpDefault = parcelHelpers.interopDefault(_normalWebp);
 class GrassScene {
-    constructor(container){
+    constructor(container, canvas){
         this.container = container;
+        this.canvas = canvas;
         this.scene = new _three.Scene();
         this.clock = new _three.Clock();
         this.camera = new _three.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         this.renderer = new _three.WebGLRenderer({
             antialias: true,
-            alpha: true
+            alpha: true,
+            canvas
         });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.container.appendChild(this.renderer.domElement);
