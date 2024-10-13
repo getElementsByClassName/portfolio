@@ -621,11 +621,11 @@ var _grassSceneJsDefault = parcelHelpers.interopDefault(_grassSceneJs);
 //import getPrefixedStyle from 'get-prefixed-style';
 /********************************************************************
  // Fog background
-********************************************************************/ const grassContainer = document.getElementById("contact-scene");
+********************************************************************/ const grassContainer = document.getElementById("container-contact");
 //const simple = new SimpleScene(fogContainer);
 //const particle = new ParticleSystem(fogContainer);
 const canvasContact = document.querySelector("#canvas-contact-scene");
-const grassScene = new (0, _grassSceneJsDefault.default)(grassContainer, canvasContact);
+const grassScene = new (0, _grassSceneJsDefault.default)(grassContainer);
 //window.addEventListener('resize', () => grassScene.onWindowResize(), false);
 /********************************************************************
 // Vanilla Javascript
@@ -41965,22 +41965,22 @@ var _albedoWebpDefault = parcelHelpers.interopDefault(_albedoWebp);
 var _normalWebp = require("../img/Normal.webp");
 var _normalWebpDefault = parcelHelpers.interopDefault(_normalWebp);
 class GrassScene {
-    constructor(container, canvas){
+    constructor(container){
         this.container = container;
-        this.canvas = canvas;
+        this.width = container.clientWidth;
+        this.height = container.clientHeight;
         this.scene = new _three.Scene();
         this.clock = new _three.Clock();
-        this.camera = new _three.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.camera = new _three.PerspectiveCamera(75, this.width / this.height, 0.1, 1000);
         this.renderer = new _three.WebGLRenderer({
             antialias: true,
-            alpha: true,
-            canvas
+            alpha: true
         });
-        this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
+        this.renderer.setSize(this.width, this.height);
         this.container.appendChild(this.renderer.domElement);
-        window.addEventListener("resize", ()=>this.onWindowResize(), false);
+        //window.addEventListener('resize', () => this.onWindowResize(), false);
         this.mouse = new _three.Vector2(); // Store mouse position in normalized coordinates (-1 to 1)
-        this.canvas.addEventListener("visibilitychange", ()=>{
+        this.container.addEventListener("visibilitychange", ()=>{
             if (document.hidden) this.stopRendering();
             else this.startRendering();
         });
@@ -41989,9 +41989,9 @@ class GrassScene {
         this.renderer.toneMapping = _three.ACESFilmicToneMapping;
         //this.renderer.toneMapping = THREE.ReinhardToneMapping;
         this.renderer.toneMappingExposure = 0.2;
-        this.stats = (0, _statsModuleDefault.default)();
-        this.stats.showPanel(0);
-        this.container.appendChild(this.stats.dom);
+        // this.stats = Stats();
+        // this.stats.showPanel(0);
+        // this.container.appendChild(this.stats.dom);
         this.scene.fog = new _three.FogExp2(0xffe38a, 0.45);
         this.setupHDR();
         // Lighting
@@ -42013,13 +42013,28 @@ class GrassScene {
         this.loadTextures();
         // Load the grass model
         this.loadModel();
+        this.setupResizeObserver();
         // Start animation loop
         this.animate();
         this.addEventListeners();
     //this.stopRendering();
     }
+    setupResizeObserver() {
+        const resizeObserver = new ResizeObserver((entries)=>{
+            for (let entry of entries){
+                const { width, height } = entry.contentRect;
+                console.log(height);
+                // Update canvas size and camera aspect ratio
+                this.renderer.setSize(width, height);
+                this.camera.aspect = width / height;
+                this.camera.updateProjectionMatrix();
+            }
+        });
+        // Observe the canvas container for size changes
+        resizeObserver.observe(this.container);
+    }
     onMouseMove(e) {
-        console.log("this runs");
+        //console.log('this runs');
         // Calculate mouse position in normalized device coordinates (-1 to +1) for both components
         this.mouse.x = e.clientX / window.innerWidth * 2 - 1;
         this.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
@@ -42058,8 +42073,10 @@ class GrassScene {
                 if (child.isMesh) child.material = this.createShaderMaterial();
             });
             grassModel.scale.set(1.8, 1.8, 1.8);
+            //grassModel.position.set(0, 0, 0);
             grassModel.position.set(0.2, -0.75, 4);
             //grassModel.rotateY(Math.PI / 2);
+            console.log(grassModel);
             this.scene.add(grassModel);
         });
     }
@@ -42185,17 +42202,17 @@ class GrassScene {
             if (object.isMesh && object.material && object.material.uniforms) object.material.uniforms.time.value = elapsedTime;
         });
         this.renderer.render(this.scene, this.camera);
-        this.stats.update();
+    //this.stats.update();
     //console.log(this.renderer.info);
     }
     // Handle resizing of the window
-    onWindowResize() {
-        console.log(this.canvas.clientWidth);
-        console.log(window.innerWidth);
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.camera.aspect = this.canvas.clientWidth / this.canvas.clientHeight;
-        this.camera.updateProjectionMatrix();
-    }
+    // onWindowResize() {
+    //     console.log(this.canvas.clientWidth);
+    //     console.log(window.innerWidth);
+    //     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    //     this.camera.aspect = window.innerWidth / window.innerHeight;
+    //     this.camera.updateProjectionMatrix();
+    // }
     startRendering() {
         this.renderer.setAnimationLoop(()=>this.animate());
     }

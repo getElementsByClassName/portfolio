@@ -30,7 +30,6 @@
 }
 
 canvas {
-  background-color: #dc136c;
   width: 100svw;
   height: 100svh;
   display: block;
@@ -58,7 +57,7 @@ canvas {
 @media (width <= 1024px) and (orientation: landscape) {
   #contact-scene {
     width: 100svw;
-    min-height: 100svh;
+    height: 100svh;
   }
 }
 
@@ -67,7 +66,13 @@ canvas {
   width: 100svw;
   height: 100svh;
   position: relative;
-  overflow: hidden;
+}
+
+@media (width <= 1024px) and (orientation: landscape) {
+  #container-contact {
+    width: 100svw;
+    min-height: 100vh;
+  }
 }
 
 .contact-overlay {
