@@ -36,6 +36,20 @@ canvas {
   overflow: hidden;
 }
 
+@media (width <= 768px) and (orientation: portrait) {
+  canvas {
+    width: 100svw;
+    height: 100svh;
+  }
+}
+
+@media (width <= 1024px) and (orientation: landscape) {
+  canvas {
+    width: 100svw;
+    height: 100svh;
+  }
+}
+
 #container-opening-scene {
   width: 100svw;
   height: 100svh;

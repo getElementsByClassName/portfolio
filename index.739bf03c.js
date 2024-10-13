@@ -953,12 +953,12 @@ const grassBladesPerChunk = 15000;
 // Basic scene setup
 const scene = new _three.Scene();
 const camera = new _three.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 900);
-const canvas = document.querySelector("#canvas-opening-scene");
+const canvasContainer = document.querySelector("#container-opening-scene");
+//const canvasContainer = document.getElementById('');
 const renderer = new _three.WebGLRenderer({
     antialias: true,
     alpha: false,
-    powerPreference: "default",
-    canvas: canvas
+    powerPreference: "default"
 });
 //renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setPixelRatio(1.0);
@@ -971,8 +971,8 @@ renderer.toneMappingExposure = 0.95;
 // const canvasWidth = canvas.clientWidth * pixelRatio | 0;
 // const canvasHeight = canvas.clientHeight * pixelRatio | 0;
 const body = document.querySelector("body");
-renderer.setSize(canvas.clientWidth, canvas.clientHeight);
-//cntOpeningScene.appendChild(renderer.domElement);
+renderer.setSize(window.innerWidth, window.innerHeight);
+canvasContainer.appendChild(renderer.domElement);
 //show stats, updated in animation loop
 //const stats = Stats();
 //stats.showPanel(0);
@@ -1098,7 +1098,7 @@ scene.add(rectLight);
 //rectLight.add(rectLightHelper);
 /********************************************************************
 // Handle Window Resize
-********************************************************************/ window.addEventListener("resize", onWindowResize, false);
+********************************************************************/ //window.addEventListener('resize', onWindowResize, false);
 function onWindowResize() {
     // Update renderer size
     renderer.setSize(canvas.clientWidth, canvas.clientHeight);
@@ -1108,6 +1108,19 @@ function onWindowResize() {
 //windowHeight = window.innerHeight;
 //console.log(window.innerHeight);
 }
+const resizeObserver = new ResizeObserver((entries)=>{
+    for (let entry of entries){
+        const { width, height } = entry.contentRect;
+        console.log(height);
+        console.log(width);
+        // Update canvas size and camera aspect ratio
+        renderer.setSize(width, height);
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+    }
+});
+// Observe the canvas container for size changes
+resizeObserver.observe(canvasContainer);
 /********************************************************************
 // Landscape : Simplex Noise
 ********************************************************************/ const simplex = new (0, _simplexNoise.SimplexNoise)();
@@ -42024,6 +42037,7 @@ class GrassScene {
             for (let entry of entries){
                 const { width, height } = entry.contentRect;
                 console.log(height);
+                console.log(width);
                 // Update canvas size and camera aspect ratio
                 this.renderer.setSize(width, height);
                 this.camera.aspect = width / height;
@@ -42076,7 +42090,7 @@ class GrassScene {
             //grassModel.position.set(0, 0, 0);
             grassModel.position.set(0.2, -0.75, 4);
             //grassModel.rotateY(Math.PI / 2);
-            console.log(grassModel);
+            //console.log(grassModel);
             this.scene.add(grassModel);
         });
     }
