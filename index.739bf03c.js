@@ -42190,7 +42190,9 @@ class GrassScene {
     }
     // Handle resizing of the window
     onWindowResize() {
-        this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
+        console.log(this.canvas.clientWidth);
+        console.log(window.innerWidth);
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.camera.aspect = this.canvas.clientWidth / this.canvas.clientHeight;
         this.camera.updateProjectionMatrix();
     }
