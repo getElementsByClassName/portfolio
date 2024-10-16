@@ -23,10 +23,8 @@
   box-sizing: border-box;
   scrollbar-width: none;
   scrollbar-color: #8b5858 #f8f0fb;
-  touch-action: pan-x pan-y;
   margin: 0;
   padding: 0;
-  overflow-x: hidden;
 }
 
 #container-opening-scene {
@@ -34,69 +32,76 @@
   height: 100svh;
 }
 
-#contact-scene {
-  width: 100svw;
-  min-height: 100svh;
-  overflow: hidden;
+.fixed-container {
+  z-index: 40;
+  opacity: .3;
+  background-color: #dc136c;
+  width: 100vw;
+  height: 300vh;
+  margin-bottom: 30vh;
+  margin-right: 5vw;
+  position: relative;
+  overflow: scroll;
 }
 
-@media (width <= 768px) and (orientation: portrait) {
-  #contact-scene {
-    width: 100svw;
-    height: 100svh;
-  }
-}
-
-@media (width <= 1024px) and (orientation: landscape) {
-  #contact-scene {
-    width: 100svw;
-    height: 100svh;
-  }
+.scrollable-content {
+  opacity: .5;
+  background-color: #8075ff;
+  height: 200vh;
+  overflow-y: scroll;
 }
 
 #container-contact {
   background-image: linear-gradient(130deg, #c37d04 0%, #b57308 0%, #a86c0b -1%, #9b650d -1%, #8f5c0f -1%, #845510 -1%, #744b11 -1%, #6a4511 -1%, #5f3f11 0%, #513510 0%, #472f10 2%, #3d290f 4%, #30210d 7%, #281b0b 12%, #1d1407 20%, #110b03 35%, #000 99%);
-  width: 100svw;
-  height: 100svh;
-  position: relative;
-}
-
-@media (width <= 1024px) and (orientation: landscape) {
-  #container-contact {
-    width: 100svw;
-    min-height: 100vh;
-  }
-}
-
-.contact-overlay {
-  pointer-events: none;
   justify-content: center;
   align-items: center;
   width: 100svw;
+  height: 100svh;
+  display: flex;
+  position: relative;
+}
+
+.card-container {
+  justify-content: flex-start;
+  align-items: flex-start;
+  width: 60vw;
   height: 100%;
+  margin-top: 20vh;
+  margin-bottom: 20vh;
   display: flex;
   position: absolute;
-  top: 0;
-  left: 0;
+  overflow: hidden;
 }
 
-.glass-card {
-  width: 40vw;
-  height: 40svh;
-  margin-bottom: 10svh;
-  margin-right: 20vw;
+.card {
+  border-radius: 5px;
+  width: 65%;
+  height: 75%;
+  margin-top: 2vh;
+  margin-bottom: 2vh;
+  overflow-y: scroll;
 }
 
-.glass-card p {
+.card::-webkit-scrollbar {
+  display: none;
+}
+
+.card-content {
+  height: auto;
+  margin-top: 2vh;
+  margin-bottom: 2vh;
+}
+
+.card p {
   color: var(--color-text);
-  background-color: #1a191880;
+  background-color: #00000080;
   margin-top: 1rem;
-  padding: 10px 40px 10px 10px;
+  padding: 10px;
   font-size: 1rem;
   line-height: 1.7em;
 }
 
-.glass-card p span {
+.card p span {
   font-size: 1.5rem;
 }
 
@@ -110,7 +115,7 @@ body {
 
 footer {
   z-index: 25;
-  background-color: #0006;
+  background-color: #00000080;
   width: 100%;
   height: 7svh;
   position: fixed;
@@ -120,7 +125,7 @@ footer {
 
 @media (width <= 768px) and (orientation: portrait) {
   footer {
-    height: 7svh;
+    height: 8svh;
   }
 }
 
@@ -159,6 +164,7 @@ footer {
   z-index: 1;
   max-width: 60vw;
   min-height: 100svh;
+  overflow-y: hidden;
 }
 
 .content > h2 {

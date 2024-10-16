@@ -622,9 +622,6 @@ var _grassSceneJsDefault = parcelHelpers.interopDefault(_grassSceneJs);
 /********************************************************************
  // Fog background
 ********************************************************************/ const grassContainer = document.getElementById("container-contact");
-//const simple = new SimpleScene(fogContainer);
-//const particle = new ParticleSystem(fogContainer);
-const canvasContact = document.querySelector("#canvas-contact-scene");
 const grassScene = new (0, _grassSceneJsDefault.default)(grassContainer);
 //window.addEventListener('resize', () => grassScene.onWindowResize(), false);
 /********************************************************************
@@ -657,6 +654,8 @@ document.addEventListener("visibilitychange", ()=>{
 /********************************************************************
 // Mouse Wheel Scroll Function
 ********************************************************************/ const overlay = document.getElementById("overlay");
+//const fixedContainer = document.querySelector('.fixed-container');
+//const scrollContent = fixedContainer.querySelector('.scrollable-content');
 const lenisOverlayOptions = {
     duration: 1.75,
     //easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // https://www.desmos.com/calculator/brs54l4xou
@@ -670,6 +669,19 @@ const lenisOverlayOptions = {
     wrapper: overlay,
     content: overlay.children[0]
 };
+// const lenisScrollContentOptions = {
+//     duration: 1.75,
+//     //easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // https://www.desmos.com/calculator/brs54l4xou
+//     direction: 'vertical', // vertical, horizontal
+//     gestureDirection: 'vertical', // vertical, horizontal, both
+//     smooth: true,
+//     mouseMultiplier: 1,
+//     smoothTouch: true,
+//     touchMultiplier: 2,
+//     infinite: false,
+//     wrapper: scrollContent
+// }
+//const lenisScrollContent = new Lenis(lenisScrollContentOptions);
 const lenisSiteOptions = {
     duration: 1.75,
     //easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // Easing function
@@ -677,54 +689,16 @@ const lenisSiteOptions = {
 };
 const lenisOverlay = new (0, _lenisDefault.default)(lenisOverlayOptions);
 const lenisSite = new (0, _lenisDefault.default)(lenisSiteOptions);
+// lenisScrollContent.on('scroll', ({ scroll }) => {
+//     console.log('scroll value:', scroll);
+// });
 function raf(time) {
     lenisSite.raf(time);
     lenisOverlay.raf(time);
+    //lenisScrollContent.raf(time);
     requestAnimationFrame(raf);
 }
 requestAnimationFrame(raf);
-// function disableScroll(e) {
-//     e.preventDefault()
-//     return
-// }
-// function CSSScroll(_target, duration, scrollElement) {
-//     let transition
-//     let transform
-//     if (duration === undefined) duration = 800
-//     if (scrollElement === undefined) scrollElement = document.body
-//     //if (!transform) transform = getPrefixedStyle('transform')
-//     //if (!transition) transition = getPrefixedStyle('transition')
-//     if (!transform) transform = 'transform';
-//     if (!transition) transition = 'transition';
-//     return new Promise(function (resolve, reject) {
-//         const scrollY = window.scrollY
-//         if (scrollY === _target) return resolve()
-//         let remainingRoom = scrollElement.clientHeight - window.innerHeight
-//         let target = Math.min(remainingRoom, _target)
-//         let distance = scrollY - target
-//         scrollElement.style[transition] = transform + ' ' + duration + 'ms ease-in-out';
-//         //scrollElement.style[transform] = 'translate3d(0, ' + distance + 'px, 0)';
-//         scrollElement.style[transform] = 'translateY(' + distance + 'px)';
-//         scrollElement.style['pointer-events'] = 'none';
-//         //scrollElement.clientHeight // force reflow
-//         function handleTransitionEnd(e) {
-//             if (e.target !== scrollElement) return
-//             if (e.propertyName !== transform) return
-//             scrollElement.style.removeProperty(transition)
-//             scrollElement.style.removeProperty(transform)
-//             scrollElement.style.removeProperty('pointer-events')
-//             window.scrollTo(0, target)
-//             scrollElement.style.removeProperty(transition)
-//             resolve()
-//             //scrollElement.style.removeProperty('overflow')
-//             //window.removeEventListener('scroll', disableScroll)
-//             scrollElement.removeEventListener('transitionend', handleTransitionEnd)
-//         }
-//         scrollElement.style.overflow = 'hidden'
-//         //window.addEventListener('scroll', disableScroll)
-//         scrollElement.addEventListener('transitionend', handleTransitionEnd)
-//     })
-// }
 /********************************************************************
 // Detect Mouse wheel scroll
 ********************************************************************/ //let visitedFromMobileDevice;
@@ -787,7 +761,7 @@ const observerContactSceneCallback = (entries)=>{
     });
 };
 const observerContactScene = new IntersectionObserver(observerContactSceneCallback, observerOptions);
-observerContactScene.observe(grassContainer);
+//observerContactScene.observe(grassContainer);
 //intersection observer for changing button text content
 const navBtn1 = document.getElementById("btn1");
 const navBtn2 = document.getElementById("btn2");
@@ -1069,9 +1043,9 @@ video.src = (0, _introvideoWebmDefault.default); // Set the path to your video f
 //video.style.filter = 'brightness(0.8) contrast(1.9)';
 video.muted = true;
 video.loop = true;
-video.autoplay = true;
+//video.autoplay = true;
 video.playsInline = true;
-video.crossOrigin = "anonymous";
+//video.crossOrigin = 'anonymous';
 video.load(); // Load the video
 video.play(); // Play the video
 // Create a texture from the video element
@@ -42039,8 +42013,6 @@ class GrassScene {
         const resizeObserver = new ResizeObserver((entries)=>{
             for (let entry of entries){
                 const { width, height } = entry.contentRect;
-                console.log(height);
-                console.log(width);
                 // Update canvas size and camera aspect ratio
                 this.renderer.setSize(width, height);
                 this.camera.aspect = width / height;
