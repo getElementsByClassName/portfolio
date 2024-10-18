@@ -944,13 +944,13 @@ renderer.toneMappingExposure = 0.95;
 // const pixelRatio = window.devicePixelRatio;
 // const canvasWidth = canvas.clientWidth * pixelRatio | 0;
 // const canvasHeight = canvas.clientHeight * pixelRatio | 0;
-const body = document.querySelector("body");
+//const body = document.querySelector('body');
 renderer.setSize(window.innerWidth, window.innerHeight);
 canvasContainer.appendChild(renderer.domElement);
 //show stats, updated in animation loop
-//const stats = Stats();
-//stats.showPanel(0);
-//document.body.appendChild(stats.dom);
+const stats = (0, _statsModuleDefault.default)();
+stats.showPanel(0);
+document.body.appendChild(stats.dom);
 // Vertex and fragment shader code as strings
 const vertexShader = `
     varying float vPositionAlongLine;
@@ -1917,7 +1917,7 @@ function animate() {
     grassMaterialTest.uniforms.time.value += 0.01; // Update time for wind animation
     customMaterial.uniforms.uTime.value += 0.005;
     renderer.render(scene, camera);
-//stats.update();
+    stats.update();
 }
 fnStartRendering();
 
