@@ -302,6 +302,10 @@ footer {
   color: var(--color-dad);
 }
 
+.color-mizwak {
+  color: var(--color-mizwak);
+}
+
 .color-empty {
   color: var(--color-empty);
 }
@@ -382,9 +386,8 @@ footer {
 }
 
 .overlay {
-  overscroll-behavior: contain;
+  scroll-behavior: smooth;
   z-index: 1000;
-  scroll-behavior: initial;
   background-color: #1e2227;
   background-position: center;
   background-size: cover;
@@ -445,7 +448,7 @@ footer {
 }
 
 span {
-  font-weight: 700;
+  font-weight: 600;
 }
 
 #external-link > h4 {
@@ -455,8 +458,8 @@ span {
 .overlay-content > h3 {
   margin-top: 3rem;
   margin-bottom: 0;
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: .9rem;
+  font-weight: 600;
   line-height: 1.75;
 }
 
@@ -472,6 +475,7 @@ span {
   color: var(--color-text);
   margin-top: 1rem;
   font-size: 1rem;
+  font-weight: 100;
 }
 
 .overlay-content figure:last-of-type {
@@ -483,8 +487,9 @@ span {
 }
 
 .info > h3 {
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: .9rem;
+  font-weight: 600;
+  line-height: 1.75;
 }
 
 .info > h4 {

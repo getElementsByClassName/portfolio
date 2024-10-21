@@ -610,8 +610,8 @@ var _grassJsDefault = parcelHelpers.interopDefault(_grassJs);
 var _grassColorPng = require("../img/grassColor.png");
 var _grassColorPngDefault = parcelHelpers.interopDefault(_grassColorPng);
 //import cloudTexture from '../img/cloud.jpg';
-var _introvideoWebm = require("../img/introvideo.webm");
-var _introvideoWebmDefault = parcelHelpers.interopDefault(_introvideoWebm);
+var _introVideoWebm = require("../img/introVideo.webm");
+var _introVideoWebmDefault = parcelHelpers.interopDefault(_introVideoWebm);
 var _contentJson = require("./content.json");
 var _contentJsonDefault = parcelHelpers.interopDefault(_contentJson);
 var _grassSceneJs = require("./GrassScene.js");
@@ -654,8 +654,6 @@ document.addEventListener("visibilitychange", ()=>{
 /********************************************************************
 // Mouse Wheel Scroll Function
 ********************************************************************/ const overlay = document.getElementById("overlay");
-//const fixedContainer = document.querySelector('.fixed-container');
-//const scrollContent = fixedContainer.querySelector('.scrollable-content');
 const lenisOverlayOptions = {
     duration: 1.75,
     //easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // https://www.desmos.com/calculator/brs54l4xou
@@ -667,7 +665,7 @@ const lenisOverlayOptions = {
     touchMultiplier: 2,
     infinite: false,
     wrapper: overlay,
-    content: overlay.children[0]
+    content: overlay.children[1]
 };
 // const lenisScrollContentOptions = {
 //     duration: 1.75,
@@ -711,22 +709,19 @@ let currentSectionIndex = 0;
 let isScrolling = false;
 // Function to scroll to a specific section
 function scrollToSection(index) {
-    if (index >= 0 && index < sections.length) {
-        isScrolling = true;
-        lenisSite.scrollTo(sections[index], {
-            duration: 2.0,
-            offset: 0
-        });
-    }
-    isScrolling = false;
+    if (index >= 0 && index < sections.length) lenisSite.scrollTo(sections[index], {
+        duration: 1.75,
+        offset: 0
+    });
 }
 // Mouse wheel event listener
 window.addEventListener("wheel", (event)=>{
     if (isScrolling) return; // Prevent multiple scrolls while one is in progress
-    console.log("scrolling");
     // Check scroll direction
-    if (event.deltaY > 0) currentSectionIndex = Math.min(currentSectionIndex + 1, sections.length - 1);
-    else if (event.deltaY < 0) // Scrolling up, move to previous section
+    if (event.deltaY > 0) {
+        currentSectionIndex = Math.min(currentSectionIndex + 1, sections.length - 1);
+        if (controls !== undefined) controls.unlock();
+    } else if (event.deltaY < 0) // Scrolling up, move to previous section
     currentSectionIndex = Math.max(currentSectionIndex - 1, 0);
     scrollToSection(currentSectionIndex);
 });
@@ -815,29 +810,23 @@ let overlayTouchStart = 0;
 imageContainers.forEach((container)=>{
     container.addEventListener("click", ()=>{
         overlay.classList.add("show");
-        lenisOverlay.start();
         lenisSite.stop();
-        //overlayIsOpen = true;
-        console.log("clicking image");
-        isScrolling = true;
         closeBtn.classList.add("show");
     });
 });
 closeBtn.addEventListener("click", ()=>{
     overlay.classList.remove("show");
     lenisSite.start();
-    //overlayIsOpen = false;
     closeBtn.classList.remove("show");
 });
 // Optional: Hide overlay when clicking outside of it
 overlay.addEventListener("click", (e)=>{
-    console.log("clicking");
-    //if (e.target === overlay) 
     overlay.classList.remove("show");
     closeBtn.classList.remove("show");
+    setTimeout(()=>{
+        lenisOverlay.scrollTo(0);
+    }, 1000);
     lenisSite.start();
-//overlayIsOpen = false;
-//}
 });
 overlay.addEventListener("touchstart", function(event) {
     overlayTouchStart = event.touches[0].clientX; // Get the initial x position of the touch
@@ -847,14 +836,13 @@ overlay.addEventListener("touchmove", (e)=>{
     const deltaX = currentX - overlayTouchStart; // Calculate the difference
     //swiping right
     if (deltaX > 40) {
-        lenisOverlay.stop() // prevent scrolling during touchmove
-        ;
         overlay.classList.remove("show");
         closeBtn.classList.remove("show");
-        //overlayIsOpen = false;
         lenisSite.start();
+        setTimeout(()=>{
+            lenisOverlay.scrollTo(0);
+        }, 1000);
     }
-    lenisOverlay.start();
 });
 /********************************************************************
 // Lazy Load Content
@@ -865,7 +853,7 @@ const contentClient = document.getElementById("content-client");
 const contentTech = document.getElementById("content-tech");
 const headingLink = document.getElementById("heading-link");
 const contentLink = document.getElementById("external-link");
-const colorTxt = document.getElementsByClassName("color-txt");
+const colorTxt = document.getElementsByClassName("txt-color");
 imageContainers.forEach((container)=>{
     container.addEventListener("click", async (e)=>{
         const id = e.currentTarget.dataset.id;
@@ -873,23 +861,30 @@ imageContainers.forEach((container)=>{
     });
 });
 function fnLoadContent(id) {
+    console.log(id);
     const contentData = (0, _contentJsonDefault.default)[id];
     contentTitle.innerText = contentData.title;
     contentMainText.innerHTML = contentData.main_txt;
     contentClient.innerText = contentData.client;
     contentTech.innerHTML = contentData.tech;
-    if (contentData.publications !== undefined) {
-        headingLink.innerHTML = "Publication";
-        contentLink.innerHTML = contentData.publications;
-    } else {
-        headingLink.innerHTML = "Link";
-        contentLink.innerHTML = contentData.link;
-    }
     [
         ...colorTxt
     ].forEach((elem)=>{
+        const classes = elem.classList;
+        //remove color class
+        classes.forEach((className)=>{
+            if (className.startsWith("color-")) elem.classList.remove(className);
+        });
+        //add color class
         elem.classList.add("color-" + id);
     });
+    if (contentData.publications !== undefined) {
+        headingLink.innerHTML = "Publication";
+        contentLink.innerHTML = contentData.publications;
+    } else if (contentData.link !== undefined) {
+        headingLink.innerHTML = "Link";
+        contentLink.innerHTML = contentData.link;
+    } else headingLink.innerHTML = "";
     //create video element
     contentVideo.innerHTML = ""; //clear
     // Create a new video element
@@ -911,8 +906,10 @@ function fnLoadContent(id) {
     videoElement.load();
     for(let i = 1; i < 4; i++){
         const showcaseImage = document.getElementById(`showcase-image-${i}`);
+        console.log(showcaseImage);
         showcaseImage.src = contentData.images[i - 1];
         showcaseImage.alt = contentData.images_alt[i - 1];
+        showcaseImage.type = "image/webp";
         showcaseImage.nextElementSibling.innerText = contentData.images_alt[i - 1];
     }
 }
@@ -1005,7 +1002,7 @@ loader.load("./assets/powerlines.glb", function(gltf) {
     model.children[4].material = shaderMaterialLine;
     model.children[6].material = shaderMaterialLine;
     // Optionally, position the model
-    model.position.set(360, getHeight(360, -275) - 2, -275);
+    model.position.set(360, getHeight(360, -275) - 4, -275);
     model.rotateY(-Math.PI / 4);
     model.scale.set(10, 12, 10);
 }, undefined, function(error) {
@@ -1039,7 +1036,7 @@ cube.position.set(0, 0, 40);
 scene.add(cube);
 */ // Create a video element
 const video = document.createElement("video");
-video.src = (0, _introvideoWebmDefault.default); // Set the path to your video file
+video.src = (0, _introVideoWebmDefault.default); // Set the path to your video file
 //video.style.filter = 'brightness(0.8) contrast(1.9)';
 video.muted = true;
 video.loop = true;
@@ -1074,17 +1071,7 @@ scene.add(rectLight);
 //rectLight.add(rectLightHelper);
 /********************************************************************
 // Handle Window Resize
-********************************************************************/ //window.addEventListener('resize', onWindowResize, false);
-function onWindowResize() {
-    // Update renderer size
-    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
-    // Update camera aspect ratio and projection matrix
-    camera.aspect = canvas.clientWidth / canvas.clientHeight;
-    camera.updateProjectionMatrix();
-//windowHeight = window.innerHeight;
-//console.log(window.innerHeight);
-}
-//observe resize
+********************************************************************/ //observe resize
 const resizeObserver = new ResizeObserver((entries)=>{
     for (let entry of entries){
         const { width, height } = entry.contentRect;
@@ -1724,8 +1711,7 @@ const grassMaterialTest = new (0, _vanillaDefault.default)({
 });
 /********************************************************************
 // Creating chunks array
-********************************************************************/ //const worker = new Worker('worker.js');
-const arrChunks = [];
+********************************************************************/ const arrChunks = [];
 for(let x = 0; x < FIELD_SIZE / chunkSize; x++)for(let z = 0; z < FIELD_SIZE / chunkSize; z++){
     const chunk = {
         position: new _three.Vector2(x * chunkSize - 0.5 * FIELD_SIZE, z * chunkSize - 0.5 * FIELD_SIZE),
@@ -1902,11 +1888,11 @@ function animate() {
             else if (distance >= 200) chunk.geometry.instanceCount = 12000;
             else chunk.geometry.instanceCount = grassBladesPerChunk;
         } else {
-            if (distance > 950) chunk.geometry.instanceCount = 0;
-            else if (distance > 800) chunk.geometry.instanceCount = 5000;
-            else if (distance > 600) chunk.geometry.instanceCount = 5000;
-            else if (distance > 400) chunk.geometry.instanceCount = 8000;
-            else if (distance >= 200) chunk.geometry.instanceCount = 15000;
+            if (distance > 1000) chunk.geometry.instanceCount = 3000;
+            else if (distance > 900) chunk.geometry.instanceCount = 5000;
+            else if (distance > 600) chunk.geometry.instanceCount = 6000;
+            else if (distance > 400) chunk.geometry.instanceCount = 7000;
+            else if (distance >= 200) chunk.geometry.instanceCount = 7000;
             else chunk.geometry.instanceCount = grassBladesPerChunk;
         }
     });
@@ -1921,7 +1907,7 @@ function animate() {
 }
 fnStartRendering();
 
-},{"three":"ktPTu","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader":"dVRsF","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./shaders/grass.js":"cNzyR","../img/grassColor.png":"f6f8d","../img/introvideo.webm":"iF6OC","./content.json":"24cue","./GrassScene.js":"a5jmZ","73d37e91c71236a0":"02A2s","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"ktPTu":[function(require,module,exports) {
+},{"three":"ktPTu","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader":"dVRsF","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./shaders/grass.js":"cNzyR","../img/grassColor.png":"f6f8d","../img/introVideo.webm":"ydYM0","./content.json":"24cue","./GrassScene.js":"a5jmZ","73d37e91c71236a0":"02A2s","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"ktPTu":[function(require,module,exports) {
 /**
  * @license
  * Copyright 2010-2024 Three.js Authors
@@ -41933,11 +41919,11 @@ exports.getBundleURL = getBundleURLCached;
 exports.getBaseURL = getBaseURL;
 exports.getOrigin = getOrigin;
 
-},{}],"iF6OC":[function(require,module,exports) {
-module.exports = require("8dabffa2ef0f7b19").getBundleURL("g05j8") + "introvideo.149b9427.webm" + "?" + Date.now();
+},{}],"ydYM0":[function(require,module,exports) {
+module.exports = require("f190b6d854ec1781").getBundleURL("g05j8") + "introVideo.206dd7cb.webm" + "?" + Date.now();
 
-},{"8dabffa2ef0f7b19":"lgJ39"}],"24cue":[function(require,module,exports) {
-module.exports = JSON.parse('{"glass":{"title":"The Virtual Glass Harmonica","video_ref":"./assets/glass/video.webm","main_txt":"Together with a fellow peer, the design and development of the virtual glass harmonica was a project completed for the <span class=\'color-glass\'>Danish Music Museum</span>. As part of the <i>Music History - Taken out of the Box</i> project, funded by the Augustinus Foundation, it explores the use of <span class=\'color-glass\'>Virtual Reality</span> to resurrect a forgotten instrument and present its history, sound, and interaction through an immersive virtual environment. The installation can be experienced at the Music Museum, where qualitative evaluations have shown that it establishes a good connection between the virtual instrument and the physical 1780-era glass harmonica on display.","client":"Danish Music Museum","tech":"Unity-C# | Blender | Meta Quest 2 Standalone | Handtracking | Shadergraph","publications":"<h4><a href=\'https://link.springer.com/chapter/10.1007/978-3-031-55312-7_16\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>ArtsIT, Interactivity and Game Creation 2023</a></h4> <h4><a href=\'https://doi.org/10.5281/zenodo.6822203\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>Sound and Music Computing Conference 2022</a></h4>","images":["./assets/glass/showcase-img1.webp","./assets/glass/showcase-img2.webp","./assets/glass/showcase-img3.webp"],"images_alt":["The virtual reality experience leverages the handtracking capabilities of the meta quest 2 device. Virtual environment capture.","Virtual environemnt capture showing interactive buttons for initiating tutorial and storytelling by Benjamin Franklin.","Photograph of excited visitor trying the virtual reality experience, at the Danish Music Museum."]},"nature":{"title":"Through the Eyes of Nature","video_ref":"./assets/glass/video.webm","main_txt":"Together with a fellow peer, the design and development of the virtual glass harmonica was a project completed for the <span class=\'color-glass\'>Danish Music Museum</span>. As part of the <i>Music History - Taken out of the Box</i> project, funded by the Augustinus Foundation, it explores the use of <span class=\'color-glass\'>Virtual Reality</span> to resurrect a forgotten instrument and present its history, sound, and interaction through an immersive virtual environment. The installation can be experienced at the Music Museum, where qualitative evaluations have shown that it establishes a good connection between the virtual instrument and the physical 1780-era glass harmonica on display.","client":"Danish Music Museum","tech":"Unity | Blender | Meta Quest 2 Standalone | Handtracking | Shadergraph","images":["showcase-img1.webp","showcase-img1.webp","showcase-img1.webp"],"images-alt":["alt image 1","alt image 2","alt image 3"]},"dad":{"title":"Through the Eyes of Nature","video_ref":"./assets/dad/video.webm","main_txt":"Together with a fellow peer, the design and development of the virtual glass harmonica was a project completed for the <span class=\'color-glass\'>Danish Music Museum</span>. As part of the <i>Music History - Taken out of the Box</i> project, funded by the Augustinus Foundation, it explores the use of <span class=\'color-glass\'>Virtual Reality</span> to resurrect a forgotten instrument and present its history, sound, and interaction through an immersive virtual environment. The installation can be experienced at the Music Museum, where qualitative evaluations have shown that it establishes a good connection between the virtual instrument and the physical 1780-era glass harmonica on display.","client":"Danish National Museum","link":"<h4><a href=\'https://www.dad.natmus.dk/\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>DAD - Natmus</a></h4>","tech":"Unity | Blender | Meta Quest 2 Standalone | Handtracking | Shadergraph","images":["showcase-img1.webp","showcase-img1.webp","showcase-img1.webp"],"images-alt":["alt image 1","alt image 2","alt image 3"]},"fragments":{"title":"Through the Eyes of Nature","video_ref":"./assets/dad/video.webm","main_txt":"Together with a fellow peer, the design and development of the virtual glass harmonica was a project completed for the <span class=\'color-glass\'>Danish Music Museum</span>. As part of the <i>Music History - Taken out of the Box</i> project, funded by the Augustinus Foundation, it explores the use of <span class=\'color-glass\'>Virtual Reality</span> to resurrect a forgotten instrument and present its history, sound, and interaction through an immersive virtual environment. The installation can be experienced at the Music Museum, where qualitative evaluations have shown that it establishes a good connection between the virtual instrument and the physical 1780-era glass harmonica on display.","client":"Danish National Museum","link":"<h4><a href=\'https://www.dad.natmus.dk/\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>DAD - Natmus</a></h4>","tech":"Unity | Blender | Meta Quest 2 Standalone | Handtracking | Shadergraph","images":["showcase-img1.webp","showcase-img1.webp","showcase-img1.webp"],"images-alt":["alt image 1","alt image 2","alt image 3"]},"mizwak":{"title":"Through the Eyes of Nature","video_ref":"./assets/dad/video.webm","main_txt":"Together with a fellow peer, the design and development of the virtual glass harmonica was a project completed for the <span class=\'color-glass\'>Danish Music Museum</span>. As part of the <i>Music History - Taken out of the Box</i> project, funded by the Augustinus Foundation, it explores the use of <span class=\'color-glass\'>Virtual Reality</span> to resurrect a forgotten instrument and present its history, sound, and interaction through an immersive virtual environment. The installation can be experienced at the Music Museum, where qualitative evaluations have shown that it establishes a good connection between the virtual instrument and the physical 1780-era glass harmonica on display.","client":"Danish National Museum","link":"<h4><a href=\'https://www.dad.natmus.dk/\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>DAD - Natmus</a></h4>","tech":"Unity | Blender | Meta Quest 2 Standalone | Handtracking | Shadergraph","images":["showcase-img1.webp","showcase-img1.webp","showcase-img1.webp"],"images-alt":["alt image 1","alt image 2","alt image 3"]}}');
+},{"f190b6d854ec1781":"lgJ39"}],"24cue":[function(require,module,exports) {
+module.exports = JSON.parse('{"glass":{"title":"The Virtual Glass Harmonica","video_ref":"./assets/glass/video.webm","main_txt":"Together with a fellow peer, the design and development of the virtual glass harmonica was a project completed for the <span class=\'color-glass\'>Danish Music Museum</span>. As part of the <i>Music History - Taken out of the Box</i> project, funded by the Augustinus Foundation, it explores the use of <span class=\'color-glass\'>Virtual Reality</span> to resurrect a forgotten instrument and present its history, sound, and interaction through an immersive virtual environment. The installation can be experienced at the Music Museum, where qualitative evaluations have shown that it establishes a good connection between the virtual instrument and the physical 1780-era glass harmonica on display.","client":"Danish Music Museum","tech":"Unity-C# | Blender | Meta Quest 2 Standalone | Handtracking | Shadergraph","publications":"<h4><a href=\'https://link.springer.com/chapter/10.1007/978-3-031-55312-7_16\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>ArtsIT, Interactivity and Game Creation 2023</a></h4> <h4><a href=\'https://doi.org/10.5281/zenodo.6822203\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>Sound and Music Computing Conference 2022</a></h4>","images":["./assets/glass/showcase-img1.webp","./assets/glass/showcase-img2.webp","./assets/glass/showcase-img3.webp"],"images_alt":["The virtual reality experience leverages the handtracking capabilities of the meta quest 2 device. Virtual environment capture.","Virtual environemnt capture showing interactive buttons for initiating tutorial and storytelling by Benjamin Franklin.","Photograph of excited visitor trying the virtual reality experience, at the Danish Music Museum."]},"nature":{"title":"Through the Eyes of Nature","video_ref":"./assets/glass/video.webm","main_txt":"In collaboration with Gehl Architects, this master\u2019s thesis explores the potential impact of integrating Virtual Reality into participatory workshops focused on urban biodiversity. The case study involved the urban greenspace development of Nordhavn in Copenhagen, with an immersive narrative that takes the user on a journey where the story is told through the perspective of nature at the site. The Virtual Reality experience was evaluated through a participatory workshop and expert interviews conducted within Gehl\'s R&D department. The findings showed that immersive storytelling in Virtual Reality can be a powerful tool to elicit empathy and foster emotionally engaged discussions on complex topics. This project serves as a pilot in Gehl Architects\u2019 exploration of integrating XR media into their urban planning processes.","client":"Gehl Architects","tech":"Unity | Blender | Meta Quest 3 Standalone | Handtracking | Shadergraph","images":["./assets/nature/showcase-img1.webp","./assets/nature/showcase-img2.webp","./assets/nature/showcase-img3.webp"],"images_alt":["The three-stages of the virtual experience, showing the colour mood journey.","Exited users testing the experience, at the collaborative workshop held at Gehl Architects offices.","The core project team, at the Nordhavn site."]},"dad":{"title":"Denmark After Dark","video_ref":"./assets/dad/video.webm","main_txt":"As part of the Denmark After Dark exhibition, the Danish National Museum aimed to integrate interactivity into the installation. Together with a fellow student, I was part of the project team and worked on the rehearsal and recording studio for the exhibition. With the band D-A-D as the focus, we aimed to create a social space where visitors could unleash their inner rockstar by playing instruments and mixing a track. The main challenge in the process was to develop solutions that offered the robustness and usability required for a daily visited exhibition. ","client":"Danish National Museum","link":"<h4><a href=\'https://www.dad.natmus.dk/\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>DAD - Natmus</a></h4>","tech":"Touch Designer | Ableton Live | Max4Live | Blender","images":["showcase-img1.webp","showcase-img1.webp","showcase-img1.webp"],"images_alt":["alt image 1","alt image 2","alt image 3"]},"fragments":{"title":"Fragments of Fungi","video_ref":"./assets/fragments/video.webm","main_txt":"In this project, our group of four explored the relationship between art, nature, and technology to design and develop an interactive, immersive Virtual Reality experience centered around the phenomenon of Mycelium networks. The experience was conceptualized and designed through participatory workshops involving creative activities. The final evaluation aimed to create a shared experience in a physical forest setting that would enhance the immersive aspect. This evaluation highlighted the potential of Virtual Reality to elicit feelings of awe and emphasized the benefits of collective spaces for reflection and dialogue when presenting self-contained, emotional experiences inherent in Virtual Reality.","client":"Multisensory Experience Lab","publications":"<h4><a href=\'https://link.springer.com/chapter/10.1007/978-3-031-55312-7_6\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>Springer Link</a></h4>","tech":"Unity | Blender | Meta Quest 2 Standalone | AppSW | Handtracking | Shadergraph","images":["./assets/fragments/showcase-img1.webp","./assets/fragments/showcase-img2.webp","./assets/fragments/showcase-img3.webp"],"images_alt":["Excited user immersed in the Hareskov forest, at the collective experiences VR workshop.","The Fragments of Fungi virtual experience.","Designing the virtual experience narrative journey."]},"mizwak":{"title":"Mizwak","video_ref":"./assets/mizwak/video.mp4","main_txt":"As part of the EU-funded cooperation project Taking Care: Ethnographic and World Cultures Museums as Spaces of Care, the aim was to explore new and experimental ways of exhibiting in the context of ethnographic and world cultures. In collaboration with the Danish National Museum and the ME-Lab, the story behind the world\u2019s oldest toothbrush, the Miswak, was designed and implemented over the course of a semester. The final installation was developed through co-creation workshops with museum staff and leveraged sensor technology alongside a 3D-printed tangible user interface that unlocked the stories behind the Miswak through physical interactions. The design, implementation, and user testing were conducted at the PlayLab at the Danish National Museum. The installation was on display throughout 2023.","client":"Danish National Museum","link":"<h4><a href=\'https://takingcareproject.eu/article/miswak-exhibition-at-the-nationalmuseet\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>Taking Care EU Project</a></h4> <h4><a href=\'https://natmus.dk/nyhed/verdens-aeldste-tandboerste-vokser-paa-et-trae/\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>National Museet - Mizwak</a></h4>","tech":"Blender | QLab | Ultimaker Cura","images":["./assets/mizwak/showcase-img1.webp","./assets/mizwak/showcase-img2.webp","./assets/mizwak/showcase-img3.webp"],"images_alt":["Mizwak installation. The exhibited mizwaks.","Mizwak installation with the 3D printed interactive objects.","Mizwak installtion work in progress."]}}');
 
 },{}],"a5jmZ":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
