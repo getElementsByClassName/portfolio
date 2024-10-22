@@ -8,7 +8,7 @@
 :root {
   --glow-color-projects: #61efff;
   --glow-color-contact: #ebfdff;
-  --glow-color-email: #b53b72;
+  --glow-color-email: #0d446e;
   --image-container-opacity: .2;
   --color-overlay-main: #101116;
   --color-glass: #0091ad;
@@ -128,12 +128,15 @@ nav {
 
 nav ul {
   align-items: center;
+  width: fit-content;
   height: 100%;
   display: flex;
 }
 
 nav ul li {
-  background-color: #01040659;
+  -webkit-user-select: none;
+  user-select: none;
+  background-color: #01040666;
   border-left: 2px solid #0a3353;
   justify-content: center;
   align-items: center;
@@ -152,8 +155,9 @@ nav ul li:hover {
   background-color: #0a3353bf;
 }
 
-nav a {
+nav li {
   color: var(--color-text);
+  cursor: pointer;
   font-size: 1.15rem;
   font-weight: 500;
   text-decoration: none;
@@ -161,11 +165,21 @@ nav a {
 
 @media (width <= 1024px) and (orientation: landscape) {
   footer {
-    height: 8svh;
+    height: 9svh;
+  }
+
+  nav {
+    width: 90vw;
   }
 
   nav ul li {
     width: 20vw;
+  }
+}
+
+@media (width <= 1024px) {
+  nav {
+    width: 90vw;
   }
 }
 
@@ -240,7 +254,7 @@ nav a {
   overflow: hidden;
 }
 
-@media (width <= 1000px) {
+@media (width <= 1024px) {
   .content {
     max-width: 90vw;
   }
@@ -612,11 +626,11 @@ button {
   text-align: center;
   background: none;
   border: .1rem solid;
-  border-radius: 1rem;
-  padding: .35rem .5rem;
+  border-radius: .1rem;
+  padding: .35rem 1rem;
   font-family: AvenirNextLTPro-UltLt;
-  font-size: 1.1rem;
-  font-weight: 200;
+  font-size: 1.35rem;
+  font-weight: 900;
   animation: 4s linear infinite border-flicker;
   position: absolute;
   top: 1.25svh;
@@ -643,10 +657,6 @@ button {
   box-shadow: inset 0px 0px .4rem 0px var(--glow-color-email), 0px 0px .4rem 0px var(--glow-color-email);
   top: 75svh;
   left: 20svw;
-}
-
-.glowing-btn-email > p {
-  font-weight: 600;
 }
 
 .glowing-txt-projects {
@@ -677,7 +687,7 @@ button {
   filter: blur(1rem);
   position: absolute;
   inset: 0;
-  transform: translateY(120%)rotateX(95deg)scale(1);
+  transform: translateY(120%)rotateX(95deg)scale(1, .5);
 }
 
 .glowing-btn-projects:before {
@@ -688,7 +698,7 @@ button {
   background: var(--glow-color-contact);
 }
 
-.glowing-btn:hover {
+.glowing-btn:hover, .glowing-btn:focus, .glowing-btn:active {
   text-shadow: none;
   border-width: .2rem;
   animation: none;
@@ -702,21 +712,21 @@ button {
   border-color: var(--glow-color-contact);
 }
 
-.glowing-btn-email:hover {
+.glowing-btn-email:hover, .glowing-btn-email:focus, .glowing-btn-email:active {
   border-color: var(--glow-color-email);
 }
 
-.glowing-btn-projects:hover .glowing-txt-projects, .glowing-btn-contact:hover .glowing-txt-contact, .glowing-btn-email:hover .glowing-txt-email {
+.glowing-btn-projects:hover .glowing-txt-projects, .glowing-btn-contact:hover .glowing-txt-contact, .glowing-btn-email:hover .glowing-txt-email, .glowing-btn-email:focus .glowing-txt-email, .glowing-btn-email:active .glowing-txt-email {
   animation: none;
 }
 
-.glowing-btn-projects:hover:before, .glowing-btn-contact:hover:before, .glowing-btn-email:hover:before {
+.glowing-btn-projects:hover:before, .glowing-btn-contact:hover:before, .glowing-btn-email:hover:before, .glowing-btn-email:active:before, .glowing-btn-email:focus:before {
   filter: blur(1rem);
   opacity: 1;
 }
 
 .glowing-btn-email:before {
-  background: var(--color-dad);
+  background: var(--glow-color-email);
 }
 
 @keyframes faulty-flicker {
