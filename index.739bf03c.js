@@ -756,10 +756,12 @@ const observerContactSceneCallback = (entries)=>{
     });
 };
 const observerContactScene = new IntersectionObserver(observerContactSceneCallback, observerOptions);
-//observerContactScene.observe(grassContainer);
+observerContactScene.observe(grassContainer);
 //intersection observer for changing button text content
 const navBtn1 = document.getElementById("btn1");
 const navBtn2 = document.getElementById("btn2");
+const footer = document.querySelector("footer");
+if (visitedFromMobileDevice) footer.classList.add("hide");
 // Intersection Observer callback
 const updateNavigation = (entries)=>{
     //console.log(entries);
@@ -780,28 +782,32 @@ const updateNavigation = (entries)=>{
     });
 };
 // Create observer with default settings
-const observerNavigation = new IntersectionObserver(updateNavigation, {
-    threshold: 0.3 // Trigger when 10% of the section is visible
-});
-sections.forEach((section)=>{
-    observerNavigation.observe(section);
-});
+if (!visitedFromMobileDevice) {
+    const observerNavigation = new IntersectionObserver(updateNavigation, {
+        threshold: 0.3 // Trigger when 10% of the section is visible
+    });
+    sections.forEach((section)=>{
+        observerNavigation.observe(section);
+    });
+}
 /********************************************************************
 // Handle Button Navigation
-********************************************************************/ const navBtn = document.querySelectorAll(".nav-btn");
-navBtn.forEach((navBtn)=>{
-    navBtn.addEventListener("click", (e)=>{
-        let targetSection = navBtn.textContent;
-        e.stopPropagation();
-        if (targetSection.includes("Projects")) targetSection = "#container-projects";
-        else if (targetSection.includes("Contact")) targetSection = "#container-contact";
-        else targetSection = "#container-opening-scene";
-        lenisSite.scrollTo(targetSection, {
-            duration: 2.0,
-            offset: 0
+********************************************************************/ if (!visitedFromMobileDevice) {
+    const navBtn = document.querySelectorAll(".nav-btn");
+    navBtn.forEach((navBtn)=>{
+        navBtn.addEventListener("click", (e)=>{
+            let targetSection = navBtn.textContent;
+            e.stopPropagation();
+            if (targetSection.includes("Projects")) targetSection = "#container-projects";
+            else if (targetSection.includes("Contact")) targetSection = "#container-contact";
+            else targetSection = "#container-opening-scene";
+            lenisSite.scrollTo(targetSection, {
+                duration: 2.0,
+                offset: 0
+            });
         });
     });
-});
+}
 /********************************************************************
 // Handle Overlay
 ********************************************************************/ const imageContainers = document.querySelectorAll(".image-container");
@@ -1891,7 +1897,7 @@ function animate() {
             else if (distance > 600) chunk.geometry.instanceCount = 6000;
             else if (distance > 400) chunk.geometry.instanceCount = 7000;
             else if (distance >= 200) chunk.geometry.instanceCount = 7000;
-            else chunk.geometry.instanceCount = grassBladesPerChunk;
+            else chunk.geometry.instanceCount = 8000;
         }
     });
     // Update the video texture if the video is playing
