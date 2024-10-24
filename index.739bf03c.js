@@ -761,41 +761,32 @@ const observerContactScene = new IntersectionObserver(observerContactSceneCallba
 const navBtn1 = document.getElementById("btn1");
 const navBtn2 = document.getElementById("btn2");
 // Intersection Observer callback
-/*
-const updateNavigation = (entries) => {
+const updateNavigation = (entries)=>{
     //console.log(entries);
-    entries.forEach(entry => {
+    entries.forEach((entry)=>{
         if (entry.isIntersecting) {
             const currentSection = entry.target.id;
-
-            if (currentSection === 'container-opening-scene') {
-                navBtn1.textContent = 'Projects';
-                navBtn2.textContent = 'Contact';
-
-            } else if (currentSection === 'container-projects') {
-                navBtn1.textContent = 'Scene';
-                navBtn2.textContent = 'Contact';
-
-
-            } else if (currentSection === 'container-contact') {
-                navBtn1.textContent = 'Scene';
-                navBtn2.textContent = 'Projects';
-
+            if (currentSection === "container-opening-scene") {
+                navBtn1.textContent = "Projects";
+                navBtn2.textContent = "Contact";
+            } else if (currentSection === "container-projects") {
+                navBtn1.textContent = "Scene";
+                navBtn2.textContent = "Contact";
+            } else if (currentSection === "container-contact") {
+                navBtn1.textContent = "Scene";
+                navBtn2.textContent = "Projects";
             }
         }
     });
 };
-*/ // Create observer with default settings
-/*
+// Create observer with default settings
 const observerNavigation = new IntersectionObserver(updateNavigation, {
     threshold: 0.3 // Trigger when 10% of the section is visible
 });
-
-
-sections.forEach(section => {
+sections.forEach((section)=>{
     observerNavigation.observe(section);
 });
-*/ /********************************************************************
+/********************************************************************
 // Handle Button Navigation
 ********************************************************************/ const navBtn = document.querySelectorAll(".nav-btn");
 navBtn.forEach((navBtn)=>{
