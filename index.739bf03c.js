@@ -633,7 +633,6 @@ else visitedFromMobileDevice = false;
 /********************************************************************
  // Instanciate Grass at Contact Scene
 ********************************************************************/ const grassContainer = document.getElementById("container-contact");
-console.log(visitedFromMobileDevice);
 const grassScene = new (0, _grassSceneJsDefault.default)(grassContainer, visitedFromMobileDevice);
 //window.addEventListener('resize', () => grassScene.onWindowResize(), false);
 /********************************************************************
@@ -1538,7 +1537,7 @@ const checkOrientation = ()=>{
     //controlsIsLocked = false;
     } else if (window.matchMedia("(orientation: portrait)").matches && visitedFromMobileDevice) {
         camera.rotation.x = 0;
-        camera.position.set(0, getHeight(0, 500) + PERSON_HEIGHT, 500);
+        camera.position.set(0, getHeight(0, 450) + PERSON_HEIGHT, 450);
     //testTxt.innerHTML = 'We are here';
     //console.log("Portrait mode");
     // controls.unlock();
