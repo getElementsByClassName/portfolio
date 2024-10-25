@@ -1867,6 +1867,21 @@ workers.forEach((worker)=>{
         assignChunkToWorker(worker, chunk);
     }
 });
+if (visitedFromMobileDevice) arrChunks.forEach((chunk)=>{
+    const cameraPosition = camera.position;
+    const cameraXZ = new _three.Vector2(cameraPosition.x, cameraPosition.z);
+    //console.log(cameraXZ);
+    const chunkPosition = chunk.position;
+    //const chunkMiddlePosition = new THREE.Vector2(chunkPosition.x + chunkSize / 2, chunkPosition.y + chunkSize / 2);
+    //console.log(chunkMiddlePosition);
+    const distance = cameraXZ.distanceTo(chunkPosition);
+    if (distance > 1000) chunk.geometry.instanceCount = 2000;
+    else if (distance > 900) chunk.geometry.instanceCount = 3000;
+    else if (distance > 600) chunk.geometry.instanceCount = 3000;
+    else if (distance > 400) chunk.geometry.instanceCount = 4000;
+    else if (distance >= 200) chunk.geometry.instanceCount = 5000;
+    else chunk.geometry.instanceCount = 5000;
+});
 function animate() {
     renderer.setAnimationLoop(animate);
     checkOrientation();
@@ -1877,7 +1892,7 @@ function animate() {
     console.log(renderer.info);
     if (!visitedFromMobileDevice) fnUpdateControls();
     //composer.render();
-    arrChunks.forEach((chunk)=>{
+    if (!visitedFromMobileDevice) arrChunks.forEach((chunk)=>{
         const cameraPosition = camera.position;
         const cameraXZ = new _three.Vector2(cameraPosition.x, cameraPosition.z);
         //console.log(cameraXZ);
@@ -1885,21 +1900,27 @@ function animate() {
         //const chunkMiddlePosition = new THREE.Vector2(chunkPosition.x + chunkSize / 2, chunkPosition.y + chunkSize / 2);
         //console.log(chunkMiddlePosition);
         const distance = cameraXZ.distanceTo(chunkPosition);
-        if (!visitedFromMobileDevice) {
-            if (distance > 950) chunk.geometry.instanceCount = 5000;
-            else if (distance > 800) chunk.geometry.instanceCount = 6000;
-            else if (distance > 600) chunk.geometry.instanceCount = 7000;
-            else if (distance > 400) chunk.geometry.instanceCount = 9000;
-            else if (distance >= 200) chunk.geometry.instanceCount = 12000;
-            else chunk.geometry.instanceCount = grassBladesPerChunk;
-        } else {
-            if (distance > 1000) chunk.geometry.instanceCount = 2000;
-            else if (distance > 900) chunk.geometry.instanceCount = 4000;
-            else if (distance > 600) chunk.geometry.instanceCount = 5000;
-            else if (distance > 400) chunk.geometry.instanceCount = 5500;
-            else if (distance >= 200) chunk.geometry.instanceCount = 5500;
-            else chunk.geometry.instanceCount = 6000;
-        }
+        if (distance > 950) chunk.geometry.instanceCount = 5000;
+        else if (distance > 800) chunk.geometry.instanceCount = 6000;
+        else if (distance > 600) chunk.geometry.instanceCount = 7000;
+        else if (distance > 400) chunk.geometry.instanceCount = 9000;
+        else if (distance >= 200) chunk.geometry.instanceCount = 12000;
+        else chunk.geometry.instanceCount = grassBladesPerChunk;
+    // else {
+    //     if (distance > 1000) {
+    //         chunk.geometry.instanceCount = 2000;
+    //     } else if (distance > 900) {
+    //         chunk.geometry.instanceCount = 4000;
+    //     } else if (distance > 600) {
+    //         chunk.geometry.instanceCount = 5000;
+    //     } else if (distance > 400) {
+    //         chunk.geometry.instanceCount = 5500;
+    //     } else if (distance >= 200) {
+    //         chunk.geometry.instanceCount = 5500;
+    //     } else {
+    //         chunk.geometry.instanceCount = 6000;
+    //     }
+    // }
     });
     // Update the video texture if the video is playing
     if (video.readyState >= video.HAVE_CURRENT_DATA) videoTexture.needsUpdate = true;
