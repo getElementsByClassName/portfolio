@@ -620,11 +620,6 @@ var _grassSceneJsDefault = parcelHelpers.interopDefault(_grassSceneJs);
 //import CSSScroll from "css-scroll";
 //import getPrefixedStyle from 'get-prefixed-style';
 /********************************************************************
- // Fog background
-********************************************************************/ const grassContainer = document.getElementById("container-contact");
-const grassScene = new (0, _grassSceneJsDefault.default)(grassContainer);
-//window.addEventListener('resize', () => grassScene.onWindowResize(), false);
-/********************************************************************
 // Vanilla Javascript
 ********************************************************************/ /********************************************************************
 // Check if Mobile device
@@ -635,6 +630,12 @@ function isMobileDevice() {
 const testTxt = document.getElementById("contact-txt");
 if (isMobileDevice()) visitedFromMobileDevice = true;
 else visitedFromMobileDevice = false;
+/********************************************************************
+ // Instanciate Grass at Contact Scene
+********************************************************************/ const grassContainer = document.getElementById("container-contact");
+console.log(visitedFromMobileDevice);
+const grassScene = new (0, _grassSceneJsDefault.default)(grassContainer, visitedFromMobileDevice);
+//window.addEventListener('resize', () => grassScene.onWindowResize(), false);
 /********************************************************************
  // Check for Tab visibility
 ********************************************************************/ let gameIsActive = true;
@@ -1173,9 +1174,12 @@ function generateSurroundingChunks(chunkX, chunkZ) {
 */ // Create a PMREMGenerator
 const pmremGenerator = new _three.PMREMGenerator(renderer);
 pmremGenerator.compileEquirectangularShader();
+let skyboxToLoad;
+if (!visitedFromMobileDevice) skyboxToLoad = "belfast_sunset_puresky_2k";
+else skyboxToLoad = "belfast_sunset_puresky_1k";
 // Load the HDR texture
 const rgbeLoader = new (0, _rgbeloader.RGBELoader)();
-rgbeLoader.load("./assets/belfast_sunset_puresky_2k.hdr", function(texture) {
+rgbeLoader.load(`./assets/${skyboxToLoad}.hdr`, function(texture) {
     texture.mapping = _three.EquirectangularReflectionMapping; // Use equirectangular mapping
     //console.log(texture);
     // Set the scene's environment map
@@ -1889,7 +1893,7 @@ function animate() {
     //camControls.update(delta);
     //updateTerrain();
     shaderMaterialLine.uniforms.uTime.value += 0.05;
-    console.log(renderer.info);
+    //console.log(renderer.info);
     if (!visitedFromMobileDevice) fnUpdateControls();
     //composer.render();
     if (!visitedFromMobileDevice) arrChunks.forEach((chunk)=>{
@@ -41966,8 +41970,9 @@ var _albedoWebpDefault = parcelHelpers.interopDefault(_albedoWebp);
 var _normalWebp = require("../img/Normal.webp");
 var _normalWebpDefault = parcelHelpers.interopDefault(_normalWebp);
 class GrassScene {
-    constructor(container){
+    constructor(container, visitedFromMobileDevice){
         this.container = container;
+        this.visitedFromMobileDevice = visitedFromMobileDevice;
         this.width = container.clientWidth;
         this.height = container.clientHeight;
         this.scene = new _three.Scene();
@@ -42053,7 +42058,10 @@ class GrassScene {
     }
     setupHDR() {
         const loader = new (0, _rgbeloaderJs.RGBELoader)();
-        loader.load("./assets/belfast_sunset_puresky_2k.hdr", (texture)=>{
+        let skyboxToLoad;
+        if (!this.visitedFromMobileDevice) skyboxToLoad = "belfast_sunset_puresky_2k";
+        else skyboxToLoad = "belfast_sunset_puresky_1k";
+        loader.load(`./assets/${skyboxToLoad}.hdr`, (texture)=>{
             texture.mapping = _three.EquirectangularReflectionMapping; // Set mapping for environment
             this.scene.environment = texture; // Apply the HDR as the scene environment
         //this.scene.background = texture;   // Set it as the scene background if desired
