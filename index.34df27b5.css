@@ -185,6 +185,7 @@ nav ul {
 }
 
 nav ul li {
+  cursor: pointer;
   -webkit-user-select: none;
   user-select: none;
   background-color: #01040666;
@@ -208,7 +209,6 @@ nav ul li:hover {
 
 nav li {
   color: var(--color-text);
-  pointer-events: none;
   font-size: 1.15rem;
   font-weight: 500;
   text-decoration: none;

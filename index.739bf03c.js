@@ -634,7 +634,6 @@ else visitedFromMobileDevice = false;
  // Instanciate Grass at Contact Scene
 ********************************************************************/ const grassContainer = document.getElementById("container-contact");
 const grassScene = new (0, _grassSceneJsDefault.default)(grassContainer, visitedFromMobileDevice);
-//window.addEventListener('resize', () => grassScene.onWindowResize(), false);
 /********************************************************************
  // Check for Tab visibility
 ********************************************************************/ let gameIsActive = true;
@@ -667,19 +666,6 @@ const lenisOverlayOptions = {
     wrapper: overlay,
     content: overlay.children[1]
 };
-// const lenisScrollContentOptions = {
-//     duration: 1.75,
-//     //easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // https://www.desmos.com/calculator/brs54l4xou
-//     direction: 'vertical', // vertical, horizontal
-//     gestureDirection: 'vertical', // vertical, horizontal, both
-//     smooth: true,
-//     mouseMultiplier: 1,
-//     smoothTouch: true,
-//     touchMultiplier: 2,
-//     infinite: false,
-//     wrapper: scrollContent
-// }
-//const lenisScrollContent = new Lenis(lenisScrollContentOptions);
 const lenisSiteOptions = {
     duration: 1.75,
     //easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // Easing function
@@ -687,21 +673,15 @@ const lenisSiteOptions = {
 };
 const lenisOverlay = new (0, _lenisDefault.default)(lenisOverlayOptions);
 const lenisSite = new (0, _lenisDefault.default)(lenisSiteOptions);
-// lenisScrollContent.on('scroll', ({ scroll }) => {
-//     console.log('scroll value:', scroll);
-// });
 function raf(time) {
     lenisSite.raf(time);
     lenisOverlay.raf(time);
-    //lenisScrollContent.raf(time);
     requestAnimationFrame(raf);
 }
 requestAnimationFrame(raf);
 /********************************************************************
 // Detect Mouse wheel scroll
-********************************************************************/ //let visitedFromMobileDevice;
-let landscapeMode = false;
-// Get the specific section by its ID
+********************************************************************/ // Get the specific section by its ID
 const sectionScene = document.getElementById("container-opening-scene");
 // Get all sections
 const sections = document.querySelectorAll("section");
@@ -792,22 +772,22 @@ if (!visitedFromMobileDevice) {
 }
 /********************************************************************
 // Handle Button Navigation
-********************************************************************/ if (!visitedFromMobileDevice) {
-    const navBtn = document.querySelectorAll(".nav-btn");
-    navBtn.forEach((navBtn)=>{
-        navBtn.addEventListener("click", (e)=>{
-            let targetSection = navBtn.textContent;
-            e.stopPropagation();
-            if (targetSection.includes("Projects")) targetSection = "#container-projects";
-            else if (targetSection.includes("Contact")) targetSection = "#container-contact";
-            else targetSection = "#container-opening-scene";
-            lenisSite.scrollTo(targetSection, {
-                duration: 2.0,
-                offset: 0
-            });
+********************************************************************/ //if (!visitedFromMobileDevice) {
+const navBtn = document.querySelectorAll(".nav-btn");
+navBtn.forEach((button)=>{
+    button.addEventListener("click", (e)=>{
+        let targetSection = button.textContent;
+        e.stopPropagation();
+        if (targetSection.includes("Projects")) targetSection = "#container-projects";
+        else if (targetSection.includes("Contact")) targetSection = "#container-contact";
+        else targetSection = "#container-opening-scene";
+        lenisSite.scrollTo(targetSection, {
+            duration: 2.0,
+            offset: 0
         });
     });
-}
+});
+//}
 /********************************************************************
 // Handle Overlay
 ********************************************************************/ const imageContainers = document.querySelectorAll(".image-container");
@@ -860,12 +840,14 @@ const contentTech = document.getElementById("content-tech");
 const headingLink = document.getElementById("heading-link");
 const contentLink = document.getElementById("external-link");
 const colorTxt = document.getElementsByClassName("txt-color");
+//https://www.youtube.com/watch?v=_bOoM0S7zF8&ab_channel=Coding2GO
 imageContainers.forEach((container)=>{
     container.addEventListener("click", async (e)=>{
         const id = e.currentTarget.dataset.id;
         fnLoadContent(id);
     });
 });
+//break up in smaller functions
 function fnLoadContent(id) {
     //console.log(id)
     const contentData = (0, _contentJsonDefault.default)[id];
@@ -952,9 +934,9 @@ renderer.toneMappingExposure = 0.95;
 renderer.setSize(window.innerWidth, window.innerHeight);
 canvasContainer.appendChild(renderer.domElement);
 //show stats, updated in animation loop
-const stats = (0, _statsModuleDefault.default)();
-stats.showPanel(0);
-document.body.appendChild(stats.dom);
+//const stats = Stats();
+//stats.showPanel(0);
+//document.body.appendChild(stats.dom);
 // Vertex and fragment shader code as strings
 const vertexShader = `
     varying float vPositionAlongLine;
@@ -1932,8 +1914,8 @@ function animate() {
     grassMaterialTest.uniforms.time.value += 0.01; // Update time for wind animation
     customMaterial.uniforms.uTime.value += 0.005;
     renderer.render(scene, camera);
-    stats.update();
-} //fnStartRendering();
+//stats.update();
+}
 
 },{"three":"ktPTu","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader":"dVRsF","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./shaders/grass.js":"cNzyR","../img/grassColor.png":"f6f8d","../img/introVideo.webm":"ydYM0","./content.json":"24cue","./GrassScene.js":"a5jmZ","73d37e91c71236a0":"02A2s","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"ktPTu":[function(require,module,exports) {
 /**
@@ -41994,9 +41976,9 @@ class GrassScene {
         this.renderer.toneMapping = _three.ACESFilmicToneMapping;
         //this.renderer.toneMapping = THREE.ReinhardToneMapping;
         this.renderer.toneMappingExposure = 0.2;
-        this.stats = (0, _statsModuleDefault.default)();
-        this.stats.showPanel(0);
-        this.container.appendChild(this.stats.dom);
+        //this.stats = Stats();
+        //this.stats.showPanel(0);
+        //this.container.appendChild(this.stats.dom);
         this.scene.fog = new _three.FogExp2(0xffe38a, 0.45);
         this.setupHDR();
         // Lighting
@@ -42202,24 +42184,15 @@ class GrassScene {
     // Animation loop
     animate() {
         this.renderer.setAnimationLoop(()=>this.animate());
-        //requestAnimationFrame(() => this.animate());
         // Update the shader uniform time for animation
         const elapsedTime = this.clock.getElapsedTime();
         this.scene.traverse((object)=>{
             if (object.isMesh && object.material && object.material.uniforms) object.material.uniforms.time.value = elapsedTime;
         });
         this.renderer.render(this.scene, this.camera);
-        this.stats.update();
+    //this.stats.update();
     //console.log(this.renderer.info);
     }
-    // Handle resizing of the window
-    // onWindowResize() {
-    //     console.log(this.canvas.clientWidth);
-    //     console.log(window.innerWidth);
-    //     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    //     this.camera.aspect = window.innerWidth / window.innerHeight;
-    //     this.camera.updateProjectionMatrix();
-    // }
     startRendering() {
         this.renderer.setAnimationLoop(()=>this.animate());
     }
