@@ -43,6 +43,8 @@
 }
 
 .card-container {
+  -webkit-user-select: none;
+  user-select: none;
   flex-wrap: wrap;
   justify-content: flex-start;
   align-items: flex-start;
@@ -278,6 +280,8 @@ nav li {
 
 .content > h2 {
   letter-spacing: -2px;
+  -webkit-user-select: none;
+  user-select: none;
   margin-top: 4svh;
   margin-bottom: 4svh;
   font-size: 4rem;
