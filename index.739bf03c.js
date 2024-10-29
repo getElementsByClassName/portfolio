@@ -607,6 +607,8 @@ var _lenisDefault = parcelHelpers.interopDefault(_lenis);
 var _lenisCss = require("lenis/dist/lenis.css");
 var _grassJs = require("./shaders/grass.js");
 var _grassJsDefault = parcelHelpers.interopDefault(_grassJs);
+var _powerlinesJs = require("./shaders/powerlines.js");
+var _powerlinesJsDefault = parcelHelpers.interopDefault(_powerlinesJs);
 var _grassColorPng = require("../img/grassColor.png");
 var _grassColorPngDefault = parcelHelpers.interopDefault(_grassColorPng);
 //import cloudTexture from '../img/cloud.jpg';
@@ -910,11 +912,11 @@ function fnLoadContent(id) {
 ********************************************************************/ let velocity = new _three.Vector3();
 let SPEED = 175.0;
 const PERSON_HEIGHT = 16.0;
-//const FIELD_SIZE = 5000; // Field size in both x and z directions
-const FIELD_SIZE = visitedFromMobileDevice ? 2600 : 5000;
+const FIELD_SIZE = visitedFromMobileDevice ? 2600 : 4000 // Field size in both x and z directions
+;
 const chunkSize = 200;
 const grassBladesPerChunk = 11000;
-const maxDistance = 2000; // Define maximum allowed distance from origin (0, 0, 0)
+const maxDistance = 1600; // Define maximum allowed distance from origin (0, 0, 0)
 // Basic scene setup
 const scene = new _three.Scene();
 const camera = new _three.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 900);
@@ -942,33 +944,10 @@ canvasContainer.appendChild(renderer.domElement);
 //const stats = Stats();
 //stats.showPanel(0);
 //document.body.appendChild(stats.dom);
-// Vertex and fragment shader code as strings
-const vertexShader = `
-    varying float vPositionAlongLine;
-
-    void main() {
-        //vPositionAlongLine = position.z; // Assuming the line runs along the x-axis
-        vPositionAlongLine = (position.z) ; // Assuming the line runs along the x-axis from -5 to 5
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-`;
-const fragmentShader = `
-    uniform float uTime;
-    uniform vec3 colorStart;
-    uniform vec3 colorEnd;
-    varying float vPositionAlongLine;
-
-    void main() {
-        float runEffect = abs(sin(uTime * 0.15 - (vPositionAlongLine/80.0))); // Adjust speed and length scaling
-        //float runEffect = smoothstep(uTime - 0.1, uTime + 0.1, vPositionAlongLine);
-        vec3 color = mix(colorStart, colorEnd, smoothstep(0.4, 1.0, runEffect));
-        gl_FragColor = vec4(color, 0.55);
-    }
-`;
-// Create the custom shader material
+// Custom shader material for powerlines
 const shaderMaterialLine = new _three.ShaderMaterial({
-    vertexShader: vertexShader,
-    fragmentShader: fragmentShader,
+    vertexShader: (0, _powerlinesJsDefault.default).vert,
+    fragmentShader: (0, _powerlinesJsDefault.default).frag,
     uniforms: {
         uTime: {
             value: 0.0
@@ -1594,14 +1573,10 @@ const grassMaterialTest = new (0, _vanillaDefault.default)({
         time: {
             value: 0.0
         },
-        fogColor: {
-            value: new _three.Color(0x3a3f29)
-        },
-        //fogColor: { value: new THREE.Color(0x202020) },
+        //fogColor: { value: new THREE.Color(0x3a3f29) },
+        //fogColor: { value: new THREE.Color(0xff0000) },
         //fogColor: { value: new THREE.Color(0xc5c97d) },
-        fogDensity: {
-            value: 0.0015
-        },
+        //fogDensity: { value: 0.0009 },
         grassTexture: {
             value: grassDiffuseMap
         },
@@ -1835,7 +1810,7 @@ function animate() {
 //stats.update();
 }
 
-},{"three":"ktPTu","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader":"dVRsF","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./shaders/grass.js":"cNzyR","../img/grassColor.png":"f6f8d","./content.json":"24cue","./GrassScene.js":"a5jmZ","73d37e91c71236a0":"02A2s","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","../img/introvideo.webm":"iF6OC"}],"ktPTu":[function(require,module,exports) {
+},{"three":"ktPTu","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader":"dVRsF","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./shaders/grass.js":"cNzyR","./shaders/powerlines.js":"gJXUV","../img/grassColor.png":"f6f8d","../img/introvideo.webm":"iF6OC","./content.json":"24cue","./GrassScene.js":"a5jmZ","73d37e91c71236a0":"02A2s","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"ktPTu":[function(require,module,exports) {
 /**
  * @license
  * Copyright 2010-2024 Three.js Authors
@@ -41794,20 +41769,38 @@ class Lenis {
 },{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"e0AFw":[function() {},{}],"cNzyR":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
-var _grassbladeTestVertGlsl = require("./glsl/grassbladeTest.vert.glsl");
-var _grassbladeTestVertGlslDefault = parcelHelpers.interopDefault(_grassbladeTestVertGlsl);
-var _grassbladeTestFragGlsl = require("./glsl/grassbladeTest.frag.glsl");
-var _grassbladeTestFragGlslDefault = parcelHelpers.interopDefault(_grassbladeTestFragGlsl);
+var _grassbladeVertGlsl = require("./glsl/grassblade.vert.glsl");
+var _grassbladeVertGlslDefault = parcelHelpers.interopDefault(_grassbladeVertGlsl);
+var _grassbladeFragGlsl = require("./glsl/grassblade.frag.glsl");
+var _grassbladeFragGlslDefault = parcelHelpers.interopDefault(_grassbladeFragGlsl);
 exports.default = {
-    frag: (0, _grassbladeTestFragGlslDefault.default),
-    vert: (0, _grassbladeTestVertGlslDefault.default)
+    frag: (0, _grassbladeFragGlslDefault.default),
+    vert: (0, _grassbladeVertGlslDefault.default)
 };
 
-},{"./glsl/grassbladeTest.vert.glsl":"h9wIl","./glsl/grassbladeTest.frag.glsl":"f3LHG","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"h9wIl":[function(require,module,exports) {
-module.exports = "uniform float time;\nuniform float windStrength;\nuniform sampler2D displacementMap;\nuniform float fieldSize;\nuniform float displacementScale;\n\nattribute vec3 offset;\nattribute float scale;\nattribute float normalizedHeight;\nattribute mat3 instanceRotationMatrix;\nattribute vec2 uvs; // Incoming UV coordinates\nvarying vec2 sendUV;\n//attribute float rotation;\nvarying vec2 vUv;\nvarying vec2 csm_cloudUV;\nvarying vec3 csm_vWorldPosition;\nvarying vec3 csm_vViewPosition;\nvarying float vHeight;\nvarying vec3 csm_vPosition;\n\nfloat hash(vec2 p) {\n    p = 50.0 * fract(p * 0.3183099 + vec2(0.71));\n    return -1.0 + 2.0 * fract(p.x * p.y * (p.x + p.y));\n}\n\nfloat noise(vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n    vec2 u = f * f * (3.0 - 2.0 * f);\n    \n    return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),\n               mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);\n}\n\nvoid main() {\n    precision highp float;\n#define GLSLIFY 1\n\n            //csm_vPosition = position;\n            //vUv = uv;\n            vUv = uv;\n            //cloudUV = uv;\n            //cloudUV.x += time / 200.;\n            //cloudUV.y += time / 100.;\n            vec3 transformedGrass = position * scale;\n            transformedGrass = instanceRotationMatrix * transformedGrass;\n            transformedGrass += offset;\n            //vec3 test = transformedGrass;\n\n            //vec3 positionTest = offset.xyz + vec3(position.x, 0.0, position.y);\n            //csm_vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;\n            //vWorldPosition = worldPosition.xyz;\n            vHeight = position.y * normalizedHeight; \n            \n            // Use time and some arbitrary values to generate noise\n            float n = noise(vec2(time * 0.1, time * 0.05));\n\n            // Scale the noise value to be in the range [0.0, 0.2]\n            float varyingValue = n * 0.3;\n  \n            float noise = noise(offset.xz);\n\n            // varyingValue is now in the range [0.0, 0.2]\n            \n            float dispPower = 1.0 - cos( vHeight * 3.1416 / 0.35 );\n            transformedGrass.z += sin(offset.z * noise  + time * 2.0) * ((0.15 + varyingValue) * dispPower);\n            transformedGrass.x += sin(offset.x * noise  + time * 2.0) * ((0.15 + varyingValue) * dispPower);\n\n            //csm_PositionRaw = projectionMatrix * modelViewMatrix * vec4(transformedGrass, 1.0);\n            csm_Position = transformedGrass;\n            //csm_Position = position * scale * instanceRotationMatrix * vec3(1.0);\n   \n}\n\n";
+},{"./glsl/grassblade.vert.glsl":"cdITI","./glsl/grassblade.frag.glsl":"rAUpS","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"cdITI":[function(require,module,exports) {
+module.exports = "uniform float time;\nuniform float windStrength;\nuniform sampler2D displacementMap;\nuniform float fieldSize;\nuniform float displacementScale;\n\nattribute vec3 offset;\nattribute float scale;\nattribute float normalizedHeight;\nattribute mat3 instanceRotationMatrix;\nattribute vec2 uvs; // Incoming UV coordinates\n//varying vec2 sendUV;\n//attribute float rotation;\nvarying vec2 vUv;\n//varying vec2 csm_cloudUV;\n//varying vec3 csm_vWorldPosition;\n//varying vec3 csm_vViewPosition;\nvarying float vHeight;\n//varying vec3 csm_vPosition;\n\nfloat hash(vec2 p) {\n    p = 50.0 * fract(p * 0.3183099 + vec2(0.71));\n    return -1.0 + 2.0 * fract(p.x * p.y * (p.x + p.y));\n}\n\nfloat noise(vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n    vec2 u = f * f * (3.0 - 2.0 * f);\n    \n    return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),\n               mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);\n}\n\nvoid main() {\n    precision highp float;\n#define GLSLIFY 1\n\n            //csm_vPosition = position;\n            //vUv = uv;\n            vUv = uv;\n            //cloudUV = uv;\n            //cloudUV.x += time / 200.;\n            //cloudUV.y += time / 100.;\n            vec3 transformedGrass = position * scale;\n            transformedGrass = instanceRotationMatrix * transformedGrass;\n            transformedGrass += offset;\n            //vec3 test = transformedGrass;\n\n            //vec3 positionTest = offset.xyz + vec3(position.x, 0.0, position.y);\n            //csm_vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;\n            //vWorldPosition = worldPosition.xyz;\n            vHeight = position.y * normalizedHeight; \n            \n            // Use time and some arbitrary values to generate noise\n            float n = noise(vec2(time * 0.1, time * 0.05));\n\n            // Scale the noise value to be in the range [0.0, 0.2]\n            float varyingValue = n * 0.3;\n  \n            float noise = noise(offset.xz);\n\n            // varyingValue is now in the range [0.0, 0.2]\n            \n            float dispPower = 1.0 - cos( vHeight * 3.1416 / 0.35 );\n            transformedGrass.z += sin(offset.z * noise  + time * 2.0) * ((0.15 + varyingValue) * dispPower);\n            transformedGrass.x += sin(offset.x * noise  + time * 2.0) * ((0.15 + varyingValue) * dispPower);\n\n            //csm_PositionRaw = projectionMatrix * modelViewMatrix * vec4(transformedGrass, 1.0);\n            csm_Position = transformedGrass;\n            //csm_Position = position * scale * instanceRotationMatrix * vec3(1.0);\n   \n}\n\n";
 
-},{}],"f3LHG":[function(require,module,exports) {
-module.exports = "#define GLSLIFY 1\nuniform sampler2D grassTexture;\n//uniform sampler2D cloudTexture;\nuniform vec3 fogColor;\nuniform float fogDensity;\nuniform vec3 vCameraPosition;\nvarying vec2 vUv;\nvarying vec2 sendUV;\n//varying vec2 cloudUV;\nvarying vec3 vWorldPosition;\nvarying vec3 csm_vWorldPosition;\nvarying float vHeight;\nvarying vec3 vPosition;\n//varying vec3 vViewPosition;\nvarying vec4 csm_DiffuseColor;\n\nfloat contrast = 1.5;\nfloat brightness = 1.1;\n\nvoid main() {\n\n        //precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n    float depth = length(csm_vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    float fogFactor = 1.0 - exp(-fogDensity * depth);\n    fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv/100.0).rgb;\n    //textureColor = textureColor * vec3(brightness, brightness, brightness);\n    textureColor = mix(textureColor, topBladeColor, 0.35);\n    float height = clamp(vHeight, 0.0, 1.0);\n    textureColor *= height * height * height;\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n    //finalColor = mix(csm_DiffuseColor.rgb, topBladeColor, 1.0);\n    //csm_Emissive = textureColor;\n\n    csm_DiffuseColor = vec4(finalColor, 1.0);\n\n    /*\n    //precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n    float depth = length(vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    float fogFactor = 1.0 - exp(-fogDensity * depth);\n    fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv/1000.0).rgb;\n    textureColor = textureColor * vec3(brightness, brightness, brightness);\n    textureColor = mix(textureColor, topBladeColor, 0.75);\n    textureColor *= vHeight * vHeight;\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n\n    csm_DiffuseColor = vec4(finalColor, 1.0);\n    */\n\n}\n\n";
+},{}],"rAUpS":[function(require,module,exports) {
+module.exports = "uniform sampler2D grassTexture;\n//uniform sampler2D cloudTexture;\n//uniform vec3 fogColor;\n//uniform float fogDensity;\n//uniform vec3 vCameraPosition;\nvarying vec2 vUv;\n//varying vec2 sendUV;\n//varying vec2 cloudUV;\n//varying vec3 vWorldPosition;\n//varying vec3 csm_vWorldPosition;\nvarying float vHeight;\n//varying vec3 vPosition;\n//varying vec3 vViewPosition;\n//varying vec4 csm_DiffuseColor;\n\nfloat contrast = 1.5;\nfloat brightness = 1.1;\nvec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n\nvoid main() {\n\n    precision mediump float;\n#define GLSLIFY 1\n\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    \n    //float depth = length(csm_vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    //float fogFactor = 1.0 - exp(-fogDensity * depth);\n    //fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv/100.0).rgb;\n    textureColor = mix(textureColor, topBladeColor, 0.35);\n    //float height = clamp(vHeight, 0.0, 1.0);\n    textureColor *= vHeight * vHeight;\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    //vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n    //finalColor = mix(csm_DiffuseColor.rgb, topBladeColor, 1.0);\n    //csm_Emissive = textureColor;\n\n    csm_DiffuseColor = vec4(textureColor, 1.0);\n\n    /*\n    //precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n    float depth = length(vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    float fogFactor = 1.0 - exp(-fogDensity * depth);\n    fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv/1000.0).rgb;\n    textureColor = textureColor * vec3(brightness, brightness, brightness);\n    textureColor = mix(textureColor, topBladeColor, 0.75);\n    textureColor *= vHeight * vHeight;\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n\n    csm_DiffuseColor = vec4(finalColor, 1.0);\n    */\n\n}\n\n";
+
+},{}],"gJXUV":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _powerlinesVertGlsl = require("./glsl/powerlines.vert.glsl");
+var _powerlinesVertGlslDefault = parcelHelpers.interopDefault(_powerlinesVertGlsl);
+var _powerlinesFragGlsl = require("./glsl/powerlines.frag.glsl");
+var _powerlinesFragGlslDefault = parcelHelpers.interopDefault(_powerlinesFragGlsl);
+exports.default = {
+    frag: (0, _powerlinesFragGlslDefault.default),
+    vert: (0, _powerlinesVertGlslDefault.default)
+};
+
+},{"./glsl/powerlines.vert.glsl":"b7h5P","./glsl/powerlines.frag.glsl":"ejOYH","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"b7h5P":[function(require,module,exports) {
+module.exports = "#define GLSLIFY 1\n    varying float vPositionAlongLine;\n\n    void main() {\n        //vPositionAlongLine = position.z; // Assuming the line runs along the x-axis\n        vPositionAlongLine = (position.z) ; // Assuming the line runs along the x-axis from -5 to 5\n        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);\n    }";
+
+},{}],"ejOYH":[function(require,module,exports) {
+module.exports = "#define GLSLIFY 1\n    uniform float uTime;\n    uniform vec3 colorStart;\n    uniform vec3 colorEnd;\n    varying float vPositionAlongLine;\n\n    void main() {\n        float runEffect = abs(sin(uTime * 0.15 - (vPositionAlongLine/80.0))); // Adjust speed and length scaling\n        //float runEffect = smoothstep(uTime - 0.1, uTime + 0.1, vPositionAlongLine);\n        vec3 color = mix(colorStart, colorEnd, smoothstep(0.4, 1.0, runEffect));\n        gl_FragColor = vec4(color, 0.70);\n    }";
 
 },{}],"f6f8d":[function(require,module,exports) {
 module.exports = require("c8c3637be7158d53").getBundleURL("g05j8") + "grassColor.cd69343f.png" + "?" + Date.now();
@@ -41847,7 +41840,10 @@ exports.getBundleURL = getBundleURLCached;
 exports.getBaseURL = getBaseURL;
 exports.getOrigin = getOrigin;
 
-},{}],"24cue":[function(require,module,exports) {
+},{}],"iF6OC":[function(require,module,exports) {
+module.exports = require("8dabffa2ef0f7b19").getBundleURL("g05j8") + "introvideo.149b9427.webm" + "?" + Date.now();
+
+},{"8dabffa2ef0f7b19":"lgJ39"}],"24cue":[function(require,module,exports) {
 module.exports = JSON.parse('{"glass":{"title":"The Virtual Glass Harmonica","video_ref":"./assets/glass/video.webm","main_txt":"Together with a fellow peer, the design and development of the virtual glass harmonica was a project completed for the <span class=\'color-glass\'>Danish Music Museum</span>. As part of the <i>Music History - Taken out of the Box</i> project, funded by the Augustinus Foundation, it explores the use of <span class=\'color-glass\'>Virtual Reality</span> to resurrect a forgotten instrument and present its history, sound, and interaction through an immersive virtual environment. The installation can be experienced at the Music Museum, where qualitative evaluations have shown that it establishes a good connection between the virtual instrument and the physical 1780-era glass harmonica on display.","client":"Danish Music Museum","tech":"Unity-C# | Blender | Meta Quest 2 Standalone | Handtracking | Shadergraph","publications":"<h4><a href=\'https://link.springer.com/chapter/10.1007/978-3-031-55312-7_16\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>ArtsIT, Interactivity and Game Creation 2023</a></h4> <h4><a href=\'https://doi.org/10.5281/zenodo.6822203\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>Sound and Music Computing Conference 2022</a></h4>","images":["./assets/glass/showcase-img1.webp","./assets/glass/showcase-img2.webp","./assets/glass/showcase-img3.webp"],"images_alt":["The virtual reality experience leverages the handtracking capabilities of the meta quest 2 device. Virtual environment capture.","Virtual environemnt capture showing interactive buttons for initiating tutorial and storytelling by Benjamin Franklin.","Photograph of excited visitor trying the virtual reality experience, at the Danish Music Museum."]},"nature":{"title":"Through the Eyes of Nature","video_ref":"./assets/glass/video.webm","main_txt":"In collaboration with Gehl Architects, this master\u2019s thesis explores the potential impact of integrating Virtual Reality into participatory workshops focused on urban biodiversity. The case study involved the urban greenspace development of Nordhavn in Copenhagen, with an immersive narrative that takes the user on a journey where the story is told through the perspective of nature at the site. The Virtual Reality experience was evaluated through a participatory workshop and expert interviews conducted within Gehl\'s R&D department. The findings showed that immersive storytelling in Virtual Reality can be a powerful tool to elicit empathy and foster emotionally engaged discussions on complex topics. This project serves as a pilot in Gehl Architects\u2019 exploration of integrating XR media into their urban planning processes.","client":"Gehl Architects","tech":"Unity | Blender | Meta Quest 3 Standalone | Handtracking | Shadergraph","images":["./assets/nature/showcase-img1.webp","./assets/nature/showcase-img2.webp","./assets/nature/showcase-img3.webp"],"images_alt":["The three-stages of the virtual experience, showing the colour mood journey.","Exited users testing the experience, at the collaborative workshop held at Gehl Architects offices.","The core project team, at the Nordhavn site."]},"dad":{"title":"Denmark After Dark","video_ref":"./assets/dad/video.webm","main_txt":"As part of the Denmark After Dark exhibition, the Danish National Museum aimed to integrate interactivity into the installation. Together with a fellow student, I was part of the project team and worked on the rehearsal and recording studio for the exhibition. With the band D-A-D as the focus, we aimed to create a social space where visitors could unleash their inner rockstar by playing instruments and mixing a track. The main challenge in the process was to develop solutions that offered the robustness and usability required for a daily visited exhibition. ","client":"Danish National Museum","link":"<h4><a href=\'https://www.dad.natmus.dk/\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>DAD - Natmus</a></h4>","tech":"Touch Designer | Ableton Live | Max4Live | Blender","images":["showcase-img1.webp","showcase-img1.webp","showcase-img1.webp"],"images_alt":["alt image 1","alt image 2","alt image 3"]},"fragments":{"title":"Fragments of Fungi","video_ref":"./assets/fragments/video.webm","main_txt":"In this project, our group of four explored the relationship between art, nature, and technology to design and develop an interactive, immersive Virtual Reality experience centered around the phenomenon of Mycelium networks. The experience was conceptualized and designed through participatory workshops involving creative activities. The final evaluation aimed to create a shared experience in a physical forest setting that would enhance the immersive aspect. This evaluation highlighted the potential of Virtual Reality to elicit feelings of awe and emphasized the benefits of collective spaces for reflection and dialogue when presenting self-contained, emotional experiences inherent in Virtual Reality.","client":"Multisensory Experience Lab","publications":"<h4><a href=\'https://link.springer.com/chapter/10.1007/978-3-031-55312-7_6\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>Springer Link</a></h4>","tech":"Unity | Blender | Meta Quest 2 Standalone | AppSW | Handtracking | Shadergraph","images":["./assets/fragments/showcase-img1.webp","./assets/fragments/showcase-img2.webp","./assets/fragments/showcase-img3.webp"],"images_alt":["Excited user immersed in the Hareskov forest, at the collective experiences VR workshop.","The Fragments of Fungi virtual experience.","Designing the virtual experience narrative journey."]},"mizwak":{"title":"Mizwak","video_ref":"./assets/mizwak/video.webm","main_txt":"As part of the EU-funded cooperation project Taking Care: Ethnographic and World Cultures Museums as Spaces of Care, the aim was to explore new and experimental ways of exhibiting in the context of ethnographic and world cultures. In collaboration with the Danish National Museum and the Multisensory Experience Lab, the story behind the world\u2019s oldest toothbrush, the Miswak, was designed and implemented over the course of a semester. The final installation was developed through co-creation workshops with museum staff and leveraged sensor technology alongside a 3D-printed tangible user interface that unlocked the stories behind the Miswak through physical interactions. The design, implementation, and user testing were conducted at the PlayLab at the Danish National Museum. The installation was on display throughout 2023.","client":"Danish National Museum","link":"<h4><a href=\'https://takingcareproject.eu/article/miswak-exhibition-at-the-nationalmuseet\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>Taking Care EU Project</a></h4> <h4><a href=\'https://natmus.dk/nyhed/verdens-aeldste-tandboerste-vokser-paa-et-trae/\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>National Museet - Mizwak</a></h4>","tech":"Blender | QLab | Ultimaker Cura","images":["./assets/mizwak/showcase-img1.webp","./assets/mizwak/showcase-img2.webp","./assets/mizwak/showcase-img3.webp"],"images_alt":["Mizwak installation at Nationalmuseet. The exhibited mizwaks.","Mizwak installation, at Nationalmuseet, with the 3D printed interactive objects.","Mizwak installation work in progress, at Nationalmuseet."]},"spaceshooter":{"title":"Embodied Spaceshooter","video_ref":"./assets/spaceshooter/video.webm","main_txt":"Work in progress.. A browser based mini game that explores the use of embodied interaction in gaming. Allowing the user to control a player through head- and body movement tracked by the webcam utilizing the Google MediaPipe framework. ","client":"AAU Exam Project","link":"<h4><a href=\'https://getelementsbyclassname.github.io/embodied_interaction_course/\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>Demo</a></h4>","tech":"ThreeJS | Google MediaPipe | Blender","images":[],"images_alt":[]}}');
 
 },{}],"a5jmZ":[function(require,module,exports) {
@@ -42516,9 +42512,6 @@ module.exports = function(workerUrl, origin, isESM) {
     }
 };
 
-},{}],"iF6OC":[function(require,module,exports) {
-module.exports = require("8dabffa2ef0f7b19").getBundleURL("g05j8") + "introvideo.149b9427.webm" + "?" + Date.now();
-
-},{"8dabffa2ef0f7b19":"lgJ39"}]},["l9Mez","ebWYT"], "ebWYT", "parcelRequire2041")
+},{}]},["l9Mez","ebWYT"], "ebWYT", "parcelRequire2041")
 
 //# sourceMappingURL=index.739bf03c.js.map

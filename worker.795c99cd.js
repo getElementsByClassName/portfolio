@@ -622,7 +622,7 @@ onmessage = function(event) {
         rotationMatrices[index + 7] = 0;
         rotationMatrices[index + 8] = cosAngle;
         scales[i] = Math.random() * 2.0 + 3.5;
-        normalizedHeight[i] = (scales[i] - 2.0) / 3.5;
+        normalizedHeight[i] = (scales[i] - 3.5) / 2;
     }
     function convertRange(val, oldMin, oldMax, newMin, newMax) {
         return (val - oldMin) * (newMax - newMin) / (oldMax - oldMin) + newMin;
