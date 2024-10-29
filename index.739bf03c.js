@@ -609,6 +609,8 @@ var _grassJs = require("./shaders/grass.js");
 var _grassJsDefault = parcelHelpers.interopDefault(_grassJs);
 var _powerlinesJs = require("./shaders/powerlines.js");
 var _powerlinesJsDefault = parcelHelpers.interopDefault(_powerlinesJs);
+var _videotextureJs = require("./shaders/videotexture.js");
+var _videotextureJsDefault = parcelHelpers.interopDefault(_videotextureJs);
 var _grassColorPng = require("../img/grassColor.png");
 var _grassColorPngDefault = parcelHelpers.interopDefault(_grassColorPng);
 //import cloudTexture from '../img/cloud.jpg';
@@ -618,9 +620,6 @@ var _contentJson = require("./content.json");
 var _contentJsonDefault = parcelHelpers.interopDefault(_contentJson);
 var _grassSceneJs = require("./GrassScene.js");
 var _grassSceneJsDefault = parcelHelpers.interopDefault(_grassSceneJs);
-//var CSSScroll = require('css-scroll')
-//import CSSScroll from "css-scroll";
-//import getPrefixedStyle from 'get-prefixed-style';
 /********************************************************************
 // Vanilla Javascript
 ********************************************************************/ /********************************************************************
@@ -1010,23 +1009,23 @@ scene.add(cube);
 */ // Create a video element
 const video = document.createElement("video");
 video.src = (0, _introvideoWebmDefault.default); // Set the path to your video file
-//video.style.filter = 'brightness(0.8) contrast(1.9)';
 video.muted = true;
 video.loop = true;
-//video.autoplay = true;
+video.autoplay = true;
 video.playsInline = true;
 video.setAttribute("webkit-playsinline", "webkit-playsinline");
 //video.crossOrigin = 'anonymous';
 video.load(); // Load the video
 video.play(); // Play the video
-if (!video.paused) console.log("playing");
+// if (!video.paused) {
+//     console.log('playing')
+// }
 // Create a texture from the video element
 const videoTexture = new _three.VideoTexture(video);
 // Load the height map texture (a grayscale image)
 const textureLoader = new _three.TextureLoader();
 //const heightMap = textureLoader.load(displacementMap);
 const grassDiffuseMap = textureLoader.load((0, _grassColorPngDefault.default));
-//const cloudMap = textureLoader.load(cloudTexture);
 /********************************************************************
 // Lights
 ********************************************************************/ const light = new _three.HemisphereLight(0xffffbb, 0x080820, 0.8);
@@ -1044,18 +1043,6 @@ rectLight.lookAt(0, 0, 10);
 scene.add(rectLight);
 //const rectLightHelper = new RectAreaLightHelper(rectLight);
 //rectLight.add(rectLightHelper);
-function createFlickerFunction(light) {
-    const minIntensity = 50;
-    const maxIntensity = 80.0;
-    // Return a function to be called in the animation loop
-    return function updateFlicker() {
-        // Randomize intensity to simulate TV screen flickering
-        light.intensity = Math.random() * (maxIntensity - minIntensity) + minIntensity;
-    // Optional: Slightly vary the light's color to enhance the flickering effect
-    //light.color.setHSL(0.6 + (Math.random() * 0.02 - 0.01), 1, 0.5);
-    };
-}
-const updateFlicker = createFlickerFunction(rectLight);
 /********************************************************************
 // Handle Window Resize
 ********************************************************************/ //observe resize
@@ -1158,149 +1145,13 @@ rgbeLoader.load(`./assets/${skyboxToLoad}.hdr`, function(texture) {
             value: 0.0
         }
     },
-    vertexShader: `
-        precision mediump float;
-
-        varying vec2 vUv;
-        uniform float uTime;
-
-        //
-        // Description : Array and textureless GLSL 2D/3D/4D simplex
-        //               noise functions.
-        //      Author : Ian McEwan, Ashima Arts.
-        //  Maintainer : ijm
-        //     Lastmod : 20110822 (ijm)
-        //     License : Copyright (C) 2011 Ashima Arts. All rights reserved.
-        //               Distributed under the MIT License. See LICENSE file.
-        //               https://github.com/ashima/webgl-noise
-        //
-
-        vec3 mod289(vec3 x) {
-        return x - floor(x * (1.0 / 289.0)) * 289.0;
-        }
-
-        vec4 mod289(vec4 x) {
-        return x - floor(x * (1.0 / 289.0)) * 289.0;
-        }
-
-        vec4 permute(vec4 x) {
-            return mod289(((x*34.0)+1.0)*x);
-        }
-
-        vec4 taylorInvSqrt(vec4 r)
-        {
-        return 1.79284291400159 - 0.85373472095314 * r;
-        }
-
-        float snoise(vec3 v) {
-        const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;
-        const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);
-
-        // First corner
-        vec3 i  = floor(v + dot(v, C.yyy) );
-        vec3 x0 =   v - i + dot(i, C.xxx) ;
-
-        // Other corners
-        vec3 g = step(x0.yzx, x0.xyz);
-        vec3 l = 1.0 - g;
-        vec3 i1 = min( g.xyz, l.zxy );
-        vec3 i2 = max( g.xyz, l.zxy );
-
-        //   x0 = x0 - 0.0 + 0.0 * C.xxx;
-        //   x1 = x0 - i1  + 1.0 * C.xxx;
-        //   x2 = x0 - i2  + 2.0 * C.xxx;
-        //   x3 = x0 - 1.0 + 3.0 * C.xxx;
-        vec3 x1 = x0 - i1 + C.xxx;
-        vec3 x2 = x0 - i2 + C.yyy; // 2.0*C.x = 1/3 = C.y
-        vec3 x3 = x0 - D.yyy;      // -1.0+3.0*C.x = -0.5 = -D.y
-
-        // Permutations
-        i = mod289(i);
-        vec4 p = permute( permute( permute(
-                    i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
-                + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))
-                + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));
-
-        // Gradients: 7x7 points over a square, mapped onto an octahedron.
-        // The ring size 17*17 = 289 is close to a multiple of 49 (49*6 = 294)
-        float n_ = 0.142857142857; // 1.0/7.0
-        vec3  ns = n_ * D.wyz - D.xzx;
-
-        vec4 j = p - 49.0 * floor(p * ns.z * ns.z);  //  mod(p,7*7)
-
-        vec4 x_ = floor(j * ns.z);
-        vec4 y_ = floor(j - 7.0 * x_ );    // mod(j,N)
-
-        vec4 x = x_ *ns.x + ns.yyyy;
-        vec4 y = y_ *ns.x + ns.yyyy;
-        vec4 h = 1.0 - abs(x) - abs(y);
-
-        vec4 b0 = vec4( x.xy, y.xy );
-        vec4 b1 = vec4( x.zw, y.zw );
-
-        //vec4 s0 = vec4(lessThan(b0,0.0))*2.0 - 1.0;
-        //vec4 s1 = vec4(lessThan(b1,0.0))*2.0 - 1.0;
-        vec4 s0 = floor(b0)*2.0 + 1.0;
-        vec4 s1 = floor(b1)*2.0 + 1.0;
-        vec4 sh = -step(h, vec4(0.0));
-
-        vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;
-        vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;
-
-        vec3 p0 = vec3(a0.xy,h.x);
-        vec3 p1 = vec3(a0.zw,h.y);
-        vec3 p2 = vec3(a1.xy,h.z);
-        vec3 p3 = vec3(a1.zw,h.w);
-
-        // Normalise gradients
-        vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
-        p0 *= norm.x;
-        p1 *= norm.y;
-        p2 *= norm.z;
-        p3 *= norm.w;
-
-        // Mix final noise value
-        vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
-        m = m * m;
-        return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1),
-                                        dot(p2,x2), dot(p3,x3) ) );
-        }
-
-        void main() {
-            vUv = uv;
-
-            vec3 pos = position;
-            float noiseFreq = 0.008;
-            float noiseAmp = 4.0;
-            vec3 noisePos = vec3(pos.x * noiseFreq + uTime, pos.y, pos.z);
-            pos.z += snoise(noisePos) * noiseAmp;
-
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.);
-        }
-    `,
-    fragmentShader: `
-        uniform sampler2D texture1;
-        uniform float edgeTransparency;
-        varying vec2 vUv;
-
-        // Function to calculate alpha based on distance from edges
-        float getAlpha(vec2 uv) {
-            float distFromEdge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));
-            return 1.0 - smoothstep(0.1, 0.0, distFromEdge / edgeTransparency);
-        }
-
-        void main() {
-            vec4 color = texture2D(texture1, vUv);
-            float alpha = getAlpha(vUv);
-            alpha -= 0.35;
-            gl_FragColor = vec4(color.rgb, alpha);
-        }
-    `,
+    vertexShader: (0, _videotextureJsDefault.default).vert,
+    fragmentShader: (0, _videotextureJsDefault.default).frag,
     transparent: true,
     wireframe: false
 });
 // Create a plane geometry
-const videoGeometry = new _three.PlaneGeometry(384, 216, 16, 16); // 10x10 segments for smooth edges
+const videoGeometry = new _three.PlaneGeometry(384, 216, 32, 16); // 10x10 segments for smooth edges
 // Create a mesh with the geometry and custom shader material
 const videoPlane = new _three.Mesh(videoGeometry, customMaterial);
 videoPlane.position.set(0, getHeight(0, 0) + 110.0, 0);
@@ -1432,33 +1283,21 @@ function fnUpdateControls() {
     controls.moveForward(-velocity.z * delta);
     // Sample Y-value from the height data array
     const playerPosition = controls.getObject().position;
-    /*
-        if ((playerPosition.x <= -50) || (playerPosition.x > (FIELD_SIZE / 2) - 50) || (playerPosition.z <= 50) || (playerPosition.z > (FIELD_SIZE / 2) - 50)) {
-            SPEED = 0.0;
-        } else {
-            SPEED = 90;
-        }
-   */ const height = getHeight(playerPosition.x, playerPosition.z);
+    const height = getHeight(playerPosition.x, playerPosition.z);
     playerPosition.y = height + PERSON_HEIGHT;
 }
 /********************************************************************
 // Position Camera
-********************************************************************/ //let cameraHasBeenPositionedInLandscapeMode = false;
-//let cameraHasBeenPositionedInPortraitMode = false;
-if (visitedFromMobileDevice) {
+********************************************************************/ if (visitedFromMobileDevice) {
     camera.far = 1100;
     camera.updateProjectionMatrix();
-//controls.unlock();
 }
-//camera.position.set(0, getHeight(0, 0) + PERSON_HEIGHT, 0);
 camera.position.set(0, getHeight(0, 300) + PERSON_HEIGHT, 300);
 camera.rotation.x = Math.PI / 16;
 const checkOrientation = ()=>{
     if (window.matchMedia("(orientation: landscape)").matches && visitedFromMobileDevice) {
         camera.rotation.x = 0;
         camera.position.set(0, getHeight(0, 250) + PERSON_HEIGHT, 250);
-    // controls.unlock();
-    //controlsIsLocked = false;
     } else if (window.matchMedia("(orientation: portrait)").matches && visitedFromMobileDevice) {
         camera.rotation.x = 0;
         camera.position.set(0, getHeight(0, 450) + PERSON_HEIGHT, 450);
@@ -1503,21 +1342,6 @@ function restrictMovement() {
 /********************************************************************
 // Grass Blade Shape
 ********************************************************************/ // Create grass blade shape
-function createGrassBladeShape() {
-    const shape = new _three.Shape();
-    // Start at the bottom-left corner of the rectangle
-    shape.moveTo(-0.05, 0);
-    // Define the rectangle part
-    shape.lineTo(0.05, 0); // Bottom-right corner
-    shape.lineTo(0.04, 0.5); // Top-right of the rectangle (mid-blade)
-    // Define the tapering part towards the tip
-    shape.lineTo(0, 2.0); // Pointed tip
-    // Mirror on the left side
-    shape.lineTo(-0.04, 0.5); // Top-left of the rectangle
-    shape.lineTo(-0.05, 0); // Back to the starting point
-    return shape;
-}
-// Create grass blade shape
 function createGrassBladeShapeLOD1() {
     const shape = new _three.Shape();
     // Start at the bottom-left corner of the rectangle
@@ -1573,14 +1397,9 @@ const grassMaterialTest = new (0, _vanillaDefault.default)({
         time: {
             value: 0.0
         },
-        //fogColor: { value: new THREE.Color(0x3a3f29) },
-        //fogColor: { value: new THREE.Color(0xff0000) },
-        //fogColor: { value: new THREE.Color(0xc5c97d) },
-        //fogDensity: { value: 0.0009 },
         grassTexture: {
             value: grassDiffuseMap
         },
-        //cloudTexture: { type: 't', value: cloudMap },
         fieldSize: {
             value: FIELD_SIZE
         }
@@ -1762,7 +1581,6 @@ if (visitedFromMobileDevice) arrChunks.forEach((chunk)=>{
 function animate() {
     renderer.setAnimationLoop(animate);
     checkOrientation();
-    //updateFlicker();
     shaderMaterialLine.uniforms.uTime.value += 0.05;
     //console.log(renderer.info);
     if (!visitedFromMobileDevice) {
@@ -1810,7 +1628,7 @@ function animate() {
 //stats.update();
 }
 
-},{"three":"ktPTu","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader":"dVRsF","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./shaders/grass.js":"cNzyR","./shaders/powerlines.js":"gJXUV","../img/grassColor.png":"f6f8d","../img/introvideo.webm":"iF6OC","./content.json":"24cue","./GrassScene.js":"a5jmZ","73d37e91c71236a0":"02A2s","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"ktPTu":[function(require,module,exports) {
+},{"three":"ktPTu","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader":"dVRsF","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./shaders/grass.js":"cNzyR","./shaders/powerlines.js":"gJXUV","../img/grassColor.png":"f6f8d","../img/introvideo.webm":"iF6OC","./content.json":"24cue","./GrassScene.js":"a5jmZ","73d37e91c71236a0":"02A2s","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","./shaders/videotexture.js":"5S7oy"}],"ktPTu":[function(require,module,exports) {
 /**
  * @license
  * Copyright 2010-2024 Three.js Authors
@@ -42511,6 +42329,24 @@ module.exports = function(workerUrl, origin, isESM) {
         }));
     }
 };
+
+},{}],"5S7oy":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _videotextureVertGlsl = require("./glsl/videotexture.vert.glsl");
+var _videotextureVertGlslDefault = parcelHelpers.interopDefault(_videotextureVertGlsl);
+var _videotextureFragGlsl = require("./glsl/videotexture.frag.glsl");
+var _videotextureFragGlslDefault = parcelHelpers.interopDefault(_videotextureFragGlsl);
+exports.default = {
+    frag: (0, _videotextureFragGlslDefault.default),
+    vert: (0, _videotextureVertGlslDefault.default)
+};
+
+},{"./glsl/videotexture.vert.glsl":"41TsU","./glsl/videotexture.frag.glsl":"riKA5","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"41TsU":[function(require,module,exports) {
+module.exports = "        precision mediump float;\n#define GLSLIFY 1\n\n\n        varying vec2 vUv;\n        uniform float uTime;\n\n        //\n        // Description : Array and textureless GLSL 2D/3D/4D simplex\n        //               noise functions.\n        //      Author : Ian McEwan, Ashima Arts.\n        //  Maintainer : ijm\n        //     Lastmod : 20110822 (ijm)\n        //     License : Copyright (C) 2011 Ashima Arts. All rights reserved.\n        //               Distributed under the MIT License. See LICENSE file.\n        //               https://github.com/ashima/webgl-noise\n        //\n\n        vec3 mod289(vec3 x) {\n        return x - floor(x * (1.0 / 289.0)) * 289.0;\n        }\n\n        vec4 mod289(vec4 x) {\n        return x - floor(x * (1.0 / 289.0)) * 289.0;\n        }\n\n        vec4 permute(vec4 x) {\n            return mod289(((x*34.0)+1.0)*x);\n        }\n\n        vec4 taylorInvSqrt(vec4 r)\n        {\n        return 1.79284291400159 - 0.85373472095314 * r;\n        }\n\n        float snoise(vec3 v) {\n        const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;\n        const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);\n\n        // First corner\n        vec3 i  = floor(v + dot(v, C.yyy) );\n        vec3 x0 =   v - i + dot(i, C.xxx) ;\n\n        // Other corners\n        vec3 g = step(x0.yzx, x0.xyz);\n        vec3 l = 1.0 - g;\n        vec3 i1 = min( g.xyz, l.zxy );\n        vec3 i2 = max( g.xyz, l.zxy );\n\n        //   x0 = x0 - 0.0 + 0.0 * C.xxx;\n        //   x1 = x0 - i1  + 1.0 * C.xxx;\n        //   x2 = x0 - i2  + 2.0 * C.xxx;\n        //   x3 = x0 - 1.0 + 3.0 * C.xxx;\n        vec3 x1 = x0 - i1 + C.xxx;\n        vec3 x2 = x0 - i2 + C.yyy; // 2.0*C.x = 1/3 = C.y\n        vec3 x3 = x0 - D.yyy;      // -1.0+3.0*C.x = -0.5 = -D.y\n\n        // Permutations\n        i = mod289(i);\n        vec4 p = permute( permute( permute(\n                    i.z + vec4(0.0, i1.z, i2.z, 1.0 ))\n                + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))\n                + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));\n\n        // Gradients: 7x7 points over a square, mapped onto an octahedron.\n        // The ring size 17*17 = 289 is close to a multiple of 49 (49*6 = 294)\n        float n_ = 0.142857142857; // 1.0/7.0\n        vec3  ns = n_ * D.wyz - D.xzx;\n\n        vec4 j = p - 49.0 * floor(p * ns.z * ns.z);  //  mod(p,7*7)\n\n        vec4 x_ = floor(j * ns.z);\n        vec4 y_ = floor(j - 7.0 * x_ );    // mod(j,N)\n\n        vec4 x = x_ *ns.x + ns.yyyy;\n        vec4 y = y_ *ns.x + ns.yyyy;\n        vec4 h = 1.0 - abs(x) - abs(y);\n\n        vec4 b0 = vec4( x.xy, y.xy );\n        vec4 b1 = vec4( x.zw, y.zw );\n\n        //vec4 s0 = vec4(lessThan(b0,0.0))*2.0 - 1.0;\n        //vec4 s1 = vec4(lessThan(b1,0.0))*2.0 - 1.0;\n        vec4 s0 = floor(b0)*2.0 + 1.0;\n        vec4 s1 = floor(b1)*2.0 + 1.0;\n        vec4 sh = -step(h, vec4(0.0));\n\n        vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;\n        vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;\n\n        vec3 p0 = vec3(a0.xy,h.x);\n        vec3 p1 = vec3(a0.zw,h.y);\n        vec3 p2 = vec3(a1.xy,h.z);\n        vec3 p3 = vec3(a1.zw,h.w);\n\n        // Normalise gradients\n        vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));\n        p0 *= norm.x;\n        p1 *= norm.y;\n        p2 *= norm.z;\n        p3 *= norm.w;\n\n        // Mix final noise value\n        vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);\n        m = m * m;\n        return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1),\n                                        dot(p2,x2), dot(p3,x3) ) );\n        }\n\n        void main() {\n            vUv = uv;\n\n            vec3 pos = position;\n            float noiseFreq = 0.008;\n            float noiseAmp = 4.0;\n            vec3 noisePos = vec3(pos.x * noiseFreq + uTime, pos.y, pos.z);\n            pos.z += snoise(noisePos) * noiseAmp;\n\n            gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.);\n        }";
+
+},{}],"riKA5":[function(require,module,exports) {
+module.exports = "#define GLSLIFY 1\n        uniform sampler2D texture1;\n        uniform float edgeTransparency;\n        varying vec2 vUv;\n\n        // Function to calculate alpha based on distance from edges\n        float getAlpha(vec2 uv) {\n            float distFromEdge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));\n            return 1.0 - smoothstep(0.1, 0.0, distFromEdge / edgeTransparency);\n        }\n\n        void main() {\n            vec4 color = texture2D(texture1, vUv);\n            float alpha = getAlpha(vUv);\n            alpha -= 0.35;\n            gl_FragColor = vec4(color.rgb, alpha);\n        }";
 
 },{}]},["l9Mez","ebWYT"], "ebWYT", "parcelRequire2041")
 
