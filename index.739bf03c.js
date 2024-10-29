@@ -910,9 +910,11 @@ function fnLoadContent(id) {
 ********************************************************************/ let velocity = new _three.Vector3();
 let SPEED = 175.0;
 const PERSON_HEIGHT = 16.0;
-const FIELD_SIZE = 3000; // Field size in both x and z directions
+//const FIELD_SIZE = 5000; // Field size in both x and z directions
+const FIELD_SIZE = visitedFromMobileDevice ? 2600 : 5000;
 const chunkSize = 200;
-const grassBladesPerChunk = 15000;
+const grassBladesPerChunk = 11000;
+const maxDistance = 2000; // Define maximum allowed distance from origin (0, 0, 0)
 // Basic scene setup
 const scene = new _three.Scene();
 const camera = new _three.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 900);
@@ -1055,7 +1057,7 @@ const height = 5;
 const intensity = 80;
 //const rectLight = new THREE.RectAreaLight(0xf1f3e1, intensity, widthLight, height);
 //0xB2CDDF
-const rectLight = new _three.RectAreaLight(0xB2CDDF, intensity, widthLight, height);
+const rectLight = new _three.RectAreaLight(0xa9dbfd, intensity, widthLight, height);
 //rectLight.rotateX(-Math.PI / 2)
 //const rectLight = new THREE.RectAreaLight(0xFF0000, intensity, widthLight, height);
 rectLight.position.set(0, 70, 5);
@@ -1063,6 +1065,18 @@ rectLight.lookAt(0, 0, 10);
 scene.add(rectLight);
 //const rectLightHelper = new RectAreaLightHelper(rectLight);
 //rectLight.add(rectLightHelper);
+function createFlickerFunction(light) {
+    const minIntensity = 50;
+    const maxIntensity = 80.0;
+    // Return a function to be called in the animation loop
+    return function updateFlicker() {
+        // Randomize intensity to simulate TV screen flickering
+        light.intensity = Math.random() * (maxIntensity - minIntensity) + minIntensity;
+    // Optional: Slightly vary the light's color to enhance the flickering effect
+    //light.color.setHSL(0.6 + (Math.random() * 0.02 - 0.01), 1, 0.5);
+    };
+}
+const updateFlicker = createFlickerFunction(rectLight);
 /********************************************************************
 // Handle Window Resize
 ********************************************************************/ //observe resize
@@ -1083,14 +1097,14 @@ resizeObserver.observe(canvasContainer);
 // Function to generate height based on simplex noise
 function getHeight(x, z) {
     //let height = 6 * simplex.noise(x / 400, z / 400)
-    let height = 10 * simplex.noise(x / 400, z / 400) //how high should it be
+    let height = 8 * simplex.noise(x / 400, z / 400) //how high should it be
     ;
     //height += 0.2 * simplex.noise(x / 10, z / 10)
     return height;
 }
 //generate ground
 // Generate a plane geometry and modify its vertices based on simplex noise
-const terrainGeometry = new _three.PlaneGeometry(FIELD_SIZE, FIELD_SIZE, 32, 32);
+const terrainGeometry = new _three.PlaneGeometry(FIELD_SIZE, FIELD_SIZE, 64, 64);
 terrainGeometry.rotateX(-Math.PI / 2);
 const vertices = terrainGeometry.attributes.position.array;
 for(let i = 0; i < vertices.length; i += 3){
@@ -1103,66 +1117,10 @@ const terrainMaterial = new _three.MeshBasicMaterial({
 });
 const terrainMesh = new _three.Mesh(terrainGeometry, terrainMaterial);
 scene.add(terrainMesh);
-/********************************************************************
-// Procedurally add terrain and grass
-********************************************************************/ /*
-const playerPosition = camera.position;
-console.log(playerPosition)
- 
-function generateChunk(posX, posZ) {
- 
-    const proceduralTerrainGeometry = new THREE.PlaneGeometry(chunkSize, chunkSize, 32, 32);
- 
-    proceduralTerrainGeometry.rotateX(-Math.PI / 2); // Orient the terrain
- 
-    const verticesProceduralChunk = proceduralTerrainGeometry.attributes.position.array;
-    for (let i = 0; i < verticesProceduralChunk.length; i += 3) {
-        const xNew = verticesProceduralChunk[i];
-        const zNew = verticesProceduralChunk[i + 2];
-        console.log(zNew)
-        verticesProceduralChunk[i + 1] = getHeight(xNew, zNew); // Modify the y-value based on noise
-    }
- 
-    const proceduralTerrainMaterial = new THREE.MeshBasicMaterial({ color: 0xFF0000, side: THREE.DoubleSide });
-    const proceduralTerrainChunk = new THREE.Mesh(proceduralTerrainGeometry, proceduralTerrainMaterial);
-    proceduralTerrainChunk.position.set(posX, 0, posZ);
- 
-    //proceduralTerrainChunk.scale.set(1000, 0, 1000);
-    console.log(proceduralTerrainChunk)
- 
-    scene.add(proceduralTerrainChunk);
-}
-let currentChunk = { x: 0, z: 0 };
-function updateTerrain() {
-    const playerX = Math.floor(camera.position.x / chunkSize);
-    const playerZ = Math.floor(camera.position.z / chunkSize);
- 
-    console.log(playerX);
- 
-    // If player moves into a new chunk, generate the adjacent chunks
-    if (playerX !== currentChunk.x || playerZ !== currentChunk.z) {
-        currentChunk = { x: playerX, z: playerZ };
-        generateSurroundingChunks(playerX, playerZ);
-    }
-}
- 
-function generateSurroundingChunks(chunkX, chunkZ) {
-    for (let x = -1; x <= 1; x++) {
-        for (let z = -1; z <= 1; z++) {
-            const newX = (chunkX + x) * chunkSize;
-            const newZ = (chunkZ + z) * chunkSize;
-            console.log(newX);
-            generateChunk(newX, newZ);
-        }
-    }
-}
- 
-*/ // Create a PMREMGenerator
+// Create a PMREMGenerator
 const pmremGenerator = new _three.PMREMGenerator(renderer);
 pmremGenerator.compileEquirectangularShader();
-let skyboxToLoad;
-if (!visitedFromMobileDevice) skyboxToLoad = "belfast_sunset_puresky_2k";
-else skyboxToLoad = "belfast_sunset_puresky_1k";
+let skyboxToLoad = visitedFromMobileDevice ? "belfast_sunset_puresky_1k" : "belfast_sunset_puresky_2k";
 // Load the HDR texture
 const rgbeLoader = new (0, _rgbeloader.RGBELoader)();
 rgbeLoader.load(`./assets/${skyboxToLoad}.hdr`, function(texture) {
@@ -1204,8 +1162,8 @@ rgbeLoader.load(`./assets/${skyboxToLoad}.hdr`, function(texture) {
         scene.add(cube);
     */ // Dispose of the PMREMGenerator to free up resources
     pmremGenerator.dispose();
-// Dispose of the original HDR texture
-//texture.dispose();
+    // Dispose of the original HDR texture
+    texture.dispose();
 });
 /********************************************************************
 // Video Plane
@@ -1531,63 +1489,6 @@ const checkOrientation = ()=>{
     //controlsIsLocked = false;
     }
 };
-// if (visitedFromMobileDevice) {
-//     if (!landscapeMode) {
-//         camera.position.set(0, getHeight(0, 500) + PERSON_HEIGHT, 500);
-//         //camera.rotateY(Math.PI / -15);
-//         //camera.rotateX(Math.PI / 11);
-//         cameraHasBeenPositionedInPortraitMode = true;
-//         cameraHasBeenPositionedInLandscapeMode = false;
-//     } else {
-//         camera.position.set(0, getHeight(0, 500) + PERSON_HEIGHT, 500);
-//         //camera.rotateY(Math.PI / 14);
-//         //camera.rotateX(Math.PI / 22);
-//         cameraHasBeenPositionedInLandscapeMode = true;
-//         cameraHasBeenPositionedInPortraitMode = false;
-//     }
-// } else {
-//     camera.position.set(0, getHeight(0, 500) + PERSON_HEIGHT, 500);
-//     //camera.rotateY(Math.PI / 14);
-//     //camera.rotateX(Math.PI / 11);
-// }
-// const checkOrientation = () => {
-//     if (window.matchMedia("(orientation: landscape)").matches && visitedFromMobileDevice) {
-//         console.log("Landscape mode");
-//         controls.unlock();
-//         controlsIsLocked = false;
-//         landscapeMode = true;
-//         if (!cameraHasBeenPositionedInLandscapeMode) {
-//             camera.position.set(0, getHeight(0, 600) + PERSON_HEIGHT, 600);
-//             //camera.rotateY(Math.PI / 14);
-//             //camera.rotateX(Math.PI / 22);
-//             cameraHasBeenPositionedInLandscapeMode = true;
-//         }
-//     } else if (window.matchMedia("(orientation: portrait)").matches && visitedFromMobileDevice) {
-//         console.log("Portrait mode");
-//         camera.position.set(0, getHeight(0, 500) + PERSON_HEIGHT, 500);
-//         landscapeMode = false;
-//         cameraHasBeenPositionedInLandscapeMode = false;
-//     }
-// };
-// if (visitedFromMobileDevice) {
-//     if (!landscapeMode) {
-//         camera.position.set(0, getHeight(0, 500) + PERSON_HEIGHT, 500);
-//         //camera.rotateY(Math.PI / -15);
-//         //camera.rotateX(Math.PI / 11);
-//         cameraHasBeenPositionedInPortraitMode = true;
-//         cameraHasBeenPositionedInLandscapeMode = false;
-//     } else {
-//         camera.position.set(0, getHeight(0, 500) + PERSON_HEIGHT, 500);
-//         //camera.rotateY(Math.PI / 14);
-//         //camera.rotateX(Math.PI / 22);
-//         cameraHasBeenPositionedInLandscapeMode = true;
-//         cameraHasBeenPositionedInPortraitMode = false;
-//     }
-// } else {
-//     camera.position.set(0, getHeight(0, 500) + PERSON_HEIGHT, 500);
-//     //camera.rotateY(Math.PI / 14);
-//     //camera.rotateX(Math.PI / 11);
-// }
 // Controls
 /*
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -1608,7 +1509,19 @@ controls.addEventListener("change", event => {
 //scene.add(axesHelper);
 /********************************************************************
 // Set Field Border Constraints
-********************************************************************/ /********************************************************************
+********************************************************************/ // Function to limit movement
+function restrictMovement() {
+    // Calculate the distance from the origin
+    const distanceFromOrigin = Math.sqrt(controls.getObject().position.x ** 2 + controls.getObject().position.z ** 2);
+    // Check if the user has exceeded the allowed distance
+    if (distanceFromOrigin > maxDistance) {
+        // Normalize the position to stay within bounds
+        const scaleFactor = maxDistance / distanceFromOrigin;
+        controls.getObject().position.x *= scaleFactor;
+        controls.getObject().position.z *= scaleFactor;
+    }
+}
+/********************************************************************
 // Grass Blade Shape
 ********************************************************************/ // Create grass blade shape
 function createGrassBladeShape() {
@@ -1701,8 +1614,7 @@ const grassMaterialTest = new (0, _vanillaDefault.default)({
     vertexShader: (0, _grassJsDefault.default).vert,
     fragmentShader: (0, _grassJsDefault.default).frag,
     vertexColors: false,
-    side: _three.DoubleSide,
-    wireframe: false
+    side: _three.DoubleSide
 });
 /********************************************************************
 // Creating chunks array
@@ -1875,12 +1787,13 @@ if (visitedFromMobileDevice) arrChunks.forEach((chunk)=>{
 function animate() {
     renderer.setAnimationLoop(animate);
     checkOrientation();
-    //const delta = clock.getDelta();
-    //camControls.update(delta);
-    //updateTerrain();
+    //updateFlicker();
     shaderMaterialLine.uniforms.uTime.value += 0.05;
     //console.log(renderer.info);
-    if (!visitedFromMobileDevice) fnUpdateControls();
+    if (!visitedFromMobileDevice) {
+        fnUpdateControls();
+        restrictMovement();
+    }
     //composer.render();
     if (!visitedFromMobileDevice) arrChunks.forEach((chunk)=>{
         const cameraPosition = camera.position;
@@ -1892,9 +1805,9 @@ function animate() {
         const distance = cameraXZ.distanceTo(chunkPosition);
         if (distance > 950) chunk.geometry.instanceCount = 5000;
         else if (distance > 800) chunk.geometry.instanceCount = 6000;
-        else if (distance > 600) chunk.geometry.instanceCount = 7000;
-        else if (distance > 400) chunk.geometry.instanceCount = 9000;
-        else if (distance >= 200) chunk.geometry.instanceCount = 12000;
+        else if (distance > 600) chunk.geometry.instanceCount = 6500;
+        else if (distance > 400) chunk.geometry.instanceCount = 8000;
+        else if (distance >= 200) chunk.geometry.instanceCount = 11000;
         else chunk.geometry.instanceCount = grassBladesPerChunk;
     // else {
     //     if (distance > 1000) {
