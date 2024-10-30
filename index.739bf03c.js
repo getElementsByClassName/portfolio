@@ -928,12 +928,21 @@ const renderer = new _three.WebGLRenderer({
     alpha: false,
     powerPreference: "default"
 });
-//renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setPixelRatio(1.5);
+// Get the device pixel ratio
+let pixelRatio = window.devicePixelRatio;
+if (pixelRatio > 2) pixelRatio = 1.5;
+// Apply the logic for setting pixel ratio
+// if (pixelRatio === 1) {
+//     pixelRatio = 1;
+// } else if (pixelRatio > 2) {
+//     pixelRatio = 1.5;
+// }
+renderer.setPixelRatio(pixelRatio);
 renderer.outputEncoding = _three.SRGBColorSpace;
 renderer.toneMapping = _three.ACESFilmicToneMapping;
 //renderer.toneMapping = THREE.ReinhardToneMapping;
 renderer.toneMappingExposure = 0.95;
+console.log(pixelRatio);
 //calc width and height
 // const pixelRatio = window.devicePixelRatio;
 // const canvasWidth = canvas.clientWidth * pixelRatio | 0;
@@ -942,9 +951,9 @@ renderer.toneMappingExposure = 0.95;
 renderer.setSize(window.innerWidth, window.innerHeight);
 canvasContainer.appendChild(renderer.domElement);
 //show stats, updated in animation loop
-//const stats = Stats();
-//stats.showPanel(0);
-//document.body.appendChild(stats.dom);
+const stats = (0, _statsModuleDefault.default)();
+stats.showPanel(0);
+document.body.appendChild(stats.dom);
 // Custom shader material for powerlines
 const shaderMaterialLine = new _three.ShaderMaterial({
     vertexShader: (0, _powerlinesJsDefault.default).vert,
@@ -1630,7 +1639,7 @@ function animate() {
     grassMaterialTest.uniforms.time.value += 0.01; // Update time for wind animation
     customMaterial.uniforms.uTime.value += 0.005;
     renderer.render(scene, camera);
-//stats.update();
+    stats.update();
 }
 
 },{"three":"ktPTu","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader":"dVRsF","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./shaders/grass.js":"cNzyR","./shaders/powerlines.js":"gJXUV","./shaders/videotexture.js":"5S7oy","../img/grassColor.png":"f6f8d","../img/introvideo.webm":"iF6OC","./content.json":"24cue","./GrassScene.js":"a5jmZ","73d37e91c71236a0":"02A2s","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","../img/videoFallback.webp":"5ZsGE"}],"ktPTu":[function(require,module,exports) {
