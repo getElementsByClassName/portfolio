@@ -1006,23 +1006,7 @@ cube.position.set(0, 0, 40);
  
 // Add the cube to the scene
 scene.add(cube);
-*/ // Create a video element
-const video = document.createElement("video");
-video.src = (0, _introvideoWebmDefault.default); // Set the path to your video file
-video.muted = true;
-video.loop = true;
-//video.autoplay = true;
-video.playsInline = true;
-video.setAttribute("webkit-playsinline", "webkit-playsinline");
-//video.crossOrigin = 'anonymous';
-video.load(); // Load the video
-video.play(); // Play the video
-const testheading = document.getElementById("testheading");
-if (video.paused) //console.log('playing')
-testheading.innerHTML = "not playing";
-// Create a texture from the video element
-const videoTexture = new _three.VideoTexture(video);
-// Load the height map texture (a grayscale image)
+*/ // Load the height map texture (a grayscale image)
 const textureLoader = new _three.TextureLoader();
 //const heightMap = textureLoader.load(displacementMap);
 const grassDiffuseMap = textureLoader.load((0, _grassColorPngDefault.default));
@@ -1133,7 +1117,23 @@ rgbeLoader.load(`./assets/${skyboxToLoad}.hdr`, function(texture) {
 });
 /********************************************************************
 // Video Plane
-********************************************************************/ const customMaterial = new _three.ShaderMaterial({
+********************************************************************/ // Create a video element
+const video = document.createElement("video");
+video.src = (0, _introvideoWebmDefault.default); // Set the path to your video file
+video.muted = true;
+video.loop = true;
+//video.autoplay = true;
+video.playsInline = true;
+video.setAttribute("webkit-playsinline", "webkit-playsinline");
+//video.crossOrigin = 'anonymous';
+video.load(); // Load the video
+video.play(); // Play the video
+const testheading = document.getElementById("testheading");
+if (video.paused) //console.log('playing')
+testheading.innerHTML = "not playing";
+// Create a texture from the video element
+const videoTexture = video.paused ? new _three.VideoTexture((0, _grassColorPngDefault.default)) : new _three.VideoTexture(video);
+const customMaterial = new _three.ShaderMaterial({
     uniforms: {
         texture1: {
             value: videoTexture
