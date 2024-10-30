@@ -929,7 +929,7 @@ const renderer = new _three.WebGLRenderer({
     powerPreference: "default"
 });
 //renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setPixelRatio(1.0);
+renderer.setPixelRatio(1.5);
 renderer.outputEncoding = _three.SRGBColorSpace;
 renderer.toneMapping = _three.ACESFilmicToneMapping;
 //renderer.toneMapping = THREE.ReinhardToneMapping;
