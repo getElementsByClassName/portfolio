@@ -1011,15 +1011,15 @@ const video = document.createElement("video");
 video.src = (0, _introvideoWebmDefault.default); // Set the path to your video file
 video.muted = true;
 video.loop = true;
-video.autoplay = true;
+//video.autoplay = true;
 video.playsInline = true;
 video.setAttribute("webkit-playsinline", "webkit-playsinline");
 //video.crossOrigin = 'anonymous';
 video.load(); // Load the video
 video.play(); // Play the video
-// if (!video.paused) {
-//     console.log('playing')
-// }
+const testheading = document.getElementById("testheading");
+if (video.paused) //console.log('playing')
+testheading.innerHTML = "not playing";
 // Create a texture from the video element
 const videoTexture = new _three.VideoTexture(video);
 // Load the height map texture (a grayscale image)
