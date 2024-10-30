@@ -1128,11 +1128,13 @@ video.setAttribute("webkit-playsinline", "webkit-playsinline");
 //video.crossOrigin = 'anonymous';
 video.load(); // Load the video
 video.play(); // Play the video
-const testheading = document.getElementById("testheading");
-if (video.paused) //console.log('playing')
-testheading.innerHTML = "not playing";
+// const testheading = document.getElementById('testheading');
+// if (video.paused) {
+//     //console.log('playing')
+//     testheading.innerHTML = 'not playing';
+// }
 // Create a texture from the video element
-const videoTexture = video.paused ? new _three.VideoTexture((0, _grassColorPngDefault.default)) : new _three.VideoTexture(video);
+const videoTexture = new _three.VideoTexture(video);
 const customMaterial = new _three.ShaderMaterial({
     uniforms: {
         texture1: {
