@@ -1571,12 +1571,12 @@ if (visitedFromMobileDevice) arrChunks.forEach((chunk)=>{
     //const chunkMiddlePosition = new THREE.Vector2(chunkPosition.x + chunkSize / 2, chunkPosition.y + chunkSize / 2);
     //console.log(chunkMiddlePosition);
     const distance = cameraXZ.distanceTo(chunkPosition);
-    if (distance > 1000) chunk.geometry.instanceCount = 2000;
-    else if (distance > 900) chunk.geometry.instanceCount = 3000;
+    if (distance > 1000) chunk.geometry.instanceCount = 1800;
+    else if (distance > 900) chunk.geometry.instanceCount = 2300;
     else if (distance > 600) chunk.geometry.instanceCount = 3000;
-    else if (distance > 400) chunk.geometry.instanceCount = 4000;
-    else if (distance >= 200) chunk.geometry.instanceCount = 5000;
-    else chunk.geometry.instanceCount = 5000;
+    else if (distance > 400) chunk.geometry.instanceCount = 3500;
+    else if (distance >= 200) chunk.geometry.instanceCount = 3800;
+    else chunk.geometry.instanceCount = 7000;
 });
 function animate() {
     renderer.setAnimationLoop(animate);
