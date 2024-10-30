@@ -613,6 +613,8 @@ var _videotextureJs = require("./shaders/videotexture.js");
 var _videotextureJsDefault = parcelHelpers.interopDefault(_videotextureJs);
 var _grassColorPng = require("../img/grassColor.png");
 var _grassColorPngDefault = parcelHelpers.interopDefault(_grassColorPng);
+var _giftestGif = require("../img/giftest.gif");
+var _giftestGifDefault = parcelHelpers.interopDefault(_giftestGif);
 //import cloudTexture from '../img/cloud.jpg';
 var _introvideoWebm = require("../img/introvideo.webm");
 var _introvideoWebmDefault = parcelHelpers.interopDefault(_introvideoWebm);
@@ -1010,6 +1012,7 @@ scene.add(cube);
 const textureLoader = new _three.TextureLoader();
 //const heightMap = textureLoader.load(displacementMap);
 const grassDiffuseMap = textureLoader.load((0, _grassColorPngDefault.default));
+const giftest = textureLoader.load((0, _giftestGifDefault.default));
 /********************************************************************
 // Lights
 ********************************************************************/ const light = new _three.HemisphereLight(0xffffbb, 0x080820, 0.8);
@@ -1138,7 +1141,7 @@ const videoTexture = new _three.VideoTexture(video);
 const customMaterial = new _three.ShaderMaterial({
     uniforms: {
         texture1: {
-            value: video.paused ? grassDiffuseMap : videoTexture
+            value: video.paused ? (0, _giftestGifDefault.default) : videoTexture
         },
         edgeTransparency: {
             value: 1.0
@@ -1630,7 +1633,7 @@ function animate() {
 //stats.update();
 }
 
-},{"three":"ktPTu","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader":"dVRsF","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./shaders/grass.js":"cNzyR","./shaders/powerlines.js":"gJXUV","./shaders/videotexture.js":"5S7oy","../img/grassColor.png":"f6f8d","../img/introvideo.webm":"iF6OC","./content.json":"24cue","./GrassScene.js":"a5jmZ","73d37e91c71236a0":"02A2s","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"ktPTu":[function(require,module,exports) {
+},{"three":"ktPTu","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader":"dVRsF","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./shaders/grass.js":"cNzyR","./shaders/powerlines.js":"gJXUV","./shaders/videotexture.js":"5S7oy","../img/grassColor.png":"f6f8d","../img/introvideo.webm":"iF6OC","./content.json":"24cue","./GrassScene.js":"a5jmZ","73d37e91c71236a0":"02A2s","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","../img/giftest.gif":"6nGFw"}],"ktPTu":[function(require,module,exports) {
 /**
  * @license
  * Copyright 2010-2024 Three.js Authors
@@ -42350,6 +42353,9 @@ module.exports = function(workerUrl, origin, isESM) {
     }
 };
 
-},{}]},["l9Mez","ebWYT"], "ebWYT", "parcelRequire2041")
+},{}],"6nGFw":[function(require,module,exports) {
+module.exports = require("f72b090e483d5ac9").getBundleURL("g05j8") + "giftest.c551c53d.gif" + "?" + Date.now();
+
+},{"f72b090e483d5ac9":"lgJ39"}]},["l9Mez","ebWYT"], "ebWYT", "parcelRequire2041")
 
 //# sourceMappingURL=index.739bf03c.js.map
