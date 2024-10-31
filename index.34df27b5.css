@@ -523,23 +523,6 @@ nav li {
   }
 }
 
-.flex {
-  justify-content: center;
-  display: flex;
-}
-
-.flex-column {
-  flex-direction: column;
-  display: flex;
-}
-
-.flex-row {
-  flex-flow: wrap;
-  gap: 2rem;
-  width: 100%;
-  display: flex;
-}
-
 .overlay-container {
   flex-direction: row;
   display: flex;
