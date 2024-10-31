@@ -140,7 +140,7 @@
 @media (orientation: portrait) {
   .card {
     width: 100%;
-    height: 48svh;
+    height: 58svh;
   }
 
   .card-container {
@@ -158,7 +158,7 @@ body {
   scrollbar-width: none;
   scroll-behavior: initial;
   -webkit-font-smoothing: antialiased;
-  max-width: 100svw;
+  width: 100%;
   font-family: AvenirNextLTPro-UltLt;
 }
 
