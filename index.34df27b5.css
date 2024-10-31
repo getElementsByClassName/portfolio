@@ -140,7 +140,11 @@
 @media (orientation: portrait) {
   .card {
     width: 100%;
-    height: 100%;
+    height: 48svh;
+  }
+
+  .card-container {
+    height: 40 svh;
   }
 
   @media (width <= 768px) {
