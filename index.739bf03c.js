@@ -1497,7 +1497,7 @@ function handleWorkerResult(chunk, data) {
     chunk.geometry.index = bladeGeometry.index;
     chunk.geometry.attributes.position = bladeGeometry.attributes.position;
     chunk.geometry.attributes.uv = bladeGeometry.attributes.uv;
-    for(let i = 0; i < grassBladesPerChunk; i++)data.offsets[i * 3 + 1] = 1.0 + getHeight(data.offsets[i * 3], data.offsets[i * 3 + 2]); // Calculate height using getHeight
+    for(let i = 0; i < grassBladesPerChunk; i++)data.offsets[i * 3 + 1] = getHeight(data.offsets[i * 3], data.offsets[i * 3 + 2]); // Calculate height using getHeight
     chunk.geometry.setAttribute("offset", new _three.InstancedBufferAttribute(data.offsets, 3));
     chunk.geometry.setAttribute("uv", new _three.InstancedBufferAttribute(data.uvs, 2));
     chunk.geometry.setAttribute("instanceRotationMatrix", new _three.InstancedBufferAttribute(data.rotationMatrices, 9));
