@@ -670,7 +670,7 @@ const lenisOverlayOptions = {
     content: overlay.children[1]
 };
 const lenisSiteOptions = {
-    duration: 1.75,
+    duration: 1.25,
     //easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // Easing function
     smooth: true
 };
@@ -693,8 +693,12 @@ let isScrolling = false;
 // Function to scroll to a specific section
 function scrollToSection(index) {
     if (index >= 0 && index < sections.length) lenisSite.scrollTo(sections[index], {
-        duration: 1.75,
-        offset: 0
+        duration: 1.25,
+        offset: 0,
+        lock: true,
+        onComplete: ()=>{
+            isScrolling = false;
+        }
     });
 }
 // Mouse wheel event listener
@@ -702,9 +706,11 @@ window.addEventListener("wheel", (event)=>{
     if (isScrolling) return; // Prevent multiple scrolls while one is in progress
     // Check scroll direction
     if (event.deltaY > 0) {
+        //isScrolling = true;
         currentSectionIndex = Math.min(currentSectionIndex + 1, sections.length - 1);
         if (controls !== undefined) controls.unlock();
     } else if (event.deltaY < 0) // Scrolling up, move to previous section
+    //isScrolling = true;
     currentSectionIndex = Math.max(currentSectionIndex - 1, 0);
     scrollToSection(currentSectionIndex);
 });
@@ -790,7 +796,6 @@ navBtn.forEach((button)=>{
         });
     });
 });
-//}
 /********************************************************************
 // Handle Overlay
 ********************************************************************/ const imageContainers = document.querySelectorAll(".image-container");
