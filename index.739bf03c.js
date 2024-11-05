@@ -977,7 +977,7 @@ loader.load("./assets/powerlines.glb", function(gltf) {
     model.children[4].material = shaderMaterialLine;
     model.children[6].material = shaderMaterialLine;
     // Optionally, position the model
-    model.position.set(360, getHeight(360, -275) - 4, -275);
+    model.position.set(360, getHeight(360, -275) - 5, -275);
     model.rotateY(-Math.PI / 4);
     model.scale.set(10, 12, 10);
 }, undefined, function(error) {
