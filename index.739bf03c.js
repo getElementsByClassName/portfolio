@@ -1099,8 +1099,8 @@ const video = document.createElement("video");
 video.src = (0, _introvideoMp4Default.default); // Set the path to your video file
 video.muted = true;
 video.loop = true;
-//video.autoplay = true;
 video.playsInline = true;
+video.autoplay = true;
 video.setAttribute("webkit-playsinline", "webkit-playsinline");
 //video.crossOrigin = 'anonymous';
 video.load(); // Load the video
