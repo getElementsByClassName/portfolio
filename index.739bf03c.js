@@ -1102,39 +1102,15 @@ video.setAttribute("playsinline", "playsinline"); // For modern browsers
 video.muted = true;
 video.autoPlay = true;
 video.loop = true;
+//video.poster = videoFallback;
 video.play();
-/*
-video.muted = true;
-video.loop = true;
-video.playsInline = true;
-video.autoplay = true;
-
-video.setAttribute("webkit-playsinline", "webkit-playsinline");
-
-//video.crossOrigin = 'anonymous';
-video.load();  // Load the video
-video.play();  // Play the video
-*/ // const testheading = document.getElementById('testheading');
-// if (video.paused) {
-//     //console.log('playing')
-//     testheading.innerHTML = 'not playing';
-// }
 // Create a texture from the video element
 const videoTexture = new _three.VideoTexture(video);
-document.body.addEventListener("touchstart", function() {
-    //var allVideos = document.querySelectorAll('video');
-    if (video.paused) video.play();
-/*
-    for (var i = 0; i < allVideos.length; i++) {
-        allVideos[i].play();
-    }
-    */ }, {
-    once: true
-});
-const customMaterial = new _three.ShaderMaterial({
+const videoMaterial = new _three.ShaderMaterial({
     uniforms: {
+        //texture1: { value: video.paused ? videoFallback : videoTexture },
         texture1: {
-            value: video.paused ? videoFallback : videoTexture
+            value: videoTexture
         },
         edgeTransparency: {
             value: 1.0
@@ -1148,10 +1124,19 @@ const customMaterial = new _three.ShaderMaterial({
     transparent: true,
     wireframe: false
 });
+document.body.addEventListener("touchstart", function() {
+    //var allVideos = document.querySelectorAll('video');
+    if (video.paused) {
+        videoMaterial.uniforms.texture1.value = videoFallback;
+        video.play();
+    }
+}, {
+    once: true
+});
 // Create a plane geometry
 const videoGeometry = new _three.PlaneGeometry(384, 216, 32, 16); // 10x10 segments for smooth edges
 // Create a mesh with the geometry and custom shader material
-const videoPlane = new _three.Mesh(videoGeometry, customMaterial);
+const videoPlane = new _three.Mesh(videoGeometry, videoMaterial);
 videoPlane.position.set(0, getHeight(0, 0) + 110.0, 0);
 // Add the plane to the scene
 scene.add(videoPlane);
@@ -1615,7 +1600,7 @@ function animate() {
     //controls.update();
     //LOD.update(camera);
     grassMaterialTest.uniforms.time.value += 0.01; // Update time for wind animation
-    customMaterial.uniforms.uTime.value += 0.005;
+    videoMaterial.uniforms.uTime.value += 0.005;
     renderer.render(scene, camera);
 //stats.update();
 }
