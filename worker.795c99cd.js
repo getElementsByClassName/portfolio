@@ -589,7 +589,7 @@ var _simplexNoise = require("three/examples/jsm/math/SimplexNoise");
 onmessage = function(event) {
     const { chunkPosition, chunkSize, instanceCount } = event.data;
     //console.log(event.data)
-    const simplex = new (0, _simplexNoise.SimplexNoise)();
+    //const simplex = new SimplexNoise();
     const offsets = new Float32Array(instanceCount * 3);
     const uvs = new Float32Array(instanceCount * 2);
     const rotationMatrices = new Float32Array(instanceCount * 9);

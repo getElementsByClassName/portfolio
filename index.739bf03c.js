@@ -920,12 +920,12 @@ function fnLoadContent(id) {
 /********************************************************************
 // Scene Constants
 ********************************************************************/ let velocity = new _three.Vector3();
-let SPEED = 175.0;
-const PERSON_HEIGHT = 16.0;
+let SPEED = 200.0; //175
+const PERSON_HEIGHT = 17.0;
 const FIELD_SIZE = visitedFromMobileDevice ? 2600 : 4000 // Field size in both x and z directions
 ;
 const chunkSize = 200;
-const grassBladesPerChunk = 11000;
+const grassBladesPerChunk = 8000;
 const maxDistance = 1600; // Define maximum allowed distance from origin (0, 0, 0)
 // Basic scene setup
 const scene = new _three.Scene();
@@ -944,7 +944,7 @@ renderer.setPixelRatio(pixelRatio);
 renderer.outputEncoding = _three.SRGBColorSpace;
 renderer.toneMapping = _three.ACESFilmicToneMapping;
 //renderer.toneMapping = THREE.ReinhardToneMapping;
-renderer.toneMappingExposure = 0.95;
+renderer.toneMappingExposure = 0.8;
 renderer.setSize(window.innerWidth, window.innerHeight);
 canvasContainer.appendChild(renderer.domElement);
 //show stats, updated in animation loop
@@ -964,7 +964,7 @@ const shaderMaterialLine = new _three.ShaderMaterial({
         },
         colorEnd: {
             value: new _three.Color(0xF2F8FF)
-        } // Red color
+        }
     },
     transparent: true
 });
@@ -1063,7 +1063,7 @@ function getHeight(x, z) {
 }
 //generate ground
 // Generate a plane geometry and modify its vertices based on simplex noise
-const terrainGeometry = new _three.PlaneGeometry(FIELD_SIZE, FIELD_SIZE, 64, 64);
+const terrainGeometry = new _three.PlaneGeometry(FIELD_SIZE, FIELD_SIZE, 32, 32);
 terrainGeometry.rotateX(-Math.PI / 2);
 const vertices = terrainGeometry.attributes.position.array;
 for(let i = 0; i < vertices.length; i += 3){
@@ -1097,21 +1097,40 @@ rgbeLoader.load(`./assets/${skyboxToLoad}.hdr`, function(texture) {
 ********************************************************************/ // Create a video element
 const video = document.createElement("video");
 video.src = (0, _introvideoMp4Default.default); // Set the path to your video file
+video.setAttribute("webkit-playsinline", "webkit-playsinline"); // For older Safari versions
+video.setAttribute("playsinline", "playsinline"); // For modern browsers
+video.muted = true;
+video.autoPlay = true;
+video.loop = true;
+video.play();
+/*
 video.muted = true;
 video.loop = true;
 video.playsInline = true;
 video.autoplay = true;
+
 video.setAttribute("webkit-playsinline", "webkit-playsinline");
+
 //video.crossOrigin = 'anonymous';
-video.load(); // Load the video
-video.play(); // Play the video
-// const testheading = document.getElementById('testheading');
+video.load();  // Load the video
+video.play();  // Play the video
+*/ // const testheading = document.getElementById('testheading');
 // if (video.paused) {
 //     //console.log('playing')
 //     testheading.innerHTML = 'not playing';
 // }
 // Create a texture from the video element
 const videoTexture = new _three.VideoTexture(video);
+document.body.addEventListener("touchstart", function() {
+    //var allVideos = document.querySelectorAll('video');
+    if (video.paused) video.play();
+/*
+    for (var i = 0; i < allVideos.length; i++) {
+        allVideos[i].play();
+    }
+    */ }, {
+    once: true
+});
 const customMaterial = new _three.ShaderMaterial({
     uniforms: {
         texture1: {
@@ -1396,10 +1415,7 @@ for(let x = 0; x < FIELD_SIZE / chunkSize; x++)for(let z = 0; z < FIELD_SIZE / c
     const chunk = {
         position: new _three.Vector2(x * chunkSize - 0.5 * FIELD_SIZE, z * chunkSize - 0.5 * FIELD_SIZE),
         geometry: new _three.InstancedBufferGeometry(),
-        material: grassMaterialTest,
-        //boundingBox: new THREE.Box3() // Bounding box for frustum culling
-        //boundingSphere: new THREE.Sphere(new THREE.Vector2((x * chunkSize) - width / 2), ((z * chunkSize) - width / 2), 2.0)
-        boundingSphere: new _three.Sphere()
+        material: grassMaterialTest
     };
     arrChunks.push(chunk);
 }
@@ -1509,10 +1525,23 @@ function handleWorkerResult(chunk, data) {
     chunk.geometry.setAttribute("scale", new _three.InstancedBufferAttribute(data.scales, 1));
     chunk.geometry.setAttribute("normalizedHeight", new _three.InstancedBufferAttribute(data.normalizedHeight, 1));
     chunk.geometry.computeVertexNormals();
-    chunk.geometry.boundingSphere = new _three.Sphere(new _three.Vector3(chunk.position.x + chunkSize, 20.0, chunk.position.y + chunkSize), chunkSize + 75.0);
+    /*
+        chunk.geometry.boundingSphere = new THREE.Sphere(
+            new THREE.Vector3(chunk.position.x + chunkSize, 0.0, chunk.position.y + chunkSize),
+            chunkSize + 0.0
+        );
+    */ chunk.geometry.boundingSphere = new _three.Sphere(new _three.Vector3(chunk.position.x + 0.5 * chunkSize, 0.0, chunk.position.y + 0.5 * chunkSize), chunkSize * 0.75);
     const mesh = new _three.Mesh(chunk.geometry, chunk.material);
     scene.add(mesh);
-}
+//test Sphere
+/*
+        // Create a sphere geometry for the bounding sphere
+        const sphereGeometry = new THREE.SphereGeometry(chunk.geometry.boundingSphere.radius, 32, 32); // Higher segments for smoother appearance
+        const sphereMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
+        const wireframe = new THREE.LineSegments(new THREE.WireframeGeometry(sphereGeometry));
+        wireframe.position.copy(chunk.geometry.boundingSphere.center); // Match the center
+        scene.add(wireframe);
+        */ }
 // Function to assign work to a worker
 function assignChunkToWorker(worker, chunk) {
     activeWorkers.add(worker);
@@ -1561,7 +1590,7 @@ function animate() {
     renderer.setAnimationLoop(animate);
     checkOrientation();
     shaderMaterialLine.uniforms.uTime.value += 0.05;
-    //console.log(renderer.info);
+    console.log(renderer.info);
     if (!visitedFromMobileDevice) {
         fnUpdateControls();
         restrictMovement();
@@ -1575,27 +1604,11 @@ function animate() {
         //const chunkMiddlePosition = new THREE.Vector2(chunkPosition.x + chunkSize / 2, chunkPosition.y + chunkSize / 2);
         //console.log(chunkMiddlePosition);
         const distance = cameraXZ.distanceTo(chunkPosition);
-        if (distance > 950) chunk.geometry.instanceCount = 5000;
-        else if (distance > 800) chunk.geometry.instanceCount = 6000;
-        else if (distance > 600) chunk.geometry.instanceCount = 6500;
-        else if (distance > 400) chunk.geometry.instanceCount = 8000;
-        else if (distance >= 200) chunk.geometry.instanceCount = 11000;
+        if (distance > 950) chunk.geometry.instanceCount = grassBladesPerChunk * 0.5;
+        else if (distance > 800) chunk.geometry.instanceCount = grassBladesPerChunk * 0.6;
+        else if (distance > 600) chunk.geometry.instanceCount = grassBladesPerChunk * 0.8;
+        else if (distance > 400) chunk.geometry.instanceCount = grassBladesPerChunk * 0.9;
         else chunk.geometry.instanceCount = grassBladesPerChunk;
-    // else {
-    //     if (distance > 1000) {
-    //         chunk.geometry.instanceCount = 2000;
-    //     } else if (distance > 900) {
-    //         chunk.geometry.instanceCount = 4000;
-    //     } else if (distance > 600) {
-    //         chunk.geometry.instanceCount = 5000;
-    //     } else if (distance > 400) {
-    //         chunk.geometry.instanceCount = 5500;
-    //     } else if (distance >= 200) {
-    //         chunk.geometry.instanceCount = 5500;
-    //     } else {
-    //         chunk.geometry.instanceCount = 6000;
-    //     }
-    // }
     });
     // Update the video texture if the video is playing
     if (video.readyState >= video.HAVE_CURRENT_DATA) videoTexture.needsUpdate = true;
