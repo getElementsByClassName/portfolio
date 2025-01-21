@@ -630,7 +630,6 @@ var _grassSceneJsDefault = parcelHelpers.interopDefault(_grassSceneJs);
 function isMobileDevice() {
     return /Mobi|Android|iPhone|iPad|iPod|BlackBerry|Windows Phone/i.test(navigator.userAgent);
 }
-const testTxt = document.getElementById("contact-txt");
 if (isMobileDevice()) visitedFromMobileDevice = true;
 else visitedFromMobileDevice = false;
 /********************************************************************
@@ -653,6 +652,115 @@ document.addEventListener("visibilitychange", ()=>{
     if (document.hidden) fnStopRendering(); // Pause when the tab is inactive
     else if (window.scrollY === 0) fnStartRendering(); // Resume when the tab is active again
 });
+/********************************************************************
+// Intersection Observer
+********************************************************************/ // Intersection Observer setup for opening scene
+const observerOptions = {
+    root: null,
+    rootMargin: "0px",
+    threshold: 0.3 // Trigger when 30% of the target is visible
+};
+//intersection observer for detecting opening scene out of view
+const observerCallback = (entries)=>{
+    entries.forEach((entry)=>{
+        if (entry.isIntersecting) // Start or resume animation
+        fnStartRendering();
+        else // Pause animation
+        fnStopRendering();
+    });
+};
+const observer = new IntersectionObserver(observerCallback, observerOptions);
+const targetElement = document.getElementById("container-opening-scene");
+observer.observe(targetElement);
+// Intersection Observer setup for contact scene
+//intersection observer for detecting opening scene out of view
+const observerContactSceneCallback = (entries)=>{
+    entries.forEach((entry)=>{
+        if (entry.isIntersecting) // Start or resume animation
+        grassScene.startRendering();
+        else // Pause animation
+        grassScene.stopRendering();
+    });
+};
+const observerContactScene = new IntersectionObserver(observerContactSceneCallback, observerOptions);
+observerContactScene.observe(grassContainer);
+//intersection observer for changing button text content
+const navBtn1 = document.getElementById("btn1");
+const navBtn2 = document.getElementById("btn2");
+const nav = document.querySelector("nav");
+if (visitedFromMobileDevice) nav.classList.add("hide");
+/********************************************************************
+// Handle Button Navigation
+********************************************************************/ //if (!visitedFromMobileDevice) {
+/*
+const navBtn = document.querySelectorAll('.nav-btn');
+
+
+navBtn.forEach(button => {
+
+    button.addEventListener('click', (e) => {
+        let targetSection = button.textContent;
+        e.stopPropagation();
+
+        if (targetSection.includes('Projects')) {
+            targetSection = '#container-projects'
+        } else if (targetSection.includes('Contact')) {
+            targetSection = '#container-contact'
+        } else {
+            targetSection = '#container-opening-scene'
+        }
+        lenisSite.scrollTo(targetSection, { duration: 2.0, offset: 0 });
+
+    });
+});
+*/ // Select all nav items and lines
+const navItems = document.querySelectorAll(".nav-item");
+const lines = document.querySelectorAll(".line");
+// Set initial active state (top logo)
+let activeIndex = 0;
+let targetSection = "#container-opening-scene";
+navItems[activeIndex].classList.add("active"); // Initially highlight top logo
+// Add click event to each nav item
+navItems.forEach((item, index)=>{
+    item.addEventListener("click", ()=>{
+        targetSection = navItems[index].dataset.targetsection;
+        //console.log(targetSection);
+        // Remove active class from current logo
+        for(i = 0; i < 3; i++)navItems[i].classList.remove("active");
+        console.log(lines);
+        lines[0].classList.remove("highlight-up", "highlight-down");
+        lines[1].classList.remove("highlight-up", "highlight-down");
+        // Add active class to clicked logo
+        item.classList.add("active");
+        fnUpdateNavigation(index, activeIndex, lines);
+        lenisSite.scrollTo(targetSection, {
+            duration: 2.0,
+            offset: 0
+        });
+        activeIndex = index;
+        targetSection = "";
+    });
+});
+function fnUpdateNavigation(index, activeIndex, lines) {
+    if (index > activeIndex) {
+        console.log("index > activeIndex");
+        // Highlight all lines between activeIndex and the new index
+        for(let i1 = activeIndex; i1 < index; i1++)if (i1 === index - 1 && index != activeIndex + 1) // Add delay for the last line
+        setTimeout(()=>{
+            lines[i1].classList.add("highlight-down");
+        }, 600); // Adjust delay (in ms) as needed
+        else lines[i1].classList.add("highlight-down");
+    }
+    if (index < activeIndex) {
+        //console.log("index < activeIndex");
+        // Highlight all lines between activeIndex and the new index
+        for(let i1 = activeIndex - 1; i1 >= index; i1--)if (i1 === index && index != activeIndex - 1) // Add delay for the last line (first in this upward flow)
+        setTimeout(()=>{
+            lines[i1].classList.add("highlight-up");
+        }, 600); // Adjust delay (in ms) as needed
+        else lines[i1].classList.add("highlight-up");
+    }
+}
 /********************************************************************
 // Mouse Wheel Scroll Function
 ********************************************************************/ const overlay = document.getElementById("overlay");
@@ -692,8 +800,9 @@ let currentSectionIndex = 0;
 let isScrolling = false;
 // Function to scroll to a specific section
 function scrollToSection(index) {
+    isScrolling = true;
     if (index >= 0 && index < sections.length) lenisSite.scrollTo(sections[index], {
-        duration: 1.25,
+        duration: 1.00,
         offset: 0,
         lock: true,
         onComplete: ()=>{
@@ -704,135 +813,95 @@ function scrollToSection(index) {
 // Mouse wheel event listener
 window.addEventListener("wheel", (event)=>{
     if (isScrolling) return; // Prevent multiple scrolls while one is in progress
-    // Check scroll direction
+    // scrolling down
     if (event.deltaY > 0) {
-        //isScrolling = true;
+        isScrolling = true;
+        //lines[0].classList.remove('highlight-up', 'highlight-down');
+        //lines[1].classList.remove('highlight-up', 'highlight-down');
         currentSectionIndex = Math.min(currentSectionIndex + 1, sections.length - 1);
+        lines[currentSectionIndex - 1].classList.add("highlight-down");
+        scrollToSection(currentSectionIndex);
+        activeIndex = currentSectionIndex;
+        //console.log(currentSectionIndex)
+        navItems[currentSectionIndex].classList.add("active");
+        navItems[currentSectionIndex - 1].classList.remove("active");
+        if (currentSectionIndex != 2) navItems[activeIndex].classList.remove("active");
+        setTimeout(()=>{
+            lines[currentSectionIndex - 1].classList.remove("highlight-up", "highlight-down");
+        }, 600);
         if (controls !== undefined) controls.unlock();
-    } else if (event.deltaY < 0) // Scrolling up, move to previous section
-    //isScrolling = true;
-    currentSectionIndex = Math.max(currentSectionIndex - 1, 0);
-    scrollToSection(currentSectionIndex);
+    } else if (event.deltaY < 0) {
+        // Scrolling up, move to previous section
+        isScrolling = true;
+        currentSectionIndex = Math.max(currentSectionIndex - 1, 0);
+        lines[currentSectionIndex].classList.add("highlight-up");
+        scrollToSection(currentSectionIndex);
+        activeIndex = currentSectionIndex;
+        navItems[currentSectionIndex].classList.add("active");
+        navItems[currentSectionIndex + 1].classList.remove("active");
+        if (currentSectionIndex != 0) navItems[activeIndex].classList.remove("active");
+        //fnUpdateNavigation(currentSectionIndex, 1);
+        console.log(currentSectionIndex);
+        //fnUpdateNavigation(currentSectionIndex - 1, currentSectionIndex, lines);
+        setTimeout(()=>{
+            lines[currentSectionIndex].classList.remove("highlight-up", "highlight-down");
+        }, 600);
+    }
 });
-/********************************************************************
-// Intersection Observer
-********************************************************************/ // Intersection Observer setup for opening scene
-const observerOptions = {
-    root: null,
-    rootMargin: "0px",
-    threshold: 0.3 // Trigger when 30% of the target is visible
-};
-//intersection observer for detecting opening scene out of view
-const observerCallback = (entries)=>{
-    entries.forEach((entry)=>{
-        if (entry.isIntersecting) // Start or resume animation
-        fnStartRendering();
-        else // Pause animation
-        fnStopRendering();
-    });
-};
-const observer = new IntersectionObserver(observerCallback, observerOptions);
-const targetElement = document.getElementById("container-opening-scene");
-observer.observe(targetElement);
-// Intersection Observer setup for contact scene
-//intersection observer for detecting opening scene out of view
-const observerContactSceneCallback = (entries)=>{
-    entries.forEach((entry)=>{
-        if (entry.isIntersecting) // Start or resume animation
-        grassScene.startRendering();
-        else // Pause animation
-        grassScene.stopRendering();
-    });
-};
-const observerContactScene = new IntersectionObserver(observerContactSceneCallback, observerOptions);
-observerContactScene.observe(grassContainer);
-//intersection observer for changing button text content
-const navBtn1 = document.getElementById("btn1");
-const navBtn2 = document.getElementById("btn2");
-const footer = document.querySelector("footer");
-if (visitedFromMobileDevice) footer.classList.add("hide");
+/*
+
+
 // Intersection Observer callback
-const updateNavigation = (entries)=>{
+const updateNavigation = (entries) => {
     //console.log(entries);
-    entries.forEach((entry)=>{
+    entries.forEach(entry => {
         if (entry.isIntersecting) {
-            const currentSection = entry.target.id;
-            if (currentSection === "container-opening-scene") {
-                navBtn1.textContent = "Projects";
-                navBtn2.textContent = "Contact";
-            } else if (currentSection === "container-projects") {
-                navBtn1.textContent = "Scene";
-                navBtn2.textContent = "Contact";
-            } else if (currentSection === "container-contact") {
-                navBtn1.textContent = "Scene";
-                navBtn2.textContent = "Projects";
-            }
+            targetSection = entry.target.id;
+
+            index = entry.target.dataset.index;
+            //console.log(index)
+
+
+
+            //console.log(targetSection)
+
+
+
+            // if (currentSection === 'container-opening-scene') {
+            //     navBtn1.textContent = 'Projects';
+            //     navBtn2.textContent = 'Contact';
+
+            // } else if (currentSection === 'container-projects') {
+            //     navBtn1.textContent = 'Scene';
+            //     navBtn2.textContent = 'Contact';
+
+
+            // } else if (currentSection === 'container-contact') {
+            //     navBtn1.textContent = 'Scene';
+            //     navBtn2.textContent = 'Projects';
+
+            // }
         }
     });
 };
+
+
 // Create observer with default settings
+
+
+
 if (!visitedFromMobileDevice) {
+
     const observerNavigation = new IntersectionObserver(updateNavigation, {
         threshold: 0.3 // Trigger when 10% of the section is visible
     });
-    sections.forEach((section)=>{
+
+    sections.forEach(section => {
         observerNavigation.observe(section);
     });
 }
-/********************************************************************
-// Handle Button Navigation
-********************************************************************/ //if (!visitedFromMobileDevice) {
-const navBtn = document.querySelectorAll(".nav-btn");
-navBtn.forEach((button)=>{
-    button.addEventListener("click", (e)=>{
-        let targetSection = button.textContent;
-        e.stopPropagation();
-        if (targetSection.includes("Projects")) targetSection = "#container-projects";
-        else if (targetSection.includes("Contact")) targetSection = "#container-contact";
-        else targetSection = "#container-opening-scene";
-        lenisSite.scrollTo(targetSection, {
-            duration: 2.0,
-            offset: 0
-        });
-    });
-});
-// Select all nav items and lines
-const navItems = document.querySelectorAll(".nav-item");
-const lines = document.querySelectorAll(".line");
-// Set initial active state (top logo)
-let activeIndex = 0;
-navItems[activeIndex].classList.add("active"); // Initially highlight top logo
-// Add click event to each nav item
-navItems.forEach((item, index)=>{
-    item.addEventListener("click", ()=>{
-        // Remove active class from current logo
-        navItems[activeIndex].classList.remove("active");
-        lines[0].classList.remove("highlight-up", "highlight-down");
-        lines[1].classList.remove("highlight-up", "highlight-down");
-        // Add active class to clicked logo
-        item.classList.add("active");
-        if (index > activeIndex) {
-            console.log("index > activeIndex");
-            // Highlight all lines between activeIndex and the new index
-            for(let i = activeIndex; i < index; i++)if (i === index - 1 && index != activeIndex + 1) // Add delay for the last line
-            setTimeout(()=>{
-                lines[i].classList.add("highlight-down");
-            }, 600); // Adjust delay (in ms) as needed
-            else lines[i].classList.add("highlight-down");
-        }
-        if (index < activeIndex) {
-            console.log("index < activeIndex");
-            // Highlight all lines between activeIndex and the new index
-            for(let i = activeIndex - 1; i >= index; i--)if (i === index && index != activeIndex - 1) // Add delay for the last line (first in this upward flow)
-            setTimeout(()=>{
-                lines[i].classList.add("highlight-up");
-            }, 600); // Adjust delay (in ms) as needed
-            else lines[i].classList.add("highlight-up");
-        }
-        activeIndex = index;
-    });
-});
-/********************************************************************
+
+*/ /********************************************************************
 // Handle Overlay
 ********************************************************************/ const imageContainers = document.querySelectorAll(".image-container");
 const closeBtn = document.getElementById("closeBtn");
@@ -939,13 +1008,13 @@ function fnLoadContent(id) {
     // Append the video element to the container
     contentVideo.appendChild(videoElement);
     videoElement.load();
-    for(let i = 1; i < 4; i++){
-        const showcaseImage = document.getElementById(`showcase-image-${i}`);
-        if (contentData.images[i - 1]) {
-            showcaseImage.src = contentData.images[i - 1];
-            showcaseImage.alt = contentData.images_alt[i - 1];
+    for(let i1 = 1; i1 < 4; i1++){
+        const showcaseImage = document.getElementById(`showcase-image-${i1}`);
+        if (contentData.images[i1 - 1]) {
+            showcaseImage.src = contentData.images[i1 - 1];
+            showcaseImage.alt = contentData.images_alt[i1 - 1];
             showcaseImage.type = "image/webp";
-            showcaseImage.nextElementSibling.innerText = contentData.images_alt[i - 1];
+            showcaseImage.nextElementSibling.innerText = contentData.images_alt[i1 - 1];
         } else {
             showcaseImage.src = "";
             showcaseImage.alt = "";
@@ -961,7 +1030,7 @@ const PERSON_HEIGHT = 16.0;
 const FIELD_SIZE = visitedFromMobileDevice ? 2600 : 4000 // Field size in both x and z directions
 ;
 const chunkSize = 100;
-const grassBladesPerChunk = 2500; //3500
+const grassBladesPerChunk = 2300; //3500
 const maxDistance = 1600; // Define maximum allowed distance from origin (0, 0, 0)
 // Basic scene setup
 const scene = new _three.Scene();
@@ -1008,9 +1077,9 @@ const loader = new (0, _gltfloader.GLTFLoader)();
 loader.load("./assets/powerlines.glb", function(gltf) {
     const model = gltf.scene;
     scene.add(model);
-    for(let i = 1; i < 7; i++){
-        model.children[i].material.transparent = true;
-        model.children[i].material.opacity = 0.35;
+    for(let i1 = 1; i1 < 7; i1++){
+        model.children[i1].material.transparent = true;
+        model.children[i1].material.opacity = 0.35;
     }
     model.children[1].material = shaderMaterialLine;
     model.children[3].material = shaderMaterialLine;
@@ -1060,14 +1129,14 @@ const videoFallback = textureLoader.load((0, _videoFallbackJpgDefault.default));
 scene.add(light);
 const widthLight = 300;
 const height = 2;
-const intensity = 110;
+const intensity = 150;
 //const rectLight = new THREE.RectAreaLight(0xf1f3e1, intensity, widthLight, height);
 //0xa9dbfd
-const rectLight = new _three.RectAreaLight(0x66befa, intensity, widthLight, height);
+const rectLight = new _three.RectAreaLight(0x82ccff, intensity, widthLight, height);
 //rectLight.rotateX(-Math.PI / 2)
 //const rectLight = new THREE.RectAreaLight(0xFF0000, intensity, widthLight, height);
 rectLight.position.set(0, 80, 5);
-rectLight.lookAt(0, 0, 40);
+rectLight.lookAt(0, 0, 20);
 scene.add(rectLight);
 //const rectLightHelper = new RectAreaLightHelper(rectLight);
 //rectLight.add(rectLightHelper);
@@ -1101,10 +1170,10 @@ function getHeight(x, z) {
 const terrainGeometry = new _three.PlaneGeometry(FIELD_SIZE, FIELD_SIZE, 50, 50); //number of ground verts high so it curves probably
 terrainGeometry.rotateX(-Math.PI / 2);
 const vertices = terrainGeometry.attributes.position.array;
-for(let i = 0; i < vertices.length; i += 3){
-    const x = vertices[i];
-    const z = vertices[i + 2];
-    vertices[i + 1] = getHeight(x, z); // Modify the y-value based on noise
+for(let i1 = 0; i1 < vertices.length; i1 += 3){
+    const x = vertices[i1];
+    const z = vertices[i1 + 2];
+    vertices[i1 + 1] = getHeight(x, z); // Modify the y-value based on noise
 }
 const terrainMaterial = new _three.MeshBasicMaterial({
     color: 0x000000
@@ -1534,7 +1603,7 @@ function handleWorkerResult(chunk, data) {
     chunk.geometry.index = bladeGeometry.index;
     chunk.geometry.attributes.position = bladeGeometry.attributes.position;
     chunk.geometry.attributes.uv = bladeGeometry.attributes.uv;
-    for(let i = 0; i < grassBladesPerChunk; i++)data.offsets[i * 3 + 1] = getHeight(data.offsets[i * 3], data.offsets[i * 3 + 2]); // Calculate height using getHeight
+    for(let i1 = 0; i1 < grassBladesPerChunk; i1++)data.offsets[i1 * 3 + 1] = getHeight(data.offsets[i1 * 3], data.offsets[i1 * 3 + 2]); // Calculate height using getHeight
     chunk.geometry.setAttribute("offset", new _three.InstancedBufferAttribute(data.offsets, 3));
     chunk.geometry.setAttribute("uv", new _three.InstancedBufferAttribute(data.uvs, 2));
     chunk.geometry.setAttribute("instanceRotationMatrix", new _three.InstancedBufferAttribute(data.rotationMatrices, 9));
@@ -1576,7 +1645,7 @@ function assignChunkToWorker(worker, chunk) {
     };
 }
 // Create the worker pool
-for(let i = 0; i < workerPoolSize; i++){
+for(let i1 = 0; i1 < workerPoolSize; i1++){
     const worker = new Worker(require("73d37e91c71236a0"));
     workers.push(worker);
 }
