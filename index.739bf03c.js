@@ -1316,8 +1316,8 @@ if (visitedFromMobileDevice) {
     camera.rotation.x = 0;
     camera.far = 1100;
     //camera.updateProjectionMatrix();
-    startPosition = new _three.Vector3(0, getHeight(0, 650) + PERSON_HEIGHT, 650);
-    endPosition = new _three.Vector3(0, getHeight(0, 550) + PERSON_HEIGHT, 550);
+    startPosition = new _three.Vector3(0, getHeight(0, 550) + PERSON_HEIGHT, 550);
+    endPosition = new _three.Vector3(0, getHeight(0, 450) + PERSON_HEIGHT, 450);
     if (window.matchMedia("(orientation: landscape)").matches) {
         startPosition = new _three.Vector3(0, getHeight(0, 350) + PERSON_HEIGHT, 350);
         endPosition = new _three.Vector3(0, getHeight(0, 250) + PERSON_HEIGHT, 250);
@@ -1370,7 +1370,7 @@ function fnAnimateCamera() {
     }
 }
 const checkOrientation = ()=>{
-    if (cameraAnimationState.checkOrientationCanRun && visitedFromMobileDevice) {
+    if (cameraAnimationState.checkOrientationCanRun) {
         console.log("check orientation");
         if (window.matchMedia("(orientation: landscape)").matches && visitedFromMobileDevice) {
             camera.rotation.x = 0;
@@ -1379,7 +1379,7 @@ const checkOrientation = ()=>{
         } else if (window.matchMedia("(orientation: portrait)").matches && visitedFromMobileDevice) {
             camera.rotation.x = 0;
             //camera.position.set(0, getHeight(0, 450) + PERSON_HEIGHT, 450);
-            camera.position.set(0, getHeight(0, 550) + PERSON_HEIGHT, 550);
+            camera.position.set(0, getHeight(0, 450) + PERSON_HEIGHT, 450);
         }
     }
 };
@@ -1639,13 +1639,14 @@ if (visitedFromMobileDevice) arrChunks.forEach((chunk)=>{
 function animate() {
     renderer.setAnimationLoop(animate);
     fnAnimateCamera();
-    checkOrientation();
-    shaderMaterialLine.uniforms.uTime.value += 0.05;
-    //console.log(renderer.info);
-    if (!visitedFromMobileDevice) {
+    if (visitedFromMobileDevice) checkOrientation();
+    else {
         fnUpdateControls();
         restrictMovement();
     }
+    shaderMaterialLine.uniforms.uTime.value += 0.05;
+    //console.log(renderer.info);
+    visitedFromMobileDevice;
     //composer.render();
     if (!visitedFromMobileDevice) arrChunks.forEach((chunk)=>{
         const cameraPosition = camera.position;
