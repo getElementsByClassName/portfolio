@@ -684,11 +684,6 @@ const observerContactSceneCallback = (entries)=>{
 };
 const observerContactScene = new IntersectionObserver(observerContactSceneCallback, observerOptions);
 observerContactScene.observe(grassContainer);
-//intersection observer for changing button text content
-const navBtn1 = document.getElementById("btn1");
-const navBtn2 = document.getElementById("btn2");
-const nav = document.querySelector("nav");
-if (visitedFromMobileDevice) nav.classList.add("hide");
 /********************************************************************
 // Handle Button Navigation
 ********************************************************************/ //if (!visitedFromMobileDevice) {
@@ -713,11 +708,32 @@ navBtn.forEach(button => {
 
     });
 });
-*/ // Select all nav items and lines
+*/ const nav = document.querySelector("nav");
+if (visitedFromMobileDevice) nav.classList.add("hide");
+//nav bar fade/hover logic
+let timeoutId;
+// Function to hide the navbar
+function fnHideNavBar() {
+    nav.classList.add("hidden");
+}
+// Function to reset the fade-out timer
+function fnResetTimer() {
+    nav.classList.remove("hidden");
+    // Clear the existing timeout
+    clearTimeout(timeoutId);
+    // Set a new timeout to hide the navbar after X seconds (e.g., 5 seconds)
+    timeoutId = setTimeout(fnHideNavBar, 3000);
+}
+nav.addEventListener("mouseenter", fnResetTimer);
+document.addEventListener("wheel", fnResetTimer);
+// Initialize the timer
+fnResetTimer();
+// Select all nav items and lines
 const navItems = document.querySelectorAll(".nav-item");
 const lines = document.querySelectorAll(".line");
 // Set initial active state (top logo)
 let activeIndex = 0;
+let currentSectionIndex = 0;
 let targetSection = "#container-opening-scene";
 navItems[activeIndex].classList.add("active"); // Initially highlight top logo
 // Add click event to each nav item
@@ -727,7 +743,6 @@ navItems.forEach((item, index)=>{
         //console.log(targetSection);
         // Remove active class from current logo
         for(i = 0; i < 3; i++)navItems[i].classList.remove("active");
-        console.log(lines);
         lines[0].classList.remove("highlight-up", "highlight-down");
         lines[1].classList.remove("highlight-up", "highlight-down");
         // Add active class to clicked logo
@@ -739,11 +754,11 @@ navItems.forEach((item, index)=>{
         });
         activeIndex = index;
         targetSection = "";
+        currentSectionIndex = activeIndex;
     });
 });
 function fnUpdateNavigation(index, activeIndex, lines) {
     if (index > activeIndex) {
-        console.log("index > activeIndex");
         // Highlight all lines between activeIndex and the new index
         for(let i1 = activeIndex; i1 < index; i1++)if (i1 === index - 1 && index != activeIndex + 1) // Add delay for the last line
         setTimeout(()=>{
@@ -796,13 +811,13 @@ requestAnimationFrame(raf);
 const sectionScene = document.getElementById("container-opening-scene");
 // Get all sections
 const sections = document.querySelectorAll("section");
-let currentSectionIndex = 0;
+//let currentSectionIndex = 0;
 let isScrolling = false;
 // Function to scroll to a specific section
 function scrollToSection(index) {
     isScrolling = true;
     if (index >= 0 && index < sections.length) lenisSite.scrollTo(sections[index], {
-        duration: 1.00,
+        duration: 1.0,
         offset: 0,
         lock: true,
         onComplete: ()=>{
@@ -819,13 +834,12 @@ window.addEventListener("wheel", (event)=>{
         //lines[0].classList.remove('highlight-up', 'highlight-down');
         //lines[1].classList.remove('highlight-up', 'highlight-down');
         currentSectionIndex = Math.min(currentSectionIndex + 1, sections.length - 1);
+        console.log("Down", currentSectionIndex);
         lines[currentSectionIndex - 1].classList.add("highlight-down");
         scrollToSection(currentSectionIndex);
         activeIndex = currentSectionIndex;
-        //console.log(currentSectionIndex)
         navItems[currentSectionIndex].classList.add("active");
         navItems[currentSectionIndex - 1].classList.remove("active");
-        if (currentSectionIndex != 2) navItems[activeIndex].classList.remove("active");
         setTimeout(()=>{
             lines[currentSectionIndex - 1].classList.remove("highlight-up", "highlight-down");
         }, 600);
@@ -834,74 +848,18 @@ window.addEventListener("wheel", (event)=>{
         // Scrolling up, move to previous section
         isScrolling = true;
         currentSectionIndex = Math.max(currentSectionIndex - 1, 0);
+        console.log("Up", currentSectionIndex);
         lines[currentSectionIndex].classList.add("highlight-up");
         scrollToSection(currentSectionIndex);
         activeIndex = currentSectionIndex;
         navItems[currentSectionIndex].classList.add("active");
         navItems[currentSectionIndex + 1].classList.remove("active");
-        if (currentSectionIndex != 0) navItems[activeIndex].classList.remove("active");
-        //fnUpdateNavigation(currentSectionIndex, 1);
-        console.log(currentSectionIndex);
-        //fnUpdateNavigation(currentSectionIndex - 1, currentSectionIndex, lines);
         setTimeout(()=>{
             lines[currentSectionIndex].classList.remove("highlight-up", "highlight-down");
         }, 600);
     }
 });
-/*
-
-
-// Intersection Observer callback
-const updateNavigation = (entries) => {
-    //console.log(entries);
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            targetSection = entry.target.id;
-
-            index = entry.target.dataset.index;
-            //console.log(index)
-
-
-
-            //console.log(targetSection)
-
-
-
-            // if (currentSection === 'container-opening-scene') {
-            //     navBtn1.textContent = 'Projects';
-            //     navBtn2.textContent = 'Contact';
-
-            // } else if (currentSection === 'container-projects') {
-            //     navBtn1.textContent = 'Scene';
-            //     navBtn2.textContent = 'Contact';
-
-
-            // } else if (currentSection === 'container-contact') {
-            //     navBtn1.textContent = 'Scene';
-            //     navBtn2.textContent = 'Projects';
-
-            // }
-        }
-    });
-};
-
-
-// Create observer with default settings
-
-
-
-if (!visitedFromMobileDevice) {
-
-    const observerNavigation = new IntersectionObserver(updateNavigation, {
-        threshold: 0.3 // Trigger when 10% of the section is visible
-    });
-
-    sections.forEach(section => {
-        observerNavigation.observe(section);
-    });
-}
-
-*/ /********************************************************************
+/********************************************************************
 // Handle Overlay
 ********************************************************************/ const imageContainers = document.querySelectorAll(".image-container");
 const closeBtn = document.getElementById("closeBtn");
@@ -1030,11 +988,11 @@ const PERSON_HEIGHT = 16.0;
 const FIELD_SIZE = visitedFromMobileDevice ? 2600 : 4000 // Field size in both x and z directions
 ;
 const chunkSize = 100;
-const grassBladesPerChunk = 2300; //3500
+const grassBladesPerChunk = 2150; //3500
 const maxDistance = 1600; // Define maximum allowed distance from origin (0, 0, 0)
 // Basic scene setup
 const scene = new _three.Scene();
-const camera = new _three.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 900);
+const camera = new _three.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 900);
 const canvasContainer = document.querySelector("#container-opening-scene");
 const renderer = new _three.WebGLRenderer({
     antialias: true,
@@ -1378,7 +1336,11 @@ function fnUpdateControls() {
     camera.far = 1100;
     camera.updateProjectionMatrix();
 }
-camera.position.set(0, getHeight(0, 320) + PERSON_HEIGHT, 320);
+const cameraPosDesktop = new _three.Vector3(0, getHeight(0, 320) + PERSON_HEIGHT, 320);
+const startPositionDesktop = new _three.Vector3(0, getHeight(0, 420) + PERSON_HEIGHT, 420);
+const endPositionDesktop = new _three.Vector3(0, getHeight(0, 320) + PERSON_HEIGHT, 320);
+//camera.position.set(0, getHeight(0, 320) + PERSON_HEIGHT, 320);
+camera.position.set(startPositionDesktop.x, startPositionDesktop.y, startPositionDesktop.z);
 camera.rotation.x = Math.PI / 16;
 const checkOrientation = ()=>{
     if (window.matchMedia("(orientation: landscape)").matches && visitedFromMobileDevice) {
@@ -1387,12 +1349,43 @@ const checkOrientation = ()=>{
     } else if (window.matchMedia("(orientation: portrait)").matches && visitedFromMobileDevice) {
         camera.rotation.x = 0;
         camera.position.set(0, getHeight(0, 450) + PERSON_HEIGHT, 450);
-    //testTxt.innerHTML = 'We are here';
-    //console.log("Portrait mode");
-    // controls.unlock();
-    //controlsIsLocked = false;
     }
 };
+/********************************************************************
+// Animate Camera
+********************************************************************/ const duration = 5000; // Animation duration in milliseconds
+// Animation state
+const cameraAnimationState = {
+    startTime: null,
+    isAnimating: false,
+    duration: 5000
+};
+// Easing function (Ease In-Out Quad)
+function easeInOutQuad(t) {
+    return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+}
+function fnAnimateCamera() {
+    // Time management
+    const currentTime = performance.now();
+    if (cameraAnimationState.isAnimating) {
+        if (!cameraAnimationState.startTime) cameraAnimationState.startTime = currentTime;
+        const elapsed = currentTime - cameraAnimationState.startTime;
+        let progress = Math.min(elapsed / cameraAnimationState.duration, 1); // Clamp progress between 0 and 1
+        // Apply easing function to progress
+        progress = easeInOutQuad(progress);
+        // Interpolate position
+        const interpolatedPosition = new _three.Vector3().lerpVectors(startPositionDesktop, endPositionDesktop, progress);
+        // Calculate dynamic y position
+        const dynamicY = getHeight(interpolatedPosition.x, interpolatedPosition.z);
+        // Set camera position
+        camera.position.set(interpolatedPosition.x, dynamicY, interpolatedPosition.z);
+        // Make the camera look at a specific target
+        //camera.lookAt(0, 0, 0);
+        // Stop animation when completed
+        if (progress >= 1) cameraAnimationState.isAnimating = false;
+    }
+}
+//animateCamera();
 // Controls
 /*
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -1442,38 +1435,7 @@ function createGrassBladeShapeLOD1() {
 // Convert shape to geometry
 const bladeShape = createGrassBladeShapeLOD1();
 const bladeGeometry = new _three.ShapeGeometry(bladeShape);
-/*
-// Convert shape to geometry
-const bladeShapeLOD1 = createGrassBladeShapeLOD1();
-const bladeGeometryLOD1 = new THREE.ShapeGeometry(bladeShapeLOD1);
- 
-// InstancedBufferGeometry
-const instancedGeometryLOD1 = new THREE.InstancedBufferGeometry();
-instancedGeometryLOD1.index = bladeGeometryLOD1.index;
-instancedGeometryLOD1.attributes.position = bladeGeometryLOD1.attributes.position;
-instancedGeometryLOD1.attributes.uv = bladeGeometryLOD1.attributes.uv;
- 
-*/ // Shader material for grass blades
-/*
-const grassMaterial = new THREE.ShaderMaterial({
-    uniforms: {
-        time: { value: 0.0 },
-        //fogColor: { value: new THREE.Color(0x3a3f29) },
-        //fogColor: { value: new THREE.Color(0x202020) },
-        fogColor: { value: new THREE.Color(0xc5c97d) },
-        fogDensity: { value: 0.0025 },
-        grassTexture: { value: grassDiffuseMap },
-        //cloudTexture: { type: 't', value: cloudMap },
-        fieldSize: { value: FIELD_SIZE },
-    },
-    vertexShader: grassShader.vert,
-    fragmentShader: grassShader.frag,
-    side: THREE.DoubleSide,
-    vertexColors: false,
-    wireframe: false
-
-});
-*/ //test custom-shader-material
+//test custom-shader-material
 const grassMaterialTest = new (0, _vanillaDefault.default)({
     baseMaterial: _three.MeshStandardMaterial,
     uniforms: {
@@ -1598,6 +1560,7 @@ const chunkQueue = [
     ...arrChunks
 ]; // Copy the array of chunks to be processed
 const activeWorkers = new Set();
+console.log(workerPoolSize);
 // Function to handle worker result
 function handleWorkerResult(chunk, data) {
     chunk.geometry.index = bladeGeometry.index;
@@ -1641,6 +1604,10 @@ function assignChunkToWorker(worker, chunk) {
         if (chunkQueue.length > 0) {
             const nextChunk = chunkQueue.shift();
             assignChunkToWorker(worker, nextChunk);
+        } else if (activeWorkers.size == 0) {
+            console.log("done");
+            cameraAnimationState.isAnimating = true;
+        //console.log(activeWorkers.size)
         }
     };
 }
@@ -1673,6 +1640,7 @@ if (visitedFromMobileDevice) arrChunks.forEach((chunk)=>{
 });
 function animate() {
     renderer.setAnimationLoop(animate);
+    fnAnimateCamera();
     checkOrientation();
     shaderMaterialLine.uniforms.uTime.value += 0.05;
     //console.log(renderer.info);
