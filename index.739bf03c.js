@@ -1208,40 +1208,18 @@ const clock = new _three.Clock();
 let controlsIsLocked = false;
 let controls;
 // Create the FPS controller
-if (!visitedFromMobileDevice) controls = new (0, _pointerLockControlsJs.PointerLockControls)(camera, renderer.domElement);
-/*
-//intersection observer for detecting opening scene out of view
-const handleObserver = (entries) => {
-    entries.forEach(entry => {
-        if (!entry.isIntersecting) {
-            // Start or resume animation
-            console.log('out');
-            //controls.unlock();
+if (!visitedFromMobileDevice) {
+    controls = new (0, _pointerLockControlsJs.PointerLockControls)(camera, renderer.domElement);
+    sectionScene.addEventListener("click", function() {
+        if (!controlsIsLocked && gameIsActive) {
+            controls.lock();
+            controlsIsLocked = true;
+        } else {
+            controls.unlock();
             controlsIsLocked = false;
         }
     });
-};
-
-
-// Intersection Observer setup for opening scene
-const obsOptions = {
-    root: null, // Use the viewport as the root
-    rootMargin: '0px',
-    threshold: 0.3 // Trigger when 30% of the target is visible
-};
-
-const sceneObserver = new IntersectionObserver(handleObserver, obsOptions);
-sceneObserver.observe(targetElement);
-*/ // Add event listeners for locking the pointer
-sectionScene.addEventListener("click", function() {
-    if (!controlsIsLocked && gameIsActive && !visitedFromMobileDevice) {
-        controls.lock();
-        controlsIsLocked = true;
-    } else {
-        controls.unlock();
-        controlsIsLocked = false;
-    }
-});
+}
 let startX = 0, startY = 0; // Starting touch coordinates
 let isTouching = false;
 sectionScene.addEventListener("touchstart", function(event) {
@@ -1332,33 +1310,34 @@ function fnUpdateControls() {
 }
 /********************************************************************
 // Position Camera
-********************************************************************/ if (visitedFromMobileDevice) {
+********************************************************************/ //const cameraPosDesktop = new THREE.Vector3(0, getHeight(0, 320) + PERSON_HEIGHT, 320);
+let startPosition, endPosition;
+if (visitedFromMobileDevice) {
+    camera.rotation.x = 0;
     camera.far = 1100;
-    camera.updateProjectionMatrix();
-}
-const cameraPosDesktop = new _three.Vector3(0, getHeight(0, 320) + PERSON_HEIGHT, 320);
-const startPositionDesktop = new _three.Vector3(0, getHeight(0, 420) + PERSON_HEIGHT, 420);
-const endPositionDesktop = new _three.Vector3(0, getHeight(0, 320) + PERSON_HEIGHT, 320);
-//camera.position.set(0, getHeight(0, 320) + PERSON_HEIGHT, 320);
-camera.position.set(startPositionDesktop.x, startPositionDesktop.y, startPositionDesktop.z);
-camera.rotation.x = Math.PI / 16;
-const checkOrientation = ()=>{
-    if (window.matchMedia("(orientation: landscape)").matches && visitedFromMobileDevice) {
-        camera.rotation.x = 0;
-        camera.position.set(0, getHeight(0, 250) + PERSON_HEIGHT, 250);
-    } else if (window.matchMedia("(orientation: portrait)").matches && visitedFromMobileDevice) {
-        camera.rotation.x = 0;
-        camera.position.set(0, getHeight(0, 450) + PERSON_HEIGHT, 450);
+    //camera.updateProjectionMatrix();
+    startPosition = new _three.Vector3(0, getHeight(0, 650) + PERSON_HEIGHT, 650);
+    endPosition = new _three.Vector3(0, getHeight(0, 550) + PERSON_HEIGHT, 550);
+    if (window.matchMedia("(orientation: landscape)").matches) {
+        startPosition = new _three.Vector3(0, getHeight(0, 350) + PERSON_HEIGHT, 350);
+        endPosition = new _three.Vector3(0, getHeight(0, 250) + PERSON_HEIGHT, 250);
     }
-};
+} else {
+    startPosition = new _three.Vector3(0, getHeight(0, 420) + PERSON_HEIGHT, 420); // Starting position
+    endPosition = new _three.Vector3(0, getHeight(0, 320) + PERSON_HEIGHT, 320); // Ending position
+    camera.rotation.x = Math.PI / 16;
+}
+//camera.position.set(0, getHeight(0, 320) + PERSON_HEIGHT, 320);
+camera.position.set(startPosition.x, startPosition.y, startPosition.z);
+//console.log(camera.rotation.x)
 /********************************************************************
 // Animate Camera
-********************************************************************/ const duration = 5000; // Animation duration in milliseconds
-// Animation state
+********************************************************************/ // Animation state
 const cameraAnimationState = {
     startTime: null,
     isAnimating: false,
-    duration: 5000
+    duration: 5000,
+    checkOrientationCanRun: false
 };
 // Easing function (Ease In-Out Quad)
 function easeInOutQuad(t) {
@@ -1374,17 +1353,36 @@ function fnAnimateCamera() {
         // Apply easing function to progress
         progress = easeInOutQuad(progress);
         // Interpolate position
-        const interpolatedPosition = new _three.Vector3().lerpVectors(startPositionDesktop, endPositionDesktop, progress);
+        const interpolatedPosition = new _three.Vector3().lerpVectors(startPosition, endPosition, progress);
         // Calculate dynamic y position
-        const dynamicY = getHeight(interpolatedPosition.x, interpolatedPosition.z);
+        const dynamicY = getHeight(interpolatedPosition.x, interpolatedPosition.z) + PERSON_HEIGHT;
+        //console.log(dynamicY)
+        //console.log(interpolatedPosition)
         // Set camera position
         camera.position.set(interpolatedPosition.x, dynamicY, interpolatedPosition.z);
         // Make the camera look at a specific target
         //camera.lookAt(0, 0, 0);
         // Stop animation when completed
-        if (progress >= 1) cameraAnimationState.isAnimating = false;
+        if (progress >= 1) {
+            cameraAnimationState.isAnimating = false;
+            cameraAnimationState.checkOrientationCanRun = true;
+        }
     }
 }
+const checkOrientation = ()=>{
+    if (cameraAnimationState.checkOrientationCanRun && visitedFromMobileDevice) {
+        console.log("check orientation");
+        if (window.matchMedia("(orientation: landscape)").matches && visitedFromMobileDevice) {
+            camera.rotation.x = 0;
+            //camera.position.set(0, getHeight(0, 250) + PERSON_HEIGHT, 250);
+            camera.position.set(0, getHeight(0, 250) + PERSON_HEIGHT, 250);
+        } else if (window.matchMedia("(orientation: portrait)").matches && visitedFromMobileDevice) {
+            camera.rotation.x = 0;
+            //camera.position.set(0, getHeight(0, 450) + PERSON_HEIGHT, 450);
+            camera.position.set(0, getHeight(0, 550) + PERSON_HEIGHT, 550);
+        }
+    }
+};
 //animateCamera();
 // Controls
 /*
