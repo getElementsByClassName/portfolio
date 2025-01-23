@@ -686,29 +686,7 @@ const observerContactScene = new IntersectionObserver(observerContactSceneCallba
 observerContactScene.observe(grassContainer);
 /********************************************************************
 // Handle Button Navigation
-********************************************************************/ //if (!visitedFromMobileDevice) {
-/*
-const navBtn = document.querySelectorAll('.nav-btn');
-
-
-navBtn.forEach(button => {
-
-    button.addEventListener('click', (e) => {
-        let targetSection = button.textContent;
-        e.stopPropagation();
-
-        if (targetSection.includes('Projects')) {
-            targetSection = '#container-projects'
-        } else if (targetSection.includes('Contact')) {
-            targetSection = '#container-contact'
-        } else {
-            targetSection = '#container-opening-scene'
-        }
-        lenisSite.scrollTo(targetSection, { duration: 2.0, offset: 0 });
-
-    });
-});
-*/ const nav = document.querySelector("nav");
+********************************************************************/ const nav = document.querySelector("nav");
 if (visitedFromMobileDevice) nav.classList.add("hide");
 //nav bar fade/hover logic
 let timeoutId;
@@ -742,7 +720,7 @@ navItems.forEach((item, index)=>{
         targetSection = navItems[index].dataset.targetsection;
         //console.log(targetSection);
         // Remove active class from current logo
-        for(i = 0; i < 3; i++)navItems[i].classList.remove("active");
+        for(let i = 0; i < 3; i++)navItems[i].classList.remove("active");
         lines[0].classList.remove("highlight-up", "highlight-down");
         lines[1].classList.remove("highlight-up", "highlight-down");
         // Add active class to clicked logo
@@ -760,20 +738,20 @@ navItems.forEach((item, index)=>{
 function fnUpdateNavigation(index, activeIndex, lines) {
     if (index > activeIndex) {
         // Highlight all lines between activeIndex and the new index
-        for(let i1 = activeIndex; i1 < index; i1++)if (i1 === index - 1 && index != activeIndex + 1) // Add delay for the last line
+        for(let i = activeIndex; i < index; i++)if (i === index - 1 && index != activeIndex + 1) // Add delay for the last line
         setTimeout(()=>{
-            lines[i1].classList.add("highlight-down");
+            lines[i].classList.add("highlight-down");
         }, 600); // Adjust delay (in ms) as needed
-        else lines[i1].classList.add("highlight-down");
+        else lines[i].classList.add("highlight-down");
     }
     if (index < activeIndex) {
         //console.log("index < activeIndex");
         // Highlight all lines between activeIndex and the new index
-        for(let i1 = activeIndex - 1; i1 >= index; i1--)if (i1 === index && index != activeIndex - 1) // Add delay for the last line (first in this upward flow)
+        for(let i = activeIndex - 1; i >= index; i--)if (i === index && index != activeIndex - 1) // Add delay for the last line (first in this upward flow)
         setTimeout(()=>{
-            lines[i1].classList.add("highlight-up");
+            lines[i].classList.add("highlight-up");
         }, 600); // Adjust delay (in ms) as needed
-        else lines[i1].classList.add("highlight-up");
+        else lines[i].classList.add("highlight-up");
     }
 }
 /********************************************************************
@@ -831,8 +809,6 @@ window.addEventListener("wheel", (event)=>{
     // scrolling down
     if (event.deltaY > 0) {
         isScrolling = true;
-        //lines[0].classList.remove('highlight-up', 'highlight-down');
-        //lines[1].classList.remove('highlight-up', 'highlight-down');
         currentSectionIndex = Math.min(currentSectionIndex + 1, sections.length - 1);
         console.log("Down", currentSectionIndex);
         lines[currentSectionIndex - 1].classList.add("highlight-down");
@@ -966,13 +942,13 @@ function fnLoadContent(id) {
     // Append the video element to the container
     contentVideo.appendChild(videoElement);
     videoElement.load();
-    for(let i1 = 1; i1 < 4; i1++){
-        const showcaseImage = document.getElementById(`showcase-image-${i1}`);
-        if (contentData.images[i1 - 1]) {
-            showcaseImage.src = contentData.images[i1 - 1];
-            showcaseImage.alt = contentData.images_alt[i1 - 1];
+    for(let i = 1; i < 4; i++){
+        const showcaseImage = document.getElementById(`showcase-image-${i}`);
+        if (contentData.images[i - 1]) {
+            showcaseImage.src = contentData.images[i - 1];
+            showcaseImage.alt = contentData.images_alt[i - 1];
             showcaseImage.type = "image/webp";
-            showcaseImage.nextElementSibling.innerText = contentData.images_alt[i1 - 1];
+            showcaseImage.nextElementSibling.innerText = contentData.images_alt[i - 1];
         } else {
             showcaseImage.src = "";
             showcaseImage.alt = "";
@@ -1035,9 +1011,9 @@ const loader = new (0, _gltfloader.GLTFLoader)();
 loader.load("./assets/powerlines.glb", function(gltf) {
     const model = gltf.scene;
     scene.add(model);
-    for(let i1 = 1; i1 < 7; i1++){
-        model.children[i1].material.transparent = true;
-        model.children[i1].material.opacity = 0.35;
+    for(let i = 1; i < 7; i++){
+        model.children[i].material.transparent = true;
+        model.children[i].material.opacity = 0.35;
     }
     model.children[1].material = shaderMaterialLine;
     model.children[3].material = shaderMaterialLine;
@@ -1128,17 +1104,19 @@ function getHeight(x, z) {
 const terrainGeometry = new _three.PlaneGeometry(FIELD_SIZE, FIELD_SIZE, 50, 50); //number of ground verts high so it curves probably
 terrainGeometry.rotateX(-Math.PI / 2);
 const vertices = terrainGeometry.attributes.position.array;
-for(let i1 = 0; i1 < vertices.length; i1 += 3){
-    const x = vertices[i1];
-    const z = vertices[i1 + 2];
-    vertices[i1 + 1] = getHeight(x, z); // Modify the y-value based on noise
+for(let i = 0; i < vertices.length; i += 3){
+    const x = vertices[i];
+    const z = vertices[i + 2];
+    vertices[i + 1] = getHeight(x, z); // Modify the y-value based on noise
 }
 const terrainMaterial = new _three.MeshBasicMaterial({
     color: 0x000000
 });
 const terrainMesh = new _three.Mesh(terrainGeometry, terrainMaterial);
 scene.add(terrainMesh);
-// Create a PMREMGenerator
+/********************************************************************
+// Skybox
+********************************************************************/ // Create a PMREMGenerator
 const pmremGenerator = new _three.PMREMGenerator(renderer);
 pmremGenerator.compileEquirectangularShader();
 let skyboxToLoad = visitedFromMobileDevice ? "belfast_sunset_puresky_1k" : "belfast_sunset_puresky_2k";
@@ -1200,7 +1178,6 @@ const videoGeometry = new _three.PlaneGeometry(384, 216, 32, 16); // 10x10 segme
 const videoPlane = new _three.Mesh(videoGeometry, videoMaterial);
 videoPlane.position.set(0, getHeight(0, 0) + 110.0, 0);
 // Add the plane to the scene
-scene.add(videoPlane);
 /********************************************************************
 // FPS Controller
 ********************************************************************/ // Create a clock to manage time and deltas
@@ -1558,13 +1535,12 @@ const chunkQueue = [
     ...arrChunks
 ]; // Copy the array of chunks to be processed
 const activeWorkers = new Set();
-console.log(workerPoolSize);
 // Function to handle worker result
 function handleWorkerResult(chunk, data) {
     chunk.geometry.index = bladeGeometry.index;
     chunk.geometry.attributes.position = bladeGeometry.attributes.position;
     chunk.geometry.attributes.uv = bladeGeometry.attributes.uv;
-    for(let i1 = 0; i1 < grassBladesPerChunk; i1++)data.offsets[i1 * 3 + 1] = getHeight(data.offsets[i1 * 3], data.offsets[i1 * 3 + 2]); // Calculate height using getHeight
+    for(let i = 0; i < grassBladesPerChunk; i++)data.offsets[i * 3 + 1] = getHeight(data.offsets[i * 3], data.offsets[i * 3 + 2]); // Calculate height using getHeight
     chunk.geometry.setAttribute("offset", new _three.InstancedBufferAttribute(data.offsets, 3));
     chunk.geometry.setAttribute("uv", new _three.InstancedBufferAttribute(data.uvs, 2));
     chunk.geometry.setAttribute("instanceRotationMatrix", new _three.InstancedBufferAttribute(data.rotationMatrices, 9));
@@ -1579,15 +1555,7 @@ function handleWorkerResult(chunk, data) {
     */ chunk.geometry.boundingSphere = new _three.Sphere(new _three.Vector3(chunk.position.x + 0.5 * chunkSize, 0.0, chunk.position.y + 0.5 * chunkSize), chunkSize * 0.75);
     const mesh = new _three.Mesh(chunk.geometry, chunk.material);
     scene.add(mesh);
-//test Sphere
-/*
-        // Create a sphere geometry for the bounding sphere
-        const sphereGeometry = new THREE.SphereGeometry(chunk.geometry.boundingSphere.radius, 32, 32); // Higher segments for smoother appearance
-        const sphereMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
-        const wireframe = new THREE.LineSegments(new THREE.WireframeGeometry(sphereGeometry));
-        wireframe.position.copy(chunk.geometry.boundingSphere.center); // Match the center
-        scene.add(wireframe);
-        */ }
+}
 // Function to assign work to a worker
 function assignChunkToWorker(worker, chunk) {
     activeWorkers.add(worker);
@@ -1605,12 +1573,13 @@ function assignChunkToWorker(worker, chunk) {
         } else if (activeWorkers.size == 0) {
             console.log("done");
             cameraAnimationState.isAnimating = true;
+            fnFadeOutWelcomeScreen();
         //console.log(activeWorkers.size)
         }
     };
 }
 // Create the worker pool
-for(let i1 = 0; i1 < workerPoolSize; i1++){
+for(let i = 0; i < workerPoolSize; i++){
     const worker = new Worker(require("73d37e91c71236a0"));
     workers.push(worker);
 }
@@ -1621,6 +1590,16 @@ workers.forEach((worker)=>{
         assignChunkToWorker(worker, chunk);
     }
 });
+/********************************************************************
+// Function to fade out welcome screen
+********************************************************************/ function fnFadeOutWelcomeScreen() {
+    const welcomeScreen = document.getElementById("welcome-screen");
+    welcomeScreen.classList.add("hidden");
+    scene.add(videoPlane);
+    setTimeout(()=>{
+        welcomeScreen.style.display = "none";
+    }, 3000); // Matches the duration of the CSS transition
+}
 if (visitedFromMobileDevice) arrChunks.forEach((chunk)=>{
     const cameraPosition = camera.position;
     const cameraXZ = new _three.Vector2(cameraPosition.x, cameraPosition.z);
