@@ -653,7 +653,7 @@ document.addEventListener("visibilitychange", ()=>{
     else if (window.scrollY === 0) fnStartRendering(); // Resume when the tab is active again
 });
 /********************************************************************
-// Intersection Observer
+// Intersection Observer(s) for Canvas
 ********************************************************************/ // Intersection Observer setup for opening scene
 const observerOptions = {
     root: null,
@@ -955,7 +955,7 @@ function fnLoadContent(id) {
 // Scene Constants
 ********************************************************************/ let velocity = new _three.Vector3();
 let SPEED = 200.0; //175
-const PERSON_HEIGHT = 16.0;
+const PERSON_HEIGHT = 18.0;
 const FIELD_SIZE = visitedFromMobileDevice ? 2600 : 4000 // Field size in both x and z directions
 ;
 const chunkSize = 100;
@@ -1028,7 +1028,7 @@ loader.load("./assets/powerlines.glb", function(gltf) {
 }, undefined, function(error) {
     console.error("An error happened while loading the model:", error);
 });
-scene.fog = new _three.FogExp2(0x9692a1, 0.00195); // 0.02 is the density of the fog
+scene.fog = new _three.FogExp2(0x9692a1, 0.00190); // 0.02 is the density of the fog
 /*
 
 9998ab
@@ -1432,11 +1432,23 @@ function createGrassBladeShapeLOD1() {
 const bladeShape = createGrassBladeShapeLOD1();
 const bladeGeometry = new _three.ShapeGeometry(bladeShape);
 //test custom-shader-material
-const grassMaterialTest = new (0, _vanillaDefault.default)({
+const grassMaterial = new (0, _vanillaDefault.default)({
     baseMaterial: _three.MeshStandardMaterial,
     uniforms: {
         time: {
             value: 0.0
+        },
+        u_touch: {
+            value: new _three.Vector2(0.5, 0.5)
+        },
+        u_touchActive: {
+            value: 0
+        },
+        u_fadeSpeed: {
+            value: 0.1
+        },
+        u_touchTime: {
+            value: 0
         },
         grassTexture: {
             value: grassDiffuseMap
@@ -1451,6 +1463,36 @@ const grassMaterialTest = new (0, _vanillaDefault.default)({
     vertexColors: false,
     side: _three.DoubleSide
 });
+// Create a Raycaster and Vector2 for touch
+const raycaster = new _three.Raycaster();
+const touchPoint = new _three.Vector2();
+canvasContainer.addEventListener("touchstart", (event)=>{
+    if (event.touches.length > 0) {
+        const touch = event.touches[0];
+        const rect = canvasContainer.getBoundingClientRect();
+        // Convert touch to normalized device coordinates (NDC)
+        touchPoint.x = (touch.clientX - rect.left) / rect.width * 2 - 1;
+        touchPoint.y = -((touch.clientY - rect.top) / rect.height) * 2 + 1;
+        // Set up the Raycaster
+        raycaster.setFromCamera(touchPoint, camera);
+        // Intersect the ray with the plane or ground where the grass exists
+        const intersects = raycaster.intersectObject(terrainMesh); // Replace `grassPlane` with your grass mesh or plane
+        if (intersects.length > 0) {
+            const intersect = intersects[0];
+            // Update uniforms with the touch position in world space
+            grassMaterial.uniforms.u_touch.value.set(intersect.point.x, intersect.point.z); // X and Z for 2D interaction
+            grassMaterial.uniforms.u_touchActive.value = 1;
+            grassMaterial.uniforms.u_touchTime.value = clock.getElapsedTime();
+            console.log(intersect.point.x + " " + intersect.point.z);
+            console.log("u-touch_time: ", clock.getElapsedTime());
+            console.log("time: ", grassMaterial.uniforms.time.value);
+            // Reset the touch effect after a short duration
+            setTimeout(()=>{
+                grassMaterial.uniforms.u_touchActive.value = 0;
+            }, 3000); // Effect lasts 300ms
+        }
+    }
+});
 /********************************************************************
 // Creating chunks array
 ********************************************************************/ const arrChunks = [];
@@ -1458,7 +1500,7 @@ for(let x = 0; x < FIELD_SIZE / chunkSize; x++)for(let z = 0; z < FIELD_SIZE / c
     const chunk = {
         position: new _three.Vector2(x * chunkSize - 0.5 * FIELD_SIZE, z * chunkSize - 0.5 * FIELD_SIZE),
         geometry: new _three.InstancedBufferGeometry(),
-        material: grassMaterialTest
+        material: grassMaterial
     };
     arrChunks.push(chunk);
 }
@@ -1639,7 +1681,10 @@ function animate() {
         fnUpdateControls();
         restrictMovement();
     }
+    //shader uniform updates
     shaderMaterialLine.uniforms.uTime.value += 0.05;
+    grassMaterial.uniforms.time.value += 0.01; // Update time for wind animation
+    videoMaterial.uniforms.uTime.value += 0.005;
     //console.log(renderer.info);
     //composer.render();
     if (!visitedFromMobileDevice) arrChunks.forEach((chunk)=>{
@@ -1648,7 +1693,7 @@ function animate() {
         const chunkPosition = chunk.position;
         const distance = cameraXZ.distanceTo(chunkPosition) - 20.0;
         if (distance > 950) chunk.geometry.instanceCount = grassBladesPerChunk * 0.3;
-        else if (distance > 800) chunk.geometry.instanceCount = grassBladesPerChunk * 0.4;
+        else if (distance > 800) chunk.geometry.instanceCount = grassBladesPerChunk * 0.3;
         else if (distance > 600) chunk.geometry.instanceCount = grassBladesPerChunk * 0.7;
         else if (distance > 200) chunk.geometry.instanceCount = grassBladesPerChunk * 0.8;
         else if (distance >= 100) chunk.geometry.instanceCount = grassBladesPerChunk * 1.0;
@@ -1658,8 +1703,6 @@ function animate() {
     if (video.readyState >= video.HAVE_CURRENT_DATA) videoTexture.needsUpdate = true;
     //controls.update();
     //LOD.update(camera);
-    grassMaterialTest.uniforms.time.value += 0.01; // Update time for wind animation
-    videoMaterial.uniforms.uTime.value += 0.005;
     renderer.render(scene, camera);
 //stats.update();
 }
@@ -41633,7 +41676,7 @@ exports.default = {
 };
 
 },{"./glsl/grassblade.vert.glsl":"cdITI","./glsl/grassblade.frag.glsl":"rAUpS","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"cdITI":[function(require,module,exports) {
-module.exports = "uniform float time;\nuniform float windStrength;\nuniform sampler2D displacementMap;\nuniform float fieldSize;\nuniform float displacementScale;\n\nattribute vec3 offset;\nattribute float scale;\n//attribute float normalizedHeight;\nattribute mat3 instanceRotationMatrix;\nattribute vec2 uvs; // Incoming UV coordinates\n//varying vec2 sendUV;\n//attribute float rotation;\nvarying vec2 vUv;\n//varying vec2 csm_cloudUV;\n//varying vec3 csm_vWorldPosition;\n//varying vec3 csm_vViewPosition;\nvarying float vHeight;\n//varying vec3 csm_vPosition;\n\nfloat hash(vec2 p) {\n    p = 50.0 * fract(p * 0.3183099 + vec2(0.71));\n    return -1.0 + 2.0 * fract(p.x * p.y * (p.x + p.y));\n}\n\nfloat noise(vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n    vec2 u = f * f * (3.0 - 2.0 * f);\n    \n    return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),\n               mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);\n}\n\nvoid main() {\n    precision highp float;\n#define GLSLIFY 1\n\n            //csm_vPosition = position;\n            //vUv = uv;\n            vUv = uv;\n            //cloudUV = uv;\n            //cloudUV.x += time / 200.;\n            //cloudUV.y += time / 100.;\n            vec3 transformedGrass = position * scale;\n            transformedGrass = instanceRotationMatrix * transformedGrass;\n            transformedGrass += offset;\n            //vec3 test = transformedGrass;\n\n            //vec3 positionTest = offset.xyz + vec3(position.x, 0.0, position.y);\n            //csm_vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;\n            //vWorldPosition = worldPosition.xyz;\n            //float normalizedHeight = clamp(normalizedHeight, 0.0, 1.0);\n            vHeight = clamp(position.y, 0.0, 1.0); \n            \n            // Use time and some arbitrary values to generate noise\n            float n = noise(vec2(time * 0.1, time * 0.05));\n\n            // Scale the noise value to be in the range [0.0, 0.2]\n            float varyingValue = n * 0.35;\n  \n            float noise = noise(offset.xz);\n\n            // varyingValue is now in the range [0.0, 0.2]\n            \n            float displacementPower = 1.0 - cos( vHeight * 3.1416 / 0.30 );\n            transformedGrass.z += sin(offset.z * noise  + time * 2.0) * ((0.16 + varyingValue) * displacementPower);\n            transformedGrass.x += sin(offset.x * noise  + time * 2.0) * ((0.18 + varyingValue) * displacementPower);\n\n            //csm_PositionRaw = projectionMatrix * modelViewMatrix * vec4(transformedGrass, 1.0);\n            csm_Position = transformedGrass;\n            //csm_Position = position * scale * instanceRotationMatrix * vec3(1.0);\n   \n}\n\n";
+module.exports = "uniform float time;\nuniform vec2 u_touch; // Touch position\nuniform float u_time; // Time for animating wind\nuniform float u_touchActive; // Indicates if the touch is active\nuniform float u_fadeSpeed;\nuniform float u_touchTime;\nuniform float windStrength;\nuniform sampler2D displacementMap;\nuniform float fieldSize;\nuniform float displacementScale;\n\nattribute vec3 offset;\nattribute float scale;\n//attribute float normalizedHeight;\nattribute mat3 instanceRotationMatrix;\nattribute vec2 uvs; // Incoming UV coordinates\n//varying vec2 sendUV;\n//attribute float rotation;\nvarying vec2 vUv;\n//varying vec2 csm_cloudUV;\n//varying vec3 csm_vWorldPosition;\n//varying vec3 csm_vViewPosition;\nvarying float vHeight;\n//varying vec3 csm_vPosition;\n\nfloat hash(vec2 p) {\n    p = 50.0 * fract(p * 0.3183099 + vec2(0.71));\n    return -1.0 + 2.0 * fract(p.x * p.y * (p.x + p.y));\n}\n\nfloat noise(vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n    vec2 u = f * f * (3.0 - 2.0 * f);\n    \n    return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),\n               mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);\n}\n\nvoid main() {\n    precision mediump float;\n#define GLSLIFY 1\n\n\n            vUv = uv;\n       \n            vec3 transformedGrass = position * scale;\n            transformedGrass = instanceRotationMatrix * transformedGrass;\n            transformedGrass += offset;\n\n            vHeight = clamp(position.y, 0.0, 1.0); \n            \n            // Generate noise based on time\n            float n = noise(vec2(time * 0.1, time * 0.05));\n\n            // Scale the noise value to be in the range [0.0, 0.2]\n            float varyingValue = n * 0.35;\n  \n            float noise = noise(offset.xz);\n\n            // Compute distance from touch position (world space)\n            vec2 touchPos2D = u_touch.xy; // Touch position in XZ plane\n            vec2 vertexPos2D = transformedGrass.xz; // Vertex position in XZ plane\n            float distance = length(touchPos2D - vertexPos2D); // Distance between touch and vertex\n\n            // Wind effect only within the radius\n            float windRadius = 30.0; // Radius of influence\n            float windEffect = 0.0;\n            float falloff;\n            float displacementMultiplier = 1.0;\n            if (distance < windRadius) {\n                // Smooth falloff based on distance\n                falloff = 1.0 - (distance / windRadius);\n                //float fadeout = (time - u_touchTime) * u_fadeSpeed; // Fade effect with time\n                //fadeout = clamp(fadeout, 0.0, 1.0);\n                //float fadeout = exp(-u_fadeSpeed * (time - u_touchTime)); // Exponential fade\n                //float fadeout = max(0.0, 3.0 - (time - u_touchTime) * u_fadeSpeed);\n                float fadeout = max(0.0, 1.0 - (time - u_touchTime) * u_fadeSpeed * 0.1);\n                windEffect =  1.0 * falloff * fadeout; // Amplify wind effect based on proximity and time\n                //displacementMultiplier += falloff; // Increase displacement power\n                //float fadeout = max(0.0, 1.0 - (time - u_touchTime) * u_fadeSpeed); // Gradual fade to zero\n                //windEffect = falloff * sin((time) * 10.0);\n                //windEffect = fadeout;\n            }\n\n            //float touchWindEffect = sin(time + distance * 5.0) * 0.2;\n            //float touchWindEffect = exp(-distance * 10.0) * sin(time * 2.0); // Exponential falloff for wind effect\n\n  \n\n            // Displacement power calculation\n            float displacementPower = 1.0 - cos( vHeight * 3.1416 / 0.30 ) ;\n\n            displacementMultiplier= 1.0 - cos( vHeight * 3.1416 / 0.3 ) * windEffect ;\n\n            transformedGrass.z += sin(offset.z * noise  + time * 2.0) * ((0.16 + varyingValue) * displacementPower + ((windEffect * 2.0) * vHeight) );\n            //transformedGrass.z += displacementMultiplier; // Add fading push effect on Z-axis\n\n            transformedGrass.x += sin(offset.x * noise  + time * 2.0) * ((0.18 + varyingValue) * displacementPower + ((windEffect * 1.23) * vHeight) );\n            //transformedGrass.x += displacementMultiplier; // Add fading push effect on X-axis\n\n            csm_Position = transformedGrass;\n  \n}\n\n";
 
 },{}],"rAUpS":[function(require,module,exports) {
 module.exports = "uniform sampler2D grassTexture;\n//uniform sampler2D cloudTexture;\n//uniform vec3 fogColor;\n//uniform float fogDensity;\n//uniform vec3 vCameraPosition;\nvarying vec2 vUv;\n//varying vec2 sendUV;\n//varying vec2 cloudUV;\n//varying vec3 vWorldPosition;\n//varying vec3 csm_vWorldPosition;\nvarying float vHeight;\n//varying vec3 vPosition;\n//varying vec3 vViewPosition;\n//varying vec4 csm_DiffuseColor;\n\n//float contrast = 1.5;\nfloat brightness = 1.2;\nvec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n\nvoid main() {\n\n    precision mediump float;\n#define GLSLIFY 1\n\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    \n    //float depth = length(csm_vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    //float fogFactor = 1.0 - exp(-fogDensity * depth);\n    //fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv / 1000.0).rgb;\n    textureColor = mix(textureColor, topBladeColor, 0.8);\n    //float vHeight = clamp(vHeight, 0.0, 1.0);\n    textureColor *= vHeight * vHeight * vHeight;\n    textureColor *= brightness;\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    //vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n    //finalColor = mix(csm_DiffuseColor.rgb, topBladeColor, 1.0);\n    //csm_Emissive = textureColor;\n\n    csm_DiffuseColor = vec4(textureColor, 1.0);\n\n    /*\n    //precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n    float depth = length(vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    float fogFactor = 1.0 - exp(-fogDensity * depth);\n    fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv/1000.0).rgb;\n    textureColor = textureColor * vec3(brightness, brightness, brightness);\n    textureColor = mix(textureColor, topBladeColor, 0.75);\n    textureColor *= vHeight * vHeight;\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n\n    csm_DiffuseColor = vec4(finalColor, 1.0);\n    */\n\n}\n\n";
@@ -41763,11 +41806,11 @@ class GrassScene {
         this.renderer.outputEncoding = _three.SRGBColorSpace;
         this.renderer.toneMapping = _three.ACESFilmicToneMapping;
         //this.renderer.toneMapping = THREE.ReinhardToneMapping;
-        this.renderer.toneMappingExposure = 0.2;
+        this.renderer.toneMappingExposure = 0.25;
         //this.stats = Stats();
         //this.stats.showPanel(0);
         //this.container.appendChild(this.stats.dom);
-        this.scene.fog = new _three.FogExp2(0xffe38a, 0.45);
+        //this.scene.fog = new THREE.FogExp2(0xffe38a, 0.45);
         this.setupHDR();
         // Lighting
         //const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
@@ -41925,8 +41968,8 @@ class GrassScene {
 
                 // Apply wind movement in the XZ plane, using a sin wave for periodic motion
 
-                float wind1 = sin(vUv.y * 1.0 + (time) * windStrength) * 1.55 * influence * varyingValue;
-                float wind2 = sin(worldP.z * 1.0 + (time) * windStrength) * 0.25 * influence * varyingValue;
+                float wind1 = sin(vUv.y * 1.0 + (time) * windStrength) * 2.0 * influence * varyingValue;
+                float wind2 = sin(worldP.z * 1.0 + (time) * windStrength) * 1.25 * influence * varyingValue;
                 
 
                 pos.x += wind1 * windDirection.x;
@@ -41966,7 +42009,7 @@ class GrassScene {
             transparent: true,
             silent: true,
             normalMap: this.textures.normal,
-            fog: true
+            fog: false
         });
     }
     // Animation loop
