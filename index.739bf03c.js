@@ -718,7 +718,6 @@ navItems[activeIndex].classList.add("active"); // Initially highlight top logo
 navItems.forEach((item, index)=>{
     item.addEventListener("click", ()=>{
         targetSection = navItems[index].dataset.targetsection;
-        //console.log(targetSection);
         // Remove active class from current logo
         for(let i = 0; i < 3; i++)navItems[i].classList.remove("active");
         lines[0].classList.remove("highlight-up", "highlight-down");
@@ -745,7 +744,6 @@ function fnUpdateNavigation(index, activeIndex, lines) {
         else lines[i].classList.add("highlight-down");
     }
     if (index < activeIndex) {
-        //console.log("index < activeIndex");
         // Highlight all lines between activeIndex and the new index
         for(let i = activeIndex - 1; i >= index; i--)if (i === index && index != activeIndex - 1) // Add delay for the last line (first in this upward flow)
         setTimeout(()=>{
@@ -810,7 +808,6 @@ window.addEventListener("wheel", (event)=>{
     if (event.deltaY > 0) {
         isScrolling = true;
         currentSectionIndex = Math.min(currentSectionIndex + 1, sections.length - 1);
-        console.log("Down", currentSectionIndex);
         lines[currentSectionIndex - 1].classList.add("highlight-down");
         scrollToSection(currentSectionIndex);
         activeIndex = currentSectionIndex;
@@ -824,7 +821,6 @@ window.addEventListener("wheel", (event)=>{
         // Scrolling up, move to previous section
         isScrolling = true;
         currentSectionIndex = Math.max(currentSectionIndex - 1, 0);
-        console.log("Up", currentSectionIndex);
         lines[currentSectionIndex].classList.add("highlight-up");
         scrollToSection(currentSectionIndex);
         activeIndex = currentSectionIndex;
@@ -896,7 +892,6 @@ imageContainers.forEach((container)=>{
 });
 //break up in smaller functions
 function fnLoadContent(id) {
-    //console.log(id)
     const contentData = (0, _contentJsonDefault.default)[id];
     contentTitle.innerText = contentData.title;
     contentMainText.innerHTML = contentData.main_txt;
@@ -1306,7 +1301,6 @@ if (visitedFromMobileDevice) {
 }
 //camera.position.set(0, getHeight(0, 320) + PERSON_HEIGHT, 320);
 camera.position.set(startPosition.x, startPosition.y, startPosition.z);
-//console.log(camera.rotation.x)
 /********************************************************************
 // Animate Camera
 ********************************************************************/ // Animation state
@@ -1333,12 +1327,8 @@ function fnAnimateCamera() {
         const interpolatedPosition = new _three.Vector3().lerpVectors(startPosition, endPosition, progress);
         // Calculate dynamic y position
         const dynamicY = getHeight(interpolatedPosition.x, interpolatedPosition.z) + PERSON_HEIGHT;
-        //console.log(dynamicY)
-        //console.log(interpolatedPosition)
         // Set camera position
         camera.position.set(interpolatedPosition.x, dynamicY, interpolatedPosition.z);
-        // Make the camera look at a specific target
-        //camera.lookAt(0, 0, 0);
         // Stop animation when completed
         if (progress >= 1) {
             cameraAnimationState.isAnimating = false;
@@ -1348,7 +1338,6 @@ function fnAnimateCamera() {
 }
 const checkOrientation = ()=>{
     if (cameraAnimationState.checkOrientationCanRun) {
-        console.log("check orientation");
         if (window.matchMedia("(orientation: landscape)").matches && visitedFromMobileDevice) {
             camera.rotation.x = 0;
             //camera.position.set(0, getHeight(0, 250) + PERSON_HEIGHT, 250);
@@ -1571,10 +1560,8 @@ function assignChunkToWorker(worker, chunk) {
             const nextChunk = chunkQueue.shift();
             assignChunkToWorker(worker, nextChunk);
         } else if (activeWorkers.size == 0) {
-            console.log("done");
             cameraAnimationState.isAnimating = true;
             fnFadeOutWelcomeScreen();
-        //console.log(activeWorkers.size)
         }
     };
 }
@@ -1603,10 +1590,7 @@ workers.forEach((worker)=>{
 if (visitedFromMobileDevice) arrChunks.forEach((chunk)=>{
     const cameraPosition = camera.position;
     const cameraXZ = new _three.Vector2(cameraPosition.x, cameraPosition.z);
-    //console.log(cameraXZ);
     const chunkPosition = chunk.position;
-    //const chunkMiddlePosition = new THREE.Vector2(chunkPosition.x + chunkSize / 2, chunkPosition.y + chunkSize / 2);
-    //console.log(chunkMiddlePosition);
     const distance = cameraXZ.distanceTo(chunkPosition);
     if (distance > 1000) chunk.geometry.instanceCount = 1800;
     else if (distance > 900) chunk.geometry.instanceCount = 2300;
@@ -1630,10 +1614,7 @@ function animate() {
     if (!visitedFromMobileDevice) arrChunks.forEach((chunk)=>{
         const cameraPosition = camera.position;
         const cameraXZ = new _three.Vector2(cameraPosition.x, cameraPosition.z);
-        //console.log(cameraXZ);
         const chunkPosition = chunk.position;
-        //const chunkMiddlePosition = new THREE.Vector2(chunkPosition.x + chunkSize / 2, chunkPosition.y + chunkSize / 2);
-        //console.log(chunkMiddlePosition);
         const distance = cameraXZ.distanceTo(chunkPosition) - 20.0;
         /*
                         if (distance > 950) {
