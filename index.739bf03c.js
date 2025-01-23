@@ -959,7 +959,7 @@ const PERSON_HEIGHT = 16.0;
 const FIELD_SIZE = visitedFromMobileDevice ? 2600 : 4000 // Field size in both x and z directions
 ;
 const chunkSize = 100;
-const grassBladesPerChunk = 2150; //3500
+const grassBladesPerChunk = 2100; //3500
 const maxDistance = 1600; // Define maximum allowed distance from origin (0, 0, 0)
 // Basic scene setup
 const scene = new _three.Scene();
@@ -1618,8 +1618,8 @@ function animate() {
         const distance = cameraXZ.distanceTo(chunkPosition) - 20.0;
         if (distance > 950) chunk.geometry.instanceCount = grassBladesPerChunk * 0.3;
         else if (distance > 800) chunk.geometry.instanceCount = grassBladesPerChunk * 0.4;
-        else if (distance > 600) chunk.geometry.instanceCount = grassBladesPerChunk * 0.5;
-        else if (distance > 200) chunk.geometry.instanceCount = grassBladesPerChunk * 0.7;
+        else if (distance > 600) chunk.geometry.instanceCount = grassBladesPerChunk * 0.7;
+        else if (distance > 200) chunk.geometry.instanceCount = grassBladesPerChunk * 0.8;
         else if (distance >= 100) chunk.geometry.instanceCount = grassBladesPerChunk * 1.0;
         else chunk.geometry.instanceCount = grassBladesPerChunk;
     });
