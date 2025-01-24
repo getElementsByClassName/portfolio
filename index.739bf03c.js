@@ -1064,13 +1064,13 @@ const grassDiffuseMap = textureLoader.load((0, _grassColorPngDefault.default));
 const videoFallback = textureLoader.load((0, _videoFallbackJpgDefault.default));
 /********************************************************************
 // Lights
-********************************************************************/ const light = new _three.HemisphereLight(0xF2E6BD, 0x080820, 0.85);
+********************************************************************/ const light = new _three.HemisphereLight(0xF2E6BD, 0x080820, 0.95);
 //f2e1aa
 //F2E6BD
 scene.add(light);
-const widthLight = 300;
+const widthLight = 330;
 const height = 10;
-const intensity = 20;
+const intensity = 50;
 //const rectLight = new THREE.RectAreaLight(0xf1f3e1, intensity, widthLight, height);
 //0xa9dbfd
 const rectLight = new _three.RectAreaLight(0x82ccff, intensity, widthLight, height);
@@ -1080,11 +1080,11 @@ const rectLight2 = new _three.RectAreaLight(0xF2E6BD, 20, widthLight, height);
 //const rectLight = new THREE.RectAreaLight(0xFF0000, intensity, widthLight, height);
 rectLight.position.set(0, 55, 10);
 rectLight.lookAt(0, 0, 30);
-rectLight2.position.set(0, 55, 190);
-rectLight2.lookAt(0, 0, 100);
+rectLight2.position.set(0, 55, 180);
+rectLight2.lookAt(0, 0, 80);
 scene.add(rectLight2);
-//const rectLightHelper = new RectAreaLightHelper(rectLight2);
-//rectLight.add(rectLightHelper);
+const rectLightHelper = new (0, _rectAreaLightHelperJs.RectAreaLightHelper)(rectLight2);
+rectLight.add(rectLightHelper);
 function animateLightIntensity(light, targetIntensity, duration) {
     const startIntensity = light.intensity;
     const startTime = Date.now();
@@ -1128,7 +1128,7 @@ function getHeight(x, z) {
 }
 //generate ground
 // Generate a plane geometry and modify its vertices based on simplex noise
-const terrainGeometry = new _three.PlaneGeometry(FIELD_SIZE, FIELD_SIZE, 50, 50); //number of ground verts high so it curves probably
+const terrainGeometry = new _three.PlaneGeometry(FIELD_SIZE, FIELD_SIZE, 150, 150); //number of ground verts high so it curves probably
 terrainGeometry.rotateX(-Math.PI / 2);
 const vertices = terrainGeometry.attributes.position.array;
 for(let i = 0; i < vertices.length; i += 3){
@@ -1141,6 +1141,35 @@ const terrainMaterial = new _three.MeshBasicMaterial({
 });
 const terrainMesh = new _three.Mesh(terrainGeometry, terrainMaterial);
 scene.add(terrainMesh);
+/********************************************************************
+// Water + Lakes : Simplex Noise
+********************************************************************/ const lakeThreshold = 0.2; // Threshold for creating lakes (lower values = larger lakes)
+const lakeDepth = -5; // How deep the lake should be
+// Function to generate a lake mask using Simplex noise
+function generateLakeMask(x, z) {
+    const noiseValue = simplex.noise(x * 0.1, z * 0.1); // Lower scale for larger lakes
+    return noiseValue < lakeThreshold ? 1 : 0; // 1 means there's a lake, 0 means no lake
+}
+// Create terrain with lakes
+function generateTerrainWithLakes() {
+    const terrainData = [];
+    for(let x = 0; x < FIELD_SIZE; x++)for(let z = 0; z < FIELD_SIZE; z++){
+        let elevation = getHeight(x, z);
+        // Check if we're in a lake area
+        const isLake = generateLakeMask(x, z);
+        // If it's a lake, lower the terrain height (submerge the area)
+        if (isLake) elevation = lakeDepth; // Set the lake depth
+        terrainData.push({
+            x,
+            z,
+            elevation
+        });
+    }
+    return terrainData;
+}
+// Generate the terrain with lakes
+//const terrain = generateTerrainWithLakes();
+//console.log(terrain);
 /********************************************************************
 // Skybox
 ********************************************************************/ // Create a PMREMGenerator
@@ -1438,18 +1467,10 @@ const grassMaterial = new (0, _vanillaDefault.default)({
         time: {
             value: 0.0
         },
-        u_touch: {
-            value: new _three.Vector2(0.5, 0.5)
-        },
-        u_touchActive: {
-            value: 0
-        },
-        u_fadeSpeed: {
-            value: 0.1
-        },
-        u_touchTime: {
-            value: 0
-        },
+        //u_touch: { value: new THREE.Vector2(0.5, 0.5) }, // Default touch position
+        //u_touchActive: { value: 0 }, // Flag to indicate if the touch is active
+        //u_fadeSpeed: { value: 0.1 }, // Fadeout speed (adjust as needed)
+        //u_touchTime: { value: 0 }, // Time of the last touch
         grassTexture: {
             value: grassDiffuseMap
         },
@@ -1463,37 +1484,47 @@ const grassMaterial = new (0, _vanillaDefault.default)({
     vertexColors: false,
     side: _three.DoubleSide
 });
+/*
 // Create a Raycaster and Vector2 for touch
-const raycaster = new _three.Raycaster();
-const touchPoint = new _three.Vector2();
-canvasContainer.addEventListener("touchstart", (event)=>{
+const raycaster = new THREE.Raycaster();
+const touchPoint = new THREE.Vector2();
+
+canvasContainer.addEventListener('touchstart', (event) => {
     if (event.touches.length > 0) {
         const touch = event.touches[0];
         const rect = canvasContainer.getBoundingClientRect();
+
         // Convert touch to normalized device coordinates (NDC)
-        touchPoint.x = (touch.clientX - rect.left) / rect.width * 2 - 1;
+        touchPoint.x = ((touch.clientX - rect.left) / rect.width) * 2 - 1;
         touchPoint.y = -((touch.clientY - rect.top) / rect.height) * 2 + 1;
+
         // Set up the Raycaster
         raycaster.setFromCamera(touchPoint, camera);
+
         // Intersect the ray with the plane or ground where the grass exists
         const intersects = raycaster.intersectObject(terrainMesh); // Replace `grassPlane` with your grass mesh or plane
+
         if (intersects.length > 0) {
             const intersect = intersects[0];
+
             // Update uniforms with the touch position in world space
             grassMaterial.uniforms.u_touch.value.set(intersect.point.x, intersect.point.z); // X and Z for 2D interaction
             grassMaterial.uniforms.u_touchActive.value = 1;
             grassMaterial.uniforms.u_touchTime.value = clock.getElapsedTime();
-            console.log(intersect.point.x + " " + intersect.point.z);
-            console.log("u-touch_time: ", clock.getElapsedTime());
-            console.log("time: ", grassMaterial.uniforms.time.value);
+
+            console.log(intersect.point.x + " " + intersect.point.z)
+            console.log("u-touch_time: ", clock.getElapsedTime())
+            console.log("time: ", grassMaterial.uniforms.time.value)
+
             // Reset the touch effect after a short duration
-            setTimeout(()=>{
+            setTimeout(() => {
                 grassMaterial.uniforms.u_touchActive.value = 0;
             }, 3000); // Effect lasts 300ms
         }
     }
 });
-/********************************************************************
+
+*/ /********************************************************************
 // Creating chunks array
 ********************************************************************/ const arrChunks = [];
 for(let x = 0; x < FIELD_SIZE / chunkSize; x++)for(let z = 0; z < FIELD_SIZE / chunkSize; z++){
@@ -1673,7 +1704,22 @@ if (visitedFromMobileDevice) arrChunks.forEach((chunk)=>{
     else if (distance >= 200) chunk.geometry.instanceCount = grassBladesPerChunk;
     else chunk.geometry.instanceCount = grassBladesPerChunk;
 });
-function animate() {
+/********************************************************************
+// Water Test plane
+********************************************************************/ /*
+// Create a blue plane in the XZ plane
+const geometry = new THREE.PlaneGeometry(4000, 4000);  // Plane size 4000x4000
+const material = new THREE.MeshBasicMaterial({ color: 0x0000ff, side: THREE.BackSide });  // Blue color
+const plane = new THREE.Mesh(geometry, material);
+
+// Rotate the plane to align it with the XZ plane (default is XY plane)
+plane.rotation.x = Math.PI / 2; // Rotate by 90 degrees to lie on the XZ plane
+
+plane.position.set(0, -8, 0); // Position at y = 1
+
+// Add the plane to the scene
+scene.add(plane);
+*/ function animate() {
     renderer.setAnimationLoop(animate);
     fnAnimateCamera();
     if (visitedFromMobileDevice) checkOrientation();
@@ -41676,10 +41722,10 @@ exports.default = {
 };
 
 },{"./glsl/grassblade.vert.glsl":"cdITI","./glsl/grassblade.frag.glsl":"rAUpS","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"cdITI":[function(require,module,exports) {
-module.exports = "uniform float time;\nuniform vec2 u_touch; // Touch position\nuniform float u_time; // Time for animating wind\nuniform float u_touchActive; // Indicates if the touch is active\nuniform float u_fadeSpeed;\nuniform float u_touchTime;\nuniform float windStrength;\nuniform sampler2D displacementMap;\nuniform float fieldSize;\nuniform float displacementScale;\n\nattribute vec3 offset;\nattribute float scale;\n//attribute float normalizedHeight;\nattribute mat3 instanceRotationMatrix;\nattribute vec2 uvs; // Incoming UV coordinates\n//varying vec2 sendUV;\n//attribute float rotation;\nvarying vec2 vUv;\n//varying vec2 csm_cloudUV;\n//varying vec3 csm_vWorldPosition;\n//varying vec3 csm_vViewPosition;\nvarying float vHeight;\n//varying vec3 csm_vPosition;\n\nfloat hash(vec2 p) {\n    p = 50.0 * fract(p * 0.3183099 + vec2(0.71));\n    return -1.0 + 2.0 * fract(p.x * p.y * (p.x + p.y));\n}\n\nfloat noise(vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n    vec2 u = f * f * (3.0 - 2.0 * f);\n    \n    return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),\n               mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);\n}\n\nvoid main() {\n    precision mediump float;\n#define GLSLIFY 1\n\n\n            vUv = uv;\n       \n            vec3 transformedGrass = position * scale;\n            transformedGrass = instanceRotationMatrix * transformedGrass;\n            transformedGrass += offset;\n\n            vHeight = clamp(position.y, 0.0, 1.0); \n            \n            // Generate noise based on time\n            float n = noise(vec2(time * 0.1, time * 0.05));\n\n            // Scale the noise value to be in the range [0.0, 0.2]\n            float varyingValue = n * 0.35;\n  \n            float noise = noise(offset.xz);\n\n            // Compute distance from touch position (world space)\n            vec2 touchPos2D = u_touch.xy; // Touch position in XZ plane\n            vec2 vertexPos2D = transformedGrass.xz; // Vertex position in XZ plane\n            float distance = length(touchPos2D - vertexPos2D); // Distance between touch and vertex\n\n            // Wind effect only within the radius\n            float windRadius = 30.0; // Radius of influence\n            float windEffect = 0.0;\n            float falloff;\n            float displacementMultiplier = 1.0;\n            if (distance < windRadius) {\n                // Smooth falloff based on distance\n                falloff = 1.0 - (distance / windRadius);\n                //float fadeout = (time - u_touchTime) * u_fadeSpeed; // Fade effect with time\n                //fadeout = clamp(fadeout, 0.0, 1.0);\n                //float fadeout = exp(-u_fadeSpeed * (time - u_touchTime)); // Exponential fade\n                //float fadeout = max(0.0, 3.0 - (time - u_touchTime) * u_fadeSpeed);\n                float fadeout = max(0.0, 1.0 - (time - u_touchTime) * u_fadeSpeed * 0.1);\n                windEffect =  1.0 * falloff * fadeout; // Amplify wind effect based on proximity and time\n                //displacementMultiplier += falloff; // Increase displacement power\n                //float fadeout = max(0.0, 1.0 - (time - u_touchTime) * u_fadeSpeed); // Gradual fade to zero\n                //windEffect = falloff * sin((time) * 10.0);\n                //windEffect = fadeout;\n            }\n\n            //float touchWindEffect = sin(time + distance * 5.0) * 0.2;\n            //float touchWindEffect = exp(-distance * 10.0) * sin(time * 2.0); // Exponential falloff for wind effect\n\n  \n\n            // Displacement power calculation\n            float displacementPower = 1.0 - cos( vHeight * 3.1416 / 0.30 ) ;\n\n            displacementMultiplier= 1.0 - cos( vHeight * 3.1416 / 0.3 ) * windEffect ;\n\n            transformedGrass.z += sin(offset.z * noise  + time * 2.0) * ((0.16 + varyingValue) * displacementPower + ((windEffect * 2.0) * vHeight) );\n            //transformedGrass.z += displacementMultiplier; // Add fading push effect on Z-axis\n\n            transformedGrass.x += sin(offset.x * noise  + time * 2.0) * ((0.18 + varyingValue) * displacementPower + ((windEffect * 1.23) * vHeight) );\n            //transformedGrass.x += displacementMultiplier; // Add fading push effect on X-axis\n\n            csm_Position = transformedGrass;\n  \n}\n\n";
+module.exports = "uniform float time;\nuniform vec2 u_touch; // Touch position\nuniform float u_time; // Time for animating wind\nuniform float u_touchActive; // Indicates if the touch is active\nuniform float u_fadeSpeed;\nuniform float u_touchTime;\nuniform float windStrength;\nuniform sampler2D displacementMap;\nuniform float fieldSize;\nuniform float displacementScale;\n\nattribute vec3 offset;\nattribute float scale;\n//attribute float normalizedHeight;\nattribute mat3 instanceRotationMatrix;\nattribute vec2 uvs; // Incoming UV coordinates\n//varying vec2 sendUV;\n//attribute float rotation;\nvarying vec2 vUv;\n//varying vec2 csm_cloudUV;\n//varying vec3 csm_vWorldPosition;\n//varying vec3 csm_vViewPosition;\nvarying float vHeight;\n//varying vec3 csm_vPosition;\n\nfloat hash(vec2 p) {\n    p = 50.0 * fract(p * 0.3183099 + vec2(0.71));\n    return -1.0 + 2.0 * fract(p.x * p.y * (p.x + p.y));\n}\n\nfloat noise(vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n    vec2 u = f * f * (3.0 - 2.0 * f);\n    \n    return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),\n               mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);\n}\n\nvoid main() {\n    precision mediump float;\n#define GLSLIFY 1\n\n\n            vUv = uv;\n       \n            vec3 transformedGrass = position * scale;\n            transformedGrass = instanceRotationMatrix * transformedGrass;\n            transformedGrass += offset;\n\n            vHeight = clamp(position.y, 0.0, 1.0); \n            \n            // Generate noise based on time\n            float n = noise(vec2(time * 0.1, time * 0.05));\n\n            // Scale the noise value to be in the range [0.0, 0.2]\n            float varyingValue = n * 0.35;\n  \n            float noise = noise(offset.xz);\n/*\n            // Compute distance from touch position (world space)\n            vec2 touchPos2D = u_touch.xy; // Touch position in XZ plane\n            vec2 vertexPos2D = transformedGrass.xz; // Vertex position in XZ plane\n            float distance = length(touchPos2D - vertexPos2D); // Distance between touch and vertex\n\n            // Wind effect only within the radius\n            float windRadius = 30.0; // Radius of influence\n            float windEffect = 0.0;\n            float falloff;\n            float displacementMultiplier = 1.0;\n            if (distance < windRadius) {\n                // Smooth falloff based on distance\n                falloff = 1.0 - (distance / windRadius);\n                //float fadeout = (time - u_touchTime) * u_fadeSpeed; // Fade effect with time\n                //fadeout = clamp(fadeout, 0.0, 1.0);\n                //float fadeout = exp(-u_fadeSpeed * (time - u_touchTime)); // Exponential fade\n                //float fadeout = max(0.0, 3.0 - (time - u_touchTime) * u_fadeSpeed);\n                float fadeout = max(0.0, 1.0 - (time - u_touchTime) * u_fadeSpeed * 0.1);\n                windEffect =  1.0 * falloff * fadeout; // Amplify wind effect based on proximity and time\n                //displacementMultiplier += falloff; // Increase displacement power\n                //float fadeout = max(0.0, 1.0 - (time - u_touchTime) * u_fadeSpeed); // Gradual fade to zero\n                //windEffect = falloff * sin((time) * 10.0);\n                //windEffect = fadeout;\n            }\n\n\n            //float touchWindEffect = sin(time + distance * 5.0) * 0.2;\n            //float touchWindEffect = exp(-distance * 10.0) * sin(time * 2.0); // Exponential falloff for wind effect\n\n*/\n  \n\n            // Displacement power calculation\n            float displacementPower = 1.0 - cos( vHeight * 3.1416 / 0.35 );\n\n            //displacementMultiplier = 1.0 - cos(windEffect * vHeight * 3.1416);\n\n            transformedGrass.z += sin(offset.z * noise  + time * 2.0) * (0.11 + varyingValue) * displacementPower;\n            //transformedGrass.z += displacementMultiplier; // Add fading push effect on Z-axis\n\n            transformedGrass.x += sin(offset.x * noise  + time * 2.0) * (0.13 + varyingValue) * displacementPower;\n            //transformedGrass.x += displacementMultiplier; // Add fading push effect on X-axis\n            // + ((windEffect * 1.2) * vHeight) \n\n            csm_Position = transformedGrass;\n  \n}\n\n";
 
 },{}],"rAUpS":[function(require,module,exports) {
-module.exports = "uniform sampler2D grassTexture;\n//uniform sampler2D cloudTexture;\n//uniform vec3 fogColor;\n//uniform float fogDensity;\n//uniform vec3 vCameraPosition;\nvarying vec2 vUv;\n//varying vec2 sendUV;\n//varying vec2 cloudUV;\n//varying vec3 vWorldPosition;\n//varying vec3 csm_vWorldPosition;\nvarying float vHeight;\n//varying vec3 vPosition;\n//varying vec3 vViewPosition;\n//varying vec4 csm_DiffuseColor;\n\n//float contrast = 1.5;\nfloat brightness = 1.2;\nvec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n\nvoid main() {\n\n    precision mediump float;\n#define GLSLIFY 1\n\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    \n    //float depth = length(csm_vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    //float fogFactor = 1.0 - exp(-fogDensity * depth);\n    //fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv / 1000.0).rgb;\n    textureColor = mix(textureColor, topBladeColor, 0.8);\n    //float vHeight = clamp(vHeight, 0.0, 1.0);\n    textureColor *= vHeight * vHeight * vHeight;\n    textureColor *= brightness;\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    //vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n    //finalColor = mix(csm_DiffuseColor.rgb, topBladeColor, 1.0);\n    //csm_Emissive = textureColor;\n\n    csm_DiffuseColor = vec4(textureColor, 1.0);\n\n    /*\n    //precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n    float depth = length(vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    float fogFactor = 1.0 - exp(-fogDensity * depth);\n    fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv/1000.0).rgb;\n    textureColor = textureColor * vec3(brightness, brightness, brightness);\n    textureColor = mix(textureColor, topBladeColor, 0.75);\n    textureColor *= vHeight * vHeight;\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n\n    csm_DiffuseColor = vec4(finalColor, 1.0);\n    */\n\n}\n\n";
+module.exports = "uniform sampler2D grassTexture;\n//uniform sampler2D cloudTexture;\n//uniform vec3 fogColor;\n//uniform float fogDensity;\n//uniform vec3 vCameraPosition;\nvarying vec2 vUv;\n//varying vec2 sendUV;\n//varying vec2 cloudUV;\n//varying vec3 vWorldPosition;\n//varying vec3 csm_vWorldPosition;\nvarying float vHeight;\n//varying vec3 vPosition;\n//varying vec3 vViewPosition;\n//varying vec4 csm_DiffuseColor;\n\n//float contrast = 1.5;\nfloat brightness = 1.2;\n//vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n\nvec3 topBladeColor = vec3(0.365, 0.588, 0.369);\n\nvoid main() {\n\n    precision mediump float;\n#define GLSLIFY 1\n\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    \n    //float depth = length(csm_vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    //float fogFactor = 1.0 - exp(-fogDensity * depth);\n    //fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv / 100.0).rgb;\n    textureColor = mix(textureColor, topBladeColor, 0.55);\n    //float vHeight = clamp(vHeight, 0.0, 1.0);\n    textureColor *= vHeight * vHeight * vHeight;\n    textureColor *= brightness;\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    //vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n    //finalColor = mix(csm_DiffuseColor.rgb, topBladeColor, 1.0);\n    //csm_Emissive = textureColor;\n\n    csm_DiffuseColor = vec4(textureColor, 1.0);\n\n    /*\n    //precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n    float depth = length(vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    float fogFactor = 1.0 - exp(-fogDensity * depth);\n    fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv/1000.0).rgb;\n    textureColor = textureColor * vec3(brightness, brightness, brightness);\n    textureColor = mix(textureColor, topBladeColor, 0.75);\n    textureColor *= vHeight * vHeight;\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n\n    csm_DiffuseColor = vec4(finalColor, 1.0);\n    */\n\n}\n\n";
 
 },{}],"gJXUV":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
