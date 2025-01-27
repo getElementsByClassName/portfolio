@@ -967,7 +967,7 @@ const grassBladesPerChunk = 2100; //3500
 const maxDistance = 1600; // Define maximum allowed distance from origin (0, 0, 0)
 // Basic scene setup
 const scene = new _three.Scene();
-const camera = new _three.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
+const camera = new _three.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const canvasContainer = document.querySelector("#container-opening-scene");
 const renderer = new _three.WebGLRenderer({
     antialias: true,
@@ -1008,7 +1008,7 @@ const shaderMaterialLine = new _three.ShaderMaterial({
     },
     transparent: true
 });
-modelLoader.loadSingleModel("./assets/powerlines.glb", (model)=>{
+modelLoader.loadSingleModelAsync("./assets/powerlines.glb").then((model)=>{
     for(let i = 1; i < 7; i++){
         model.children[i].material.transparent = true;
         model.children[i].material.opacity = 0.35;
@@ -1029,25 +1029,27 @@ modelLoader.loadSingleModel("./assets/powerlines.glb", (model)=>{
     model.rotateY(-Math.PI / 4);
     model.scale.set(10, 12, 10);
     scene.add(model);
+}).catch((error)=>{
+    console.error("Error loading model:", error);
 });
 /** Factory Model */ let modelPlacement = {
     factoryX: 4,
     factoryZ: 4
 };
-modelLoader.loadSingleModel("./assets/factoryLOD0.glb", (model)=>{
+/*
+modelLoader.loadSingleModelAsync('./assets/factoryLOD0.glb', (model) => {
+
+
     //model.position.set(-360, getHeight(-360, -275) - 5, -275);
-    model.position.set(modelPlacement.factoryX * chunkSize + chunkSize * 0.5, getHeight(modelPlacement.factoryX * chunkSize + chunkSize * 0.5, modelPlacement.factoryZ * chunkSize + chunkSize * 0.5) - 5, modelPlacement.factoryZ * chunkSize + chunkSize * 0.5);
+    model.position.set(modelPlacement.factoryX * chunkSize + (chunkSize * 0.5), getHeight(modelPlacement.factoryX * chunkSize + (chunkSize * 0.5), modelPlacement.factoryZ * chunkSize + (chunkSize * 0.5)) - 5, modelPlacement.factoryZ * chunkSize + (chunkSize * 0.5));
     model.scale.set(10, 16, 10);
     model.rotateY(-Math.PI / 4);
-    // Optionally, position the model
-    /*
-    model.position.set(360, getHeight(360, -275) - 5, -275);
-    model.rotateY(-Math.PI / 4);
-    model.scale.set(10, 12, 10);
-    */ scene.add(model);
-    console.log(model.position.x + " " + model.position.z);
+
+
+    scene.add(model);
+
 });
-/*
+*/ /*
 // Load a GLTF model using the GLTFLoader
 const loader = new GLTFLoader();
 loader.load(
@@ -1504,9 +1506,10 @@ for (let x = 0; x < FIELD_SIZE / chunkSize; x++) {
 /********************************************************************
 // New Terrain Logic
 ********************************************************************/ /** Terrain Constants */ const chunkSize = 200; // Size of each terrain chunk
-const viewRadius = 9; // Number of chunks to load around the player
-const unloadRadius = 10; // Number of chunks to unload outside this radius
+const viewRadius = 4; // Number of chunks to load around the player
+const unloadRadius = 5; // Number of chunks to unload outside this radius
 const chunkVertexCount = 5;
+let totalChunks;
 const instanceCount = 4750;
 const loadedChunks = new Map(); // Store references to loaded chunks
 // Define special chunk configurations by their X, Z values
@@ -1603,18 +1606,27 @@ function postToGrassWorker(task) {
         const vertexZ = vertices[i + 2] + offsetZ;
         vertices[i + 1] = getHeight(vertexX, vertexZ); // Set Y position based on height
     }
-    geometry.computeVertexNormals(); // Recalculate normals for smooth shading
+    //geometry.computeVertexNormals(); // Recalculate normals for smooth shading
     // Create material for the chunk
-    let material;
-    if (chunkProps.texture) //const texture = new THREE.TextureLoader().load(chunkProps.texture);
-    //const normalMap = chunkProps.normalMap ? new THREE.TextureLoader().load(chunkProps.normalMap) : null;
-    material = new _three.MeshStandardMaterial({
-        map: groundTextureDiffuseMap
-    });
-    else material = new _three.MeshBasicMaterial({
+    //let material;
+    const material = new _three.MeshBasicMaterial({
         color: chunkProps.materialColor
     });
-    // Create the mesh
+    /*
+        if (chunkProps.texture) {
+            //const texture = new THREE.TextureLoader().load(chunkProps.texture);
+            //const normalMap = chunkProps.normalMap ? new THREE.TextureLoader().load(chunkProps.normalMap) : null;
+            material = new THREE.MeshStandardMaterial({
+                map: groundTextureDiffuseMap,
+                //normalMap: normalMap, // Add normal map if available
+            });
+        } else {
+            material = new THREE.MeshBasicMaterial({
+                color: chunkProps.materialColor, // Use the specified material color
+                //flatShading: chunkProps.type === "ground", // Enable flat shading for ground-only chunks
+            });
+        }
+    */ // Create the mesh
     const chunkMesh = new _three.Mesh(geometry, material);
     chunkMesh.position.set(offsetX, 0, offsetZ);
     // Add grass if the chunk has grassBladeCount > 0
@@ -1681,9 +1693,8 @@ function fnGenerateChunk(x, z) {
             });
         }
     }
-    console.log(loadedChunks);
 }
-loadInitialTerrain(5);
+loadInitialTerrain(4);
 /********************************************************************
 // Function to run start animation and welcome screen fade, at page load
 ********************************************************************/ function fnCreateOnceFunction() {
@@ -1747,10 +1758,10 @@ const fnOnTerrainComplete = fnCreateOnceFunction();
                             Math.pow(playerPosition.z - centerZ, 2)
                         );
             */ //const maxDistance = viewRadius * chunkSize;
-            const maxDistance = viewRadius * chunkSize;
-            const normalizedDistance = Math.min(distance / maxDistance, 1);
+            //const maxDistance = viewRadius * chunkSize;
+            //const normalizedDistance = Math.min(distance / maxDistance, 1);
             //console.log(maxDistance + " " + normalizedDistance)
-            let newInstanceCount = Math.floor((1 - normalizedDistance) * 2000);
+            //let newInstanceCount = Math.floor((1 - normalizedDistance) * 2000);
             //chunk.grassMesh.count = newInstanceCount;
             //console.log(normalizedDistance + " " + instanceCount)
             //console.log(maxDistance + " " + instanceCount)
@@ -1876,35 +1887,7 @@ workers.forEach(worker => {
         welcomeScreen.style.display = "none";
     }, 3000); // Matches the duration of the CSS transition
 }
-/*
-if (visitedFromMobileDevice) {
-    arrChunks.forEach(chunk => {
-        const cameraPosition = camera.position;
-        const cameraXZ = new THREE.Vector2(cameraPosition.x, cameraPosition.z);
-
-
-        const chunkPosition = chunk.position;
-
-
-        const distance = cameraXZ.distanceTo(chunkPosition);
-
-        if (distance > 1000) {
-            chunk.geometry.instanceCount = grassBladesPerChunk * 0.25;
-        } else if (distance > 900) {
-            chunk.geometry.instanceCount = grassBladesPerChunk * 0.4;
-        } else if (distance > 600) {
-            chunk.geometry.instanceCount = grassBladesPerChunk * 0.6;
-        } else if (distance > 400) {
-            chunk.geometry.instanceCount = grassBladesPerChunk;
-        } else if (distance >= 200) {
-            chunk.geometry.instanceCount = grassBladesPerChunk;
-        } else {
-            chunk.geometry.instanceCount = grassBladesPerChunk;
-        }
-
-    });
-}
-*/ /********************************************************************
+/********************************************************************
 // Water Test plane
 ********************************************************************/ /*
 // Create a blue plane in the XZ plane
@@ -1931,7 +1914,7 @@ scene.add(plane);
     shaderMaterialLine.uniforms.uTime.value += 0.05;
     grassMaterial.uniforms.time.value += 0.01; // Update time for wind animation
     videoMaterial.uniforms.uTime.value += 0.005;
-    //console.log(renderer.info);
+    console.log(renderer.info);
     //composer.render();
     /*
         if (!visitedFromMobileDevice) {
@@ -42687,75 +42670,72 @@ class ModelLoader {
         this.manager = manager || new _three.LoadingManager();
         this.loader = new (0, _gltfloaderJs.GLTFLoader)(this.manager);
         this.dracoLoader = new (0, _dracoloaderJs.DRACOLoader)();
-        this.dracoLoader.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.4.3/"); // Or your local path
+        this.dracoLoader.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.4.3/"); // Set to your Draco decoder folder
         this.loader.setDRACOLoader(this.dracoLoader);
+        this.cache = new Map(); // Cache for loaded models
     }
-    loadSingleModel(url, onLoad, onProgress, onError) {
-        this.loader.load(url, (gltf)=>{
-            onLoad(gltf.scene);
-        }, onProgress, onError);
+    async loadSingleModelAsync(url) {
+        if (this.cache.has(url)) return this.cache.get(url);
+        const model = await new Promise((resolve, reject)=>{
+            this.loader.load(url, (gltf)=>resolve(gltf.scene), null, (error)=>reject(error));
+        });
+        this.cache.set(url, model);
+        return model;
     }
-    loadLODModels(lodArray, onLoad, onProgress, onError) {
+    async loadLODModelsAsync(lodArray) {
         if (!Array.isArray(lodArray) || lodArray.length === 0) throw new Error("LOD array must be a non-empty array of objects.");
         const lod = new _three.LOD();
-        let loadedModels = 0;
-        const totalModels = lodArray.length;
-        lodArray.forEach(({ url, distance }, index)=>{
-            this.loader.load(url, (gltf)=>{
-                const model = gltf.scene;
-                lod.addLevel(model, distance);
-                loadedModels++;
-                if (loadedModels === totalModels) onLoad(lod);
-            }, onProgress, onError);
-        });
+        await Promise.all(lodArray.map(async ({ url, distance })=>{
+            const model = await this.loadSingleModelAsync(url);
+            lod.addLevel(model, distance);
+        }));
+        return lod;
     }
     dispose() {
         this.dracoLoader.dispose();
+        this.cache.clear(); // Clear the cache
     }
 } /*
-// Example usage in a main class
-class Main {
-    constructor() {
-        this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        this.renderer = new THREE.WebGLRenderer();
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(this.renderer.domElement);
-
-        this.modelLoader = new ModelLoader();
-
-        this.init();
+export default class ModelLoader {
+    constructor(manager) {
+        this.manager = manager || new THREE.LoadingManager();
+        this.loader = new GLTFLoader(this.manager);
+        this.dracoLoader = new DRACOLoader();
+        this.dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.4.3/'); // Or your local path
+        this.loader.setDRACOLoader(this.dracoLoader);
     }
 
-    init() {
-        this.camera.position.z = 5;
-
-        // Load a single model
-        this.modelLoader.loadSingleModel('/models/exampleModel.glb', (model) => {
-            this.scene.add(model);
-        },
-            (xhr) => console.log((xhr.loaded / xhr.total * 100) + '% loaded'),
-            (error) => console.error('An error occurred:', error));
-
-        // Load LOD models
-        const lodModels = [
-            { url: '/models/lod0.glb', distance: 10 },
-            { url: '/models/lod1.glb', distance: 25 },
-            { url: '/models/lod2.glb', distance: 50 },
-        ];
-
-        this.modelLoader.loadLODModels(lodModels, (lod) => {
-            this.scene.add(lod);
-        },
-            (xhr) => console.log((xhr.loaded / xhr.total * 100) + '% loaded'),
-            (error) => console.error('An error occurred:', error));
-
-        this.animate();
+    loadSingleModel(url, onLoad, onProgress, onError) {
+        this.loader.load(url, (gltf) => {
+            onLoad(gltf.scene);
+        }, onProgress, onError);
     }
 
-    animate() {
-        requestAnimationFrame(() => this.animate());
-        this.renderer.render(this.scene, this.camera);
+    loadLODModels(lodArray, onLoad, onProgress, onError) {
+        if (!Array.isArray(lodArray) || lodArray.length === 0) {
+            throw new Error('LOD array must be a non-empty array of objects.');
+        }
+
+        const lod = new THREE.LOD();
+
+        let loadedModels = 0;
+        const totalModels = lodArray.length;
+
+        lodArray.forEach(({ url, distance }, index) => {
+            this.loader.load(url, (gltf) => {
+                const model = gltf.scene;
+                lod.addLevel(model, distance);
+                loadedModels++;
+
+                if (loadedModels === totalModels) {
+                    onLoad(lod);
+                }
+            }, onProgress, onError);
+        });
+    }
+
+    dispose() {
+        this.dracoLoader.dispose();
     }
 }
 */ 
