@@ -613,6 +613,8 @@ var _videotextureJs = require("./shaders/videotexture.js");
 var _videotextureJsDefault = parcelHelpers.interopDefault(_videotextureJs);
 var _grassColorPng = require("../img/grassColor.png");
 var _grassColorPngDefault = parcelHelpers.interopDefault(_grassColorPng);
+var _albedo4KPng = require("../img/groundtextures/mossy-grass/Albedo_4K.png");
+var _albedo4KPngDefault = parcelHelpers.interopDefault(_albedo4KPng);
 var _videoFallbackJpg = require("../img/videoFallback.jpg");
 var _videoFallbackJpgDefault = parcelHelpers.interopDefault(_videoFallbackJpg);
 //import cloudTexture from '../img/cloud.jpg';
@@ -622,6 +624,8 @@ var _contentJson = require("./content.json");
 var _contentJsonDefault = parcelHelpers.interopDefault(_contentJson);
 var _grassSceneJs = require("./GrassScene.js");
 var _grassSceneJsDefault = parcelHelpers.interopDefault(_grassSceneJs);
+var _modelLoaderJs = require("./ModelLoader.js");
+var _modelLoaderJsDefault = parcelHelpers.interopDefault(_modelLoaderJs);
 /********************************************************************
 // Vanilla Javascript
 ********************************************************************/ /********************************************************************
@@ -954,16 +958,16 @@ function fnLoadContent(id) {
 /********************************************************************
 // Scene Constants
 ********************************************************************/ let velocity = new _three.Vector3();
-let SPEED = 200.0; //175
-const PERSON_HEIGHT = 18.0;
+let SPEED = 400.0; //175
+const PERSON_HEIGHT = 18.0; //18
 const FIELD_SIZE = visitedFromMobileDevice ? 2600 : 4000 // Field size in both x and z directions
 ;
-const chunkSize = 100;
+//const chunkSize = 100;
 const grassBladesPerChunk = 2100; //3500
 const maxDistance = 1600; // Define maximum allowed distance from origin (0, 0, 0)
 // Basic scene setup
 const scene = new _three.Scene();
-const camera = new _three.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 900);
+const camera = new _three.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
 const canvasContainer = document.querySelector("#container-opening-scene");
 const renderer = new _three.WebGLRenderer({
     antialias: true,
@@ -981,10 +985,13 @@ renderer.toneMappingExposure = 1.0;
 renderer.setSize(window.innerWidth, window.innerHeight);
 canvasContainer.appendChild(renderer.domElement);
 //show stats, updated in animation loop
-//const stats = Stats();
-//stats.showPanel(0);
-//document.body.appendChild(stats.dom);
-// Custom shader material for powerlines
+const stats = (0, _statsModuleDefault.default)();
+stats.showPanel(0);
+document.body.appendChild(stats.dom);
+/********************************************************************
+// Load Models
+********************************************************************/ const modelLoader = new (0, _modelLoaderJsDefault.default)();
+/** Powerlines Model */ // Custom shader material for powerlines
 const shaderMaterialLine = new _three.ShaderMaterial({
     vertexShader: (0, _powerlinesJsDefault.default).vert,
     fragmentShader: (0, _powerlinesJsDefault.default).frag,
@@ -1001,11 +1008,7 @@ const shaderMaterialLine = new _three.ShaderMaterial({
     },
     transparent: true
 });
-// Load a GLTF model using the GLTFLoader
-const loader = new (0, _gltfloader.GLTFLoader)();
-loader.load("./assets/powerlines.glb", function(gltf) {
-    const model = gltf.scene;
-    scene.add(model);
+modelLoader.loadSingleModel("./assets/powerlines.glb", (model)=>{
     for(let i = 1; i < 7; i++){
         model.children[i].material.transparent = true;
         model.children[i].material.opacity = 0.35;
@@ -1025,82 +1028,99 @@ loader.load("./assets/powerlines.glb", function(gltf) {
     model.position.set(360, getHeight(360, -275) - 5, -275);
     model.rotateY(-Math.PI / 4);
     model.scale.set(10, 12, 10);
-}, undefined, function(error) {
-    console.error("An error happened while loading the model:", error);
+    scene.add(model);
 });
-scene.fog = new _three.FogExp2(0x9692a1, 0.00190); // 0.02 is the density of the fog
+/** Factory Model */ let modelPlacement = {
+    factoryX: 4,
+    factoryZ: 4
+};
+modelLoader.loadSingleModel("./assets/factoryLOD0.glb", (model)=>{
+    //model.position.set(-360, getHeight(-360, -275) - 5, -275);
+    model.position.set(modelPlacement.factoryX * chunkSize + chunkSize * 0.5, getHeight(modelPlacement.factoryX * chunkSize + chunkSize * 0.5, modelPlacement.factoryZ * chunkSize + chunkSize * 0.5) - 5, modelPlacement.factoryZ * chunkSize + chunkSize * 0.5);
+    model.scale.set(10, 16, 10);
+    model.rotateY(-Math.PI / 4);
+    // Optionally, position the model
+    /*
+    model.position.set(360, getHeight(360, -275) - 5, -275);
+    model.rotateY(-Math.PI / 4);
+    model.scale.set(10, 12, 10);
+    */ scene.add(model);
+    console.log(model.position.x + " " + model.position.z);
+});
 /*
+// Load a GLTF model using the GLTFLoader
+const loader = new GLTFLoader();
+loader.load(
+    './assets/powerlines.glb',  // Path to the GLTF model file
+    function (gltf) {
+        const model = gltf.scene;
+        scene.add(model);
+        for (let i = 1; i < 7; i++) {
+            model.children[i].material.transparent = true;
+            model.children[i].material.opacity = 0.35;
+        }
 
-9998ab
-f2dfa0
-const composer = new EffectComposer(renderer, {
-    frameBufferType: HalfFloatType
-});
-composer.addPass(new RenderPass(scene, camera));
-composer.addPass(new EffectPass(camera, new BloomEffect({ intensity: 6, radius: 4.9, luminanceThreshold: 0.15, luminanceSmoothing: 1, blendFunction: THREE.NormalBlending })));
-//composer.addPass(new EffectPass(camera, new ToneMappingEffect({ mode: THREE.ReinhardToneMapping, exposure: 0.15 })));
-*/ /*
-// Create a BoxGeometry (Cube)
-const geometry2 = new THREE.BoxGeometry(10, 70, 10);
- 
-// Create a MeshStandardMaterial with high emissivity
-const material = new THREE.MeshStandardMaterial({
-    color: 0x00ff00,          // Base color of the cube
-    emissive: 0x00ff00,       // Emissive color (matching the base color)
-    emissiveIntensity: 10.0    // Increase emissive intensity to make it glow more
-});
- 
-// Create a mesh with the geometry and material
-const cube = new THREE.Mesh(geometry2, material);
- 
-cube.position.set(0, 0, 40);
- 
-// Add the cube to the scene
-scene.add(cube);
-*/ // Load the height map texture (a grayscale image)
+        model.children[1].material = shaderMaterialLine;
+        model.children[3].material = shaderMaterialLine;
+        model.children[4].material = shaderMaterialLine;
+        model.children[6].material = shaderMaterialLine;
+
+        //model.children[0].children[0].material.fog = true;
+        //model.children[0].children[1].material.fog = true;
+        //model.children[0].children[2].material.fog = false;
+
+        //model.children[0].material.fog = false;
+        //model.children[3].material.fog = false;
+        //model.children[4].material.fog = false;
+        //model.children[6].material.fog = false;
+
+
+        // Optionally, position the model
+        model.position.set(360, getHeight(360, -275) - 5, -275);
+        model.rotateY(-Math.PI / 4);
+        model.scale.set(10, 12, 10);
+
+    },
+    undefined, // onProgress callback 
+    function (error) {
+        console.error('An error happened while loading the model:', error);
+    }
+);
+*/ /********************************************************************
+// Texture Loading
+********************************************************************/ // Load the height map texture (a grayscale image)
 const textureLoader = new _three.TextureLoader();
 //const heightMap = textureLoader.load(displacementMap);
 const grassDiffuseMap = textureLoader.load((0, _grassColorPngDefault.default));
+//const groundTextureDiffuseMap = textureLoader.load(groundTexture);
 const videoFallback = textureLoader.load((0, _videoFallbackJpgDefault.default));
 /********************************************************************
-// Lights
-********************************************************************/ const light = new _three.HemisphereLight(0xF2E6BD, 0x080820, 0.95);
+// Lights and Fog
+********************************************************************/ /** Fog */ scene.fog = new _three.FogExp2(0x9692a1, 0.00190); // 0.02 is the density of the fog
+//9998ab
+//f2dfa0
+/** Lights */ const dayLight = new _three.HemisphereLight(0xF2E6BD, 0x080820, 0.75);
 //f2e1aa
 //F2E6BD
-scene.add(light);
-const widthLight = 330;
-const height = 10;
-const intensity = 50;
+scene.add(dayLight);
+const widthLight = 200;
+const height = 90;
+const intensity = 8;
 //const rectLight = new THREE.RectAreaLight(0xf1f3e1, intensity, widthLight, height);
 //0xa9dbfd
-const rectLight = new _three.RectAreaLight(0x82ccff, intensity, widthLight, height);
-const rectLight2 = new _three.RectAreaLight(0xF2E6BD, 20, widthLight, height);
+const rectLight = new _three.RectAreaLight(0xF2E6BD, intensity, widthLight, height);
+const rectLight2 = new _three.RectAreaLight(0xF2E6BD, 7, 320, 80);
 //82ccff
-//rectLight.rotateX(-Math.PI / 2)
-//const rectLight = new THREE.RectAreaLight(0xFF0000, intensity, widthLight, height);
-rectLight.position.set(0, 55, 10);
-rectLight.lookAt(0, 0, 30);
-rectLight2.position.set(0, 55, 180);
-rectLight2.lookAt(0, 0, 80);
+rectLight2.position.set(0, 0, 0);
+rectLight2.lookAt(0, 0, 100);
+rectLight.position.set(0, 40, 145);
+rectLight.lookAt(0, 0, 125);
 scene.add(rectLight2);
-const rectLightHelper = new (0, _rectAreaLightHelperJs.RectAreaLightHelper)(rectLight2);
-rectLight.add(rectLightHelper);
-function animateLightIntensity(light, targetIntensity, duration) {
-    const startIntensity = light.intensity;
-    const startTime = Date.now();
-    function update() {
-        const elapsedTime = Date.now() - startTime;
-        const progress = elapsedTime / duration;
-        if (progress < 1) {
-            // Interpolate intensity based on the elapsed time
-            light.intensity = startIntensity + (targetIntensity - startIntensity) * progress;
-            requestAnimationFrame(update); // Continue the animation
-        } else // Ensure the target intensity is set when the animation is complete
-        light.intensity = targetIntensity;
-    }
-    update(); // Start the animation
-}
-//animateLightIntensity(rectLight, 200, 5000);
+scene.add(rectLight);
+/** Light Helpers */ //const rectLightHelper2 = new RectAreaLightHelper(rectLight2);
+//rectLight.add(rectLightHelper2);
+//const rectLightHelper = new RectAreaLightHelper(rectLight);
+//rectLight.add(rectLightHelper);
 /********************************************************************
 // Handle Window Resize
 ********************************************************************/ //observe resize
@@ -1121,57 +1141,57 @@ resizeObserver.observe(canvasContainer);
 // Function to generate height based on simplex noise
 function getHeight(x, z) {
     //let height = 6 * simplex.noise(x / 400, z / 400)
-    let height = 10 * simplex.noise(x / 400, z / 400) //how high should it be
+    let height = 12 * simplex.noise(x / 400, z / 400) //how high should it be
     ;
     //height += 0.2 * simplex.noise(x / 10, z / 10)
     return height;
 }
-//generate ground
-// Generate a plane geometry and modify its vertices based on simplex noise
-const terrainGeometry = new _three.PlaneGeometry(FIELD_SIZE, FIELD_SIZE, 150, 150); //number of ground verts high so it curves probably
-terrainGeometry.rotateX(-Math.PI / 2);
-const vertices = terrainGeometry.attributes.position.array;
-for(let i = 0; i < vertices.length; i += 3){
-    const x = vertices[i];
-    const z = vertices[i + 2];
-    vertices[i + 1] = getHeight(x, z); // Modify the y-value based on noise
-}
-const terrainMaterial = new _three.MeshBasicMaterial({
-    color: 0x000000
-});
-const terrainMesh = new _three.Mesh(terrainGeometry, terrainMaterial);
-scene.add(terrainMesh);
 /********************************************************************
 // Water + Lakes : Simplex Noise
-********************************************************************/ const lakeThreshold = 0.2; // Threshold for creating lakes (lower values = larger lakes)
+********************************************************************/ /*
+const geometry = new THREE.BoxGeometry(10, 50, 10);
+const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+const cube = new THREE.Mesh(geometry, material);
+cube.position.set(0, 0, 0)
+scene.add(cube);
+*/ /*
+const lakeThreshold = 0.2; // Threshold for creating lakes (lower values = larger lakes)
 const lakeDepth = -5; // How deep the lake should be
+
 // Function to generate a lake mask using Simplex noise
 function generateLakeMask(x, z) {
     const noiseValue = simplex.noise(x * 0.1, z * 0.1); // Lower scale for larger lakes
     return noiseValue < lakeThreshold ? 1 : 0; // 1 means there's a lake, 0 means no lake
 }
+
 // Create terrain with lakes
 function generateTerrainWithLakes() {
     const terrainData = [];
-    for(let x = 0; x < FIELD_SIZE; x++)for(let z = 0; z < FIELD_SIZE; z++){
-        let elevation = getHeight(x, z);
-        // Check if we're in a lake area
-        const isLake = generateLakeMask(x, z);
-        // If it's a lake, lower the terrain height (submerge the area)
-        if (isLake) elevation = lakeDepth; // Set the lake depth
-        terrainData.push({
-            x,
-            z,
-            elevation
-        });
+
+    for (let x = 0; x < FIELD_SIZE; x++) {
+        for (let z = 0; z < FIELD_SIZE; z++) {
+            let elevation = getHeight(x, z);
+
+            // Check if we're in a lake area
+            const isLake = generateLakeMask(x, z);
+
+            // If it's a lake, lower the terrain height (submerge the area)
+            if (isLake) {
+                elevation = lakeDepth; // Set the lake depth
+            }
+
+            terrainData.push({ x, z, elevation });
+        }
     }
+
     return terrainData;
 }
+
 // Generate the terrain with lakes
 //const terrain = generateTerrainWithLakes();
 //console.log(terrain);
-/********************************************************************
-// Skybox
+*/ /********************************************************************
+// Skybox loading
 ********************************************************************/ // Create a PMREMGenerator
 const pmremGenerator = new _three.PMREMGenerator(renderer);
 pmremGenerator.compileEquirectangularShader();
@@ -1203,7 +1223,6 @@ video.play();
 const videoTexture = new _three.VideoTexture(video);
 const videoMaterial = new _three.ShaderMaterial({
     uniforms: {
-        //texture1: { value: video.paused ? videoFallback : videoTexture },
         videoTexture: {
             value: videoTexture
         },
@@ -1221,7 +1240,6 @@ const videoMaterial = new _three.ShaderMaterial({
 });
 if (video.paused) videoMaterial.uniforms.videoTexture.value = videoFallback;
 document.body.addEventListener("touchstart", function() {
-    //var allVideos = document.querySelectorAll('video');
     //set texture to video
     videoMaterial.uniforms.videoTexture.value = videoTexture;
     video.play();
@@ -1233,7 +1251,7 @@ const videoGeometry = new _three.PlaneGeometry(384, 216, 32, 16); // 10x10 segme
 // Create a mesh with the geometry and custom shader material
 const videoPlane = new _three.Mesh(videoGeometry, videoMaterial);
 videoPlane.position.set(0, getHeight(0, 0) + 110.0, 0);
-// Add the plane to the scene
+// Video plane is added when grass workers are done with initial load
 /********************************************************************
 // FPS Controller
 ********************************************************************/ // Create a clock to manage time and deltas
@@ -1342,25 +1360,23 @@ function fnUpdateControls() {
     playerPosition.y = height + PERSON_HEIGHT;
 }
 /********************************************************************
-// Position Camera
-********************************************************************/ //const cameraPosDesktop = new THREE.Vector3(0, getHeight(0, 320) + PERSON_HEIGHT, 320);
-let startPosition, endPosition;
+// Position Camera at pageload
+********************************************************************/ let startPosition, endPosition;
 if (visitedFromMobileDevice) {
     camera.rotation.x = 0;
     camera.far = 1100;
-    //camera.updateProjectionMatrix();
     startPosition = new _three.Vector3(0, getHeight(0, 550) + PERSON_HEIGHT, 550);
     endPosition = new _three.Vector3(0, getHeight(0, 450) + PERSON_HEIGHT, 450);
     if (window.matchMedia("(orientation: landscape)").matches) {
         startPosition = new _three.Vector3(0, getHeight(0, 350) + PERSON_HEIGHT, 350);
         endPosition = new _three.Vector3(0, getHeight(0, 250) + PERSON_HEIGHT, 250);
+        camera.far = 950;
     }
 } else {
     startPosition = new _three.Vector3(0, getHeight(0, 420) + PERSON_HEIGHT, 420); // Starting position
     endPosition = new _three.Vector3(0, getHeight(0, 320) + PERSON_HEIGHT, 320); // Ending position
     camera.rotation.x = Math.PI / 16;
 }
-//camera.position.set(0, getHeight(0, 320) + PERSON_HEIGHT, 320);
 camera.position.set(startPosition.x, startPosition.y, startPosition.z);
 /********************************************************************
 // Animate Camera
@@ -1369,7 +1385,7 @@ const cameraAnimationState = {
     startTime: null,
     isAnimating: false,
     duration: 5000,
-    checkOrientationCanRun: false
+    fnCheckOrientationCanRun: false
 };
 // Easing function (Ease In-Out Quad)
 function easeInOutQuad(t) {
@@ -1393,56 +1409,42 @@ function fnAnimateCamera() {
         // Stop animation when completed
         if (progress >= 1) {
             cameraAnimationState.isAnimating = false;
-            cameraAnimationState.checkOrientationCanRun = true;
+            cameraAnimationState.fnCheckOrientationCanRun = true;
         }
     }
 }
-const checkOrientation = ()=>{
-    if (cameraAnimationState.checkOrientationCanRun) {
+function fnCheckOrientation() {
+    if (cameraAnimationState.fnCheckOrientationCanRun) {
         if (window.matchMedia("(orientation: landscape)").matches && visitedFromMobileDevice) {
+            camera.far = 750;
             camera.rotation.x = 0;
-            //camera.position.set(0, getHeight(0, 250) + PERSON_HEIGHT, 250);
             camera.position.set(0, getHeight(0, 250) + PERSON_HEIGHT, 250);
         } else if (window.matchMedia("(orientation: portrait)").matches && visitedFromMobileDevice) {
+            camera.far = 1100;
             camera.rotation.x = 0;
-            //camera.position.set(0, getHeight(0, 450) + PERSON_HEIGHT, 450);
             camera.position.set(0, getHeight(0, 450) + PERSON_HEIGHT, 450);
         }
     }
-};
+}
 //animateCamera();
 // Controls
 /*
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enablePan = true;
-controls.enableZoom = true;
-controls.minPolarAngle = 0.0;
-controls.maxPolarAngle = 3.45 * 2;
-controls.enableDamping = true;
-controls.dampingFactor = 0.1;
-controls.update();
-controls.target.set(10, 10, 10);
- 
+const controls1 = new OrbitControls(camera, renderer.domElement);
+controls1.enablePan = true;
+controls1.enableZoom = true;
+controls1.minPolarAngle = 0.0;
+controls1.maxPolarAngle = 3.45 * 2;
+controls1.enableDamping = true;
+controls1.dampingFactor = 0.1;
+controls1.update();
+controls1.target.set(10, 10, 10);
+/* 
 controls.addEventListener("change", event => {
     //console.log(controls.object.position);
 });
-//console.log('here');
-*/ //const axesHelper = new THREE.AxesHelper(1000);
-//scene.add(axesHelper);
-/********************************************************************
-// Set Field Border Constraints
-********************************************************************/ // Function to limit movement
-function restrictMovement() {
-    // Calculate the distance from the origin
-    const distanceFromOrigin = Math.sqrt(controls.getObject().position.x ** 2 + controls.getObject().position.z ** 2);
-    // Check if the user has exceeded the allowed distance
-    if (distanceFromOrigin > maxDistance) {
-        // Normalize the position to stay within bounds
-        const scaleFactor = maxDistance / distanceFromOrigin;
-        controls.getObject().position.x *= scaleFactor;
-        controls.getObject().position.z *= scaleFactor;
-    }
-}
+*/ //console.log('here');
+const axesHelper = new _three.AxesHelper(1000);
+scene.add(axesHelper);
 /********************************************************************
 // Grass Blade Shape
 ********************************************************************/ // Create grass blade shape
@@ -1460,7 +1462,6 @@ function createGrassBladeShapeLOD1() {
 // Convert shape to geometry
 const bladeShape = createGrassBladeShapeLOD1();
 const bladeGeometry = new _three.ShapeGeometry(bladeShape);
-//test custom-shader-material
 const grassMaterial = new (0, _vanillaDefault.default)({
     baseMaterial: _three.MeshStandardMaterial,
     uniforms: {
@@ -1473,9 +1474,6 @@ const grassMaterial = new (0, _vanillaDefault.default)({
         //u_touchTime: { value: 0 }, // Time of the last touch
         grassTexture: {
             value: grassDiffuseMap
-        },
-        fieldSize: {
-            value: FIELD_SIZE
         }
     },
     silent: true,
@@ -1484,205 +1482,391 @@ const grassMaterial = new (0, _vanillaDefault.default)({
     vertexColors: false,
     side: _three.DoubleSide
 });
+/********************************************************************
+// Creating chunks array
+********************************************************************/ /*
+const arrChunks = [];
+
+for (let x = 0; x < FIELD_SIZE / chunkSize; x++) {
+    for (let z = 0; z < FIELD_SIZE / chunkSize; z++) {
+        const chunk = {
+            position: new THREE.Vector2((x * chunkSize) - 0.5 * FIELD_SIZE, (z * chunkSize) - 0.5 * FIELD_SIZE), // Chunk position on the plane
+            geometry: new THREE.InstancedBufferGeometry(), // Geometry for this chunk
+            material: grassMaterial,
+            //boundingBox: new THREE.Box3() // Bounding box for frustum culling
+            //boundingSphere: new THREE.Sphere(new THREE.Vector2((x * chunkSize) - width / 2), ((z * chunkSize) - width / 2), 2.0)
+            //boundingSphere: new THREE.Sphere()
+        };
+        arrChunks.push(chunk);
+    }
+}
+    */ //new stuff
+/********************************************************************
+// New Terrain Logic
+********************************************************************/ /** Terrain Constants */ const chunkSize = 200; // Size of each terrain chunk
+const viewRadius = 9; // Number of chunks to load around the player
+const unloadRadius = 10; // Number of chunks to unload outside this radius
+const chunkVertexCount = 5;
+const instanceCount = 4750;
+const loadedChunks = new Map(); // Store references to loaded chunks
+// Define special chunk configurations by their X, Z values
+const specialChunks = {
+};
+const dynamicKey = `${modelPlacement.factoryX},${modelPlacement.factoryZ}`;
+specialChunks[dynamicKey] = {
+    type: "ground",
+    materialColor: 0x000000,
+    vertexCount: 5,
+    grassBladeCount: 1000,
+    texture: null
+};
+//console.log(specialChunks)
+/********************************************************************
+// Worker Pool for Grass Generation
+********************************************************************/ const workerPoolSize = navigator.hardwareConcurrency || 4; // Number of workers based on CPU cores
+const grassWorkerPool = [];
+const grassWorkerQueue = []; // Queue for pending tasks
+// Initialize the worker pool
+for(let i = 0; i < workerPoolSize; i++){
+    const worker = new Worker(require("cdb16b6f1235a7ac"));
+    worker.onmessage = (event)=>{
+        const { chunkKey, grassGeometryData } = event.data;
+        //console.log(event.data)
+        // Create instanced buffer geometry for grass blades
+        const grassGeometry = new _three.InstancedBufferGeometry();
+        //grassGeometry.copy(new THREE.PlaneGeometry(5, 5)); // Base blade geometry
+        grassGeometry.copy(bladeGeometry);
+        grassGeometry.setAttribute("offset", new _three.InstancedBufferAttribute(grassGeometryData.offsets, 3));
+        grassGeometry.setAttribute("instanceRotationMatrix", new _three.InstancedBufferAttribute(grassGeometryData.rotationMatrices, 9));
+        grassGeometry.setAttribute("scale", new _three.InstancedBufferAttribute(grassGeometryData.scales, 1));
+        grassGeometry.setAttribute("uv", new _three.InstancedBufferAttribute(grassGeometryData.uvs, 2));
+        //grassGeometry.computeVertexNormals();
+        //calc the y-value using GetHeight()
+        for(let i = 0; i < grassGeometryData.instanceCount; i++)grassGeometryData.offsets[i * 3 + 1] = getHeight(grassGeometryData.offsets[i * 3], grassGeometryData.offsets[i * 3 + 2]); // Calculate height using getHeight
+        //const grassMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide });
+        const grassMesh = new _three.InstancedMesh(grassGeometry, grassMaterial, grassGeometryData.instanceCount);
+        //grassMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        // Set the bounding box for the grass mesh to match the chunk size
+        //grassMesh.computeBoundingSphere();
+        grassMesh.geometry.boundingSphere = grassGeometryData.boundingSphere;
+        // Add grass to the scene
+        scene.add(grassMesh);
+        // Store the grass mesh in the loadedChunks map
+        if (loadedChunks.has(chunkKey)) loadedChunks.get(chunkKey).grassMesh = grassMesh;
+        // Process the next task in the queue, if any
+        if (grassWorkerQueue.length > 0) {
+            const nextTask = grassWorkerQueue.shift();
+            worker.postMessage(nextTask);
+        } else {
+            grassWorkerPool.push(worker); // Return worker to the pool
+            fnOnTerrainComplete();
+        }
+    };
+    grassWorkerPool.push(worker);
+}
+function postToGrassWorker(task) {
+    if (grassWorkerPool.length > 0) {
+        const worker = grassWorkerPool.pop();
+        worker.postMessage(task);
+    } else grassWorkerQueue.push(task); // Add task to the queue if no worker is available
+}
+/********************************************************************
+// NEW TERRAIN GENERATION
+********************************************************************/ function fnGenerateChunk(x, z) {
+    const offsetX = x * chunkSize;
+    const offsetZ = z * chunkSize;
+    const chunkKey = `${x},${z}`;
+    const isSpecialChunk = specialChunks.hasOwnProperty(chunkKey);
+    // Define chunk properties based on whether it's a special chunk or not
+    const chunkProps = isSpecialChunk ? specialChunks[chunkKey] : {
+        type: "default",
+        materialColor: 0x000000,
+        vertexCount: 5,
+        grassBladeCount: 4750,
+        texture: null
+    };
+    // Create geometry for the terrain chunk
+    const geometry = new _three.PlaneGeometry(chunkSize, chunkSize, chunkProps.vertexCount, chunkProps.vertexCount);
+    geometry.rotateX(-Math.PI / 2);
+    // Adjust the geometry's position so that its origin aligns with the top-left corner
+    geometry.translate(chunkSize / 2, 0, chunkSize / 2);
+    // Modify the vertices based on simplex noise
+    const vertices = geometry.attributes.position.array;
+    /*
+        for (let i = 0; i < vertices.length; i += 3) {
+            const vertexX = vertices[i] + offsetX;
+            const vertexZ = vertices[i + 2];
+            vertices[i + 1] = getHeight(vertexX, vertexZ + offsetZ); // Set Y position based on height
+        }
+    */ for(let i = 0; i < vertices.length; i += 3){
+        const vertexX = vertices[i] + offsetX;
+        const vertexZ = vertices[i + 2] + offsetZ;
+        vertices[i + 1] = getHeight(vertexX, vertexZ); // Set Y position based on height
+    }
+    geometry.computeVertexNormals(); // Recalculate normals for smooth shading
+    // Create material for the chunk
+    let material;
+    if (chunkProps.texture) //const texture = new THREE.TextureLoader().load(chunkProps.texture);
+    //const normalMap = chunkProps.normalMap ? new THREE.TextureLoader().load(chunkProps.normalMap) : null;
+    material = new _three.MeshStandardMaterial({
+        map: groundTextureDiffuseMap
+    });
+    else material = new _three.MeshBasicMaterial({
+        color: chunkProps.materialColor
+    });
+    // Create the mesh
+    const chunkMesh = new _three.Mesh(geometry, material);
+    chunkMesh.position.set(offsetX, 0, offsetZ);
+    // Add grass if the chunk has grassBladeCount > 0
+    if (chunkProps.grassBladeCount !== undefined && chunkProps.grassBladeCount > 0) postToGrassWorker({
+        chunkKey,
+        offsetX,
+        offsetZ,
+        chunkSize,
+        instanceCount: chunkProps.grassBladeCount
+    });
+    //console.log(chunkMesh)
+    return chunkMesh;
+}
 /*
-// Create a Raycaster and Vector2 for touch
-const raycaster = new THREE.Raycaster();
-const touchPoint = new THREE.Vector2();
+function fnGenerateChunk(x, z) {
+    const offsetX = x * chunkSize;
+    const offsetZ = z * chunkSize;
 
-canvasContainer.addEventListener('touchstart', (event) => {
-    if (event.touches.length > 0) {
-        const touch = event.touches[0];
-        const rect = canvasContainer.getBoundingClientRect();
+    // Create geometry for the terrain chunk
+    const terrainGeometry = new THREE.PlaneGeometry(chunkSize, chunkSize, chunkVertexCount, chunkVertexCount);
+    terrainGeometry.rotateX(-Math.PI / 2);
 
-        // Convert touch to normalized device coordinates (NDC)
-        touchPoint.x = ((touch.clientX - rect.left) / rect.width) * 2 - 1;
-        touchPoint.y = -((touch.clientY - rect.top) / rect.height) * 2 + 1;
+    // Adjust the geometry's position so that its origin aligns with the top-left corner
+    terrainGeometry.translate(chunkSize / 2, 0, chunkSize / 2);
 
-        // Set up the Raycaster
-        raycaster.setFromCamera(touchPoint, camera);
+    // Modify the vertices based on simplex noise
+    const vertices = terrainGeometry.attributes.position.array;
+    for (let i = 0; i < vertices.length; i += 3) {
+        const vertexX = vertices[i] + offsetX;
+        const vertexZ = vertices[i + 2] + offsetZ;
+        vertices[i + 1] = getHeight(vertexX, vertexZ); // Set Y position based on height
+    }
 
-        // Intersect the ray with the plane or ground where the grass exists
-        const intersects = raycaster.intersectObject(terrainMesh); // Replace `grassPlane` with your grass mesh or plane
+    //terrainGeometry.computeVertexNormals(); // Recalculate normals for smooth shading
 
-        if (intersects.length > 0) {
-            const intersect = intersects[0];
+    // Create material for the chunk
+    const terrainMaterial = new THREE.MeshBasicMaterial({
+        color: 0x000000
+    });
 
-            // Update uniforms with the touch position in world space
-            grassMaterial.uniforms.u_touch.value.set(intersect.point.x, intersect.point.z); // X and Z for 2D interaction
-            grassMaterial.uniforms.u_touchActive.value = 1;
-            grassMaterial.uniforms.u_touchTime.value = clock.getElapsedTime();
+    // Create the mesh
+    const chunkMesh = new THREE.Mesh(terrainGeometry, terrainMaterial);
+    chunkMesh.position.set(offsetX, 0, offsetZ);
 
-            console.log(intersect.point.x + " " + intersect.point.z)
-            console.log("u-touch_time: ", clock.getElapsedTime())
-            console.log("time: ", grassMaterial.uniforms.time.value)
 
-            // Reset the touch effect after a short duration
-            setTimeout(() => {
-                grassMaterial.uniforms.u_touchActive.value = 0;
-            }, 3000); // Effect lasts 300ms
+    // Request grass data from the worker
+    const chunkKey = `${x},${z}`;
+    postToGrassWorker({ chunkKey, offsetX, offsetZ, chunkSize, instanceCount });
+
+    return chunkMesh;
+
+}
+    */ /********************************************************************
+// Load Initial Terrain
+********************************************************************/ function loadInitialTerrain(sizeInChunks) {
+    totalChunks = sizeInChunks * sizeInChunks;
+    for(let z = 0; z < sizeInChunks; z++)for(let x = 0; x < sizeInChunks; x++){
+        const chunkKey = `${x},${z}`;
+        if (!loadedChunks.has(chunkKey)) {
+            const chunkMesh = fnGenerateChunk(x, z);
+            scene.add(chunkMesh);
+            loadedChunks.set(chunkKey, {
+                terrainMesh: chunkMesh
+            });
         }
     }
-});
-
-*/ /********************************************************************
-// Creating chunks array
-********************************************************************/ const arrChunks = [];
-for(let x = 0; x < FIELD_SIZE / chunkSize; x++)for(let z = 0; z < FIELD_SIZE / chunkSize; z++){
-    const chunk = {
-        position: new _three.Vector2(x * chunkSize - 0.5 * FIELD_SIZE, z * chunkSize - 0.5 * FIELD_SIZE),
-        geometry: new _three.InstancedBufferGeometry(),
-        material: grassMaterial
+    console.log(loadedChunks);
+}
+loadInitialTerrain(5);
+/********************************************************************
+// Function to run start animation and welcome screen fade, at page load
+********************************************************************/ function fnCreateOnceFunction() {
+    let hasBeenCalled = false;
+    return function() {
+        if (!hasBeenCalled) {
+            fnFadeOutWelcomeScreen();
+            cameraAnimationState.isAnimating = true;
+            hasBeenCalled = true;
+        }
     };
-    arrChunks.push(chunk);
+}
+const fnOnTerrainComplete = fnCreateOnceFunction();
+/********************************************************************
+// Load Chunks Dynamically
+********************************************************************/ function loadChunksAroundPlayer(playerPosition) {
+    const playerChunkX = Math.floor(playerPosition.x / chunkSize);
+    const playerChunkZ = Math.floor(playerPosition.z / chunkSize);
+    for(let dz = -viewRadius; dz <= viewRadius; dz++)for(let dx = -viewRadius; dx <= viewRadius; dx++){
+        const chunkX = playerChunkX + dx;
+        const chunkZ = playerChunkZ + dz;
+        const chunkKey = `${chunkX},${chunkZ}`;
+        // Check if the chunk is already loaded
+        if (!loadedChunks.has(chunkKey)) {
+            const chunkMesh = fnGenerateChunk(chunkX, chunkZ);
+            scene.add(chunkMesh);
+            loadedChunks.set(chunkKey, {
+                terrainMesh: chunkMesh
+            });
+        }
+    }
+}
+/********************************************************************
+// Unload Distant Chunks
+********************************************************************/ function unloadFarChunks(playerPosition) {
+    const playerChunkX = Math.floor(playerPosition.x / chunkSize);
+    const playerChunkZ = Math.floor(playerPosition.z / chunkSize);
+    loadedChunks.forEach((chunk, key)=>{
+        const [chunkX, chunkZ] = key.split(",").map(Number);
+        const distance = Math.max(Math.abs(chunkX - playerChunkX), Math.abs(chunkZ - playerChunkZ));
+        if (distance > unloadRadius) {
+            scene.remove(chunk.terrainMesh);
+            if (chunk.grassMesh) scene.remove(chunk.grassMesh);
+            loadedChunks.delete(key);
+        }
+    });
+}
+/********************************************************************
+// Adjust Grass Instance Count
+********************************************************************/ function adjustGrassInstanceCount(playerPosition) {
+    loadedChunks.forEach((chunk, key)=>{
+        const isSpecialChunk = specialChunks.hasOwnProperty(key);
+        if (chunk.grassMesh && !isSpecialChunk) {
+            const [chunkX, chunkZ] = key.split(",").map(Number);
+            const centerX = chunkX * chunkSize + chunkSize / 2;
+            const centerZ = chunkZ * chunkSize + chunkSize / 2;
+            const distance = new _three.Vector3(playerPosition.x, 0, playerPosition.z).distanceTo(new _three.Vector3(centerX, 0, centerZ));
+            /*
+                        const distance = Math.sqrt(
+                            Math.pow(playerPosition.x - centerX, 2) +
+                            Math.pow(playerPosition.z - centerZ, 2)
+                        );
+            */ //const maxDistance = viewRadius * chunkSize;
+            const maxDistance = viewRadius * chunkSize;
+            const normalizedDistance = Math.min(distance / maxDistance, 1);
+            //console.log(maxDistance + " " + normalizedDistance)
+            let newInstanceCount = Math.floor((1 - normalizedDistance) * 2000);
+            //chunk.grassMesh.count = newInstanceCount;
+            //console.log(normalizedDistance + " " + instanceCount)
+            //console.log(maxDistance + " " + instanceCount)
+            if (distance > 900) chunk.grassMesh.count = instanceCount * 0.3;
+            else if (distance > 800) chunk.grassMesh.count = instanceCount * 0.4;
+            else if (distance > 500) chunk.grassMesh.count = instanceCount * 0.6;
+            else if (distance > 400) chunk.grassMesh.count = instanceCount * 0.7;
+            else chunk.grassMesh.count = instanceCount;
+        //chunk.grassMesh.instanceCount = instanceCount; // Set the visible grass blades
+        //chunk.grassMesh.geometry.instanceCount = 200; // Set the visible grass blades
+        //console.log(chunk.grassMesh.geometry.instanceCount)
+        // Ensure material updates if necessary
+        //chunk.grassMesh.material.needsUpdate = true;
+        }
+    });
+}
+/********************************************************************
+// Update Terrain Chunks
+********************************************************************/ function updateTerrainChunks(playerPosition) {
+    loadChunksAroundPlayer(playerPosition);
+    adjustGrassInstanceCount(playerPosition);
+    unloadFarChunks(playerPosition);
 }
 /********************************************************************
 // Assign grass blade instances to chunks
 ********************************************************************/ /*
-function addInstanceToChunk(chunk, position) {
-    // Assuming each chunk has a fixed number of grass blades
-    const instanceCount = grassBladesPerChunk;
  
-    // Create buffers for instance attributes
-    const offsets = new Float32Array(instanceCount * 3); // x, y, z
-    const uvs = new Float32Array(instanceCount * 2);
-    const rotationMatrices = new Float32Array(instanceCount * 9); // Rotation angle
-    const scales = new Float32Array(instanceCount); // x, y, z scale
-    const normalizedHeight = new Float32Array(instanceCount);
- 
- 
-    for (let i = 0; i < instanceCount; i++) {
-        // Set position
-        offsets[i * 3] = position.x + (Math.random() * chunkSize);
-        offsets[i * 3 + 2] = position.y + (Math.random() * chunkSize);
-        offsets[i * 3 + 1] = getHeight(offsets[i * 3], offsets[i * 3 + 2]);
- 
-        //set UV's
-        uvs[i] = [convertRange(offsets[i * 3], position.x, (position.x + chunkSize), (0 + chunkSize), (position.x / chunkSize))];
-        uvs[i + 2] = [convertRange(offsets[i * 3 + 2], position.y, (position.y + chunkSize), (0 + chunkSize), (position.y / chunkSize))];
- 
-        //define angles
-        const angle = Math.random() * Math.PI * 2; // Random rotation angle
-        const cosAngle = Math.cos(angle);
-        const sinAngle = Math.sin(angle);
- 
- 
-        // Construct a 3x3 rotation matrix around the Y-axis
-        const index = i * 9;
-        rotationMatrices[index + 0] = cosAngle;
-        rotationMatrices[index + 1] = 0;
-        rotationMatrices[index + 2] = -sinAngle;
- 
-        rotationMatrices[index + 3] = 0;
-        rotationMatrices[index + 4] = 1;
-        rotationMatrices[index + 5] = 0;
- 
-        rotationMatrices[index + 6] = sinAngle;
-        rotationMatrices[index + 7] = 0;
-        rotationMatrices[index + 8] = cosAngle;
- 
-        // Set scale
-        scales[i] = Math.random() * 2.0 + 3.5;
- 
-        //normalize the height
-        normalizedHeight[i] = [convertRange(scales[i], 1.55, 6.60, 0, 1)];
-    }
- 
-    chunk.geometry.index = bladeGeometry.index;
-    chunk.geometry.attributes.position = bladeGeometry.attributes.position;
-    chunk.geometry.attributes.uv = bladeGeometry.attributes.uv;
- 
-    // Set attributes in InstancedBufferGeometry
-    chunk.geometry.setAttribute('offset', new THREE.InstancedBufferAttribute(offsets, 3));
-    chunk.geometry.setAttribute('uv', new THREE.InstancedBufferAttribute(uvs, 2));
-    chunk.geometry.setAttribute('instanceRotationMatrix', new THREE.InstancedBufferAttribute(rotationMatrices, 9));
-    chunk.geometry.setAttribute('scale', new THREE.InstancedBufferAttribute(scales, 1));
-    chunk.geometry.setAttribute('normalizedHeight', new THREE.InstancedBufferAttribute(normalizedHeight, 1));
-    chunk.geometry.computeVertexNormals();
-    //chunk.geometry.boundingBox = new THREE.Box3();
-    chunk.geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(position.x + chunkSize, getHeight(position.x + chunkSize, position.y + chunkSize) + 20.0, position.y + chunkSize), chunkSize + 25.0);
- 
-    chunk.geometry.boundingSphere.needsUpdate = true;
-}
- 
- 
- 
- 
-arrChunks.forEach(chunk => {
- 
-    addInstanceToChunk(chunk, chunk.position);
- 
-});
- 
- 
-arrChunks.forEach(chunk => {
-    //if (isChunkVisible(camera, chunk)) {
-    // Create a Mesh from the chunk's instanced geometry
-    const mesh = new THREE.Mesh(chunk.geometry, chunk.material);
-    console.log(mesh)
-    scene.add(mesh);
-    //}
-});
-*/ // Function to handle worker results
+// Function to handle worker results
 const workerPoolSize = navigator.hardwareConcurrency || 4; // Number of workers based on CPU cores
 const workers = [];
-const chunkQueue = [
-    ...arrChunks
-]; // Copy the array of chunks to be processed
+const chunkQueue = [...arrChunks]; // Copy the array of chunks to be processed
 const activeWorkers = new Set();
+ 
+ 
 // Function to handle worker result
 function handleWorkerResult(chunk, data) {
     chunk.geometry.index = bladeGeometry.index;
     chunk.geometry.attributes.position = bladeGeometry.attributes.position;
     chunk.geometry.attributes.uv = bladeGeometry.attributes.uv;
-    for(let i = 0; i < grassBladesPerChunk; i++)data.offsets[i * 3 + 1] = getHeight(data.offsets[i * 3], data.offsets[i * 3 + 2]); // Calculate height using getHeight
-    chunk.geometry.setAttribute("offset", new _three.InstancedBufferAttribute(data.offsets, 3));
-    chunk.geometry.setAttribute("uv", new _three.InstancedBufferAttribute(data.uvs, 2));
-    chunk.geometry.setAttribute("instanceRotationMatrix", new _three.InstancedBufferAttribute(data.rotationMatrices, 9));
-    chunk.geometry.setAttribute("scale", new _three.InstancedBufferAttribute(data.scales, 1));
+ 
+ 
+    for (let i = 0; i < grassBladesPerChunk; i++) {
+        data.offsets[i * 3 + 1] = getHeight(data.offsets[i * 3], data.offsets[i * 3 + 2]); // Calculate height using getHeight
+    }
+ 
+ 
+ 
+ 
+    chunk.geometry.setAttribute('offset', new THREE.InstancedBufferAttribute(data.offsets, 3));
+    chunk.geometry.setAttribute('uv', new THREE.InstancedBufferAttribute(data.uvs, 2));
+    chunk.geometry.setAttribute('instanceRotationMatrix', new THREE.InstancedBufferAttribute(data.rotationMatrices, 9));
+    chunk.geometry.setAttribute('scale', new THREE.InstancedBufferAttribute(data.scales, 1));
     //chunk.geometry.setAttribute('normalizedHeight', new THREE.InstancedBufferAttribute(data.normalizedHeight, 1));
     chunk.geometry.computeVertexNormals();
-    /*
-        chunk.geometry.boundingSphere = new THREE.Sphere(
-            new THREE.Vector3(chunk.position.x + chunkSize, 0.0, chunk.position.y + chunkSize),
-            chunkSize + 0.0
-        );
-    */ chunk.geometry.boundingSphere = new _three.Sphere(new _three.Vector3(chunk.position.x + 0.5 * chunkSize, 0.0, chunk.position.y + 0.5 * chunkSize), chunkSize * 0.75);
-    const mesh = new _three.Mesh(chunk.geometry, chunk.material);
+ 
+ 
+    chunk.geometry.boundingSphere = new THREE.Sphere(
+        new THREE.Vector3(chunk.position.x + (0.5 * chunkSize), 0.0, chunk.position.y + (0.5 * chunkSize)),
+        chunkSize * 0.75
+    );
+ 
+ 
+ 
+    const mesh = new THREE.Mesh(chunk.geometry, chunk.material);
     scene.add(mesh);
+ 
 }
+ 
+*/ /*
 // Function to assign work to a worker
 function assignChunkToWorker(worker, chunk) {
     activeWorkers.add(worker);
+ 
     worker.postMessage({
         chunkPosition: chunk.position,
         chunkSize: chunkSize,
         instanceCount: grassBladesPerChunk
     });
-    worker.onmessage = function(event) {
+ 
+    worker.onmessage = function (event) {
         handleWorkerResult(chunk, event.data);
         activeWorkers.delete(worker);
+ 
         if (chunkQueue.length > 0) {
             const nextChunk = chunkQueue.shift();
             assignChunkToWorker(worker, nextChunk);
         } else if (activeWorkers.size == 0) {
+ 
             cameraAnimationState.isAnimating = true;
             fnFadeOutWelcomeScreen();
+ 
         }
     };
 }
+ 
+ 
+ 
+ 
 // Create the worker pool
-for(let i = 0; i < workerPoolSize; i++){
-    const worker = new Worker(require("73d37e91c71236a0"));
+for (let i = 0; i < workerPoolSize; i++) {
+    const worker = new Worker(
+        new URL('worker.js', import.meta.url),
+        { type: 'module' }
+    );
     workers.push(worker);
 }
+ 
 // Start processing the chunks with workers
-workers.forEach((worker)=>{
+workers.forEach(worker => {
     if (chunkQueue.length > 0) {
         const chunk = chunkQueue.shift();
         assignChunkToWorker(worker, chunk);
     }
 });
-/********************************************************************
+ 
+*/ /********************************************************************
 // Function to fade out welcome screen
 ********************************************************************/ function fnFadeOutWelcomeScreen() {
     const welcomeScreen = document.getElementById("welcome-screen");
@@ -1692,19 +1876,35 @@ workers.forEach((worker)=>{
         welcomeScreen.style.display = "none";
     }, 3000); // Matches the duration of the CSS transition
 }
-if (visitedFromMobileDevice) arrChunks.forEach((chunk)=>{
-    const cameraPosition = camera.position;
-    const cameraXZ = new _three.Vector2(cameraPosition.x, cameraPosition.z);
-    const chunkPosition = chunk.position;
-    const distance = cameraXZ.distanceTo(chunkPosition);
-    if (distance > 1000) chunk.geometry.instanceCount = grassBladesPerChunk * 0.25;
-    else if (distance > 900) chunk.geometry.instanceCount = grassBladesPerChunk * 0.4;
-    else if (distance > 600) chunk.geometry.instanceCount = grassBladesPerChunk * 0.6;
-    else if (distance > 400) chunk.geometry.instanceCount = grassBladesPerChunk;
-    else if (distance >= 200) chunk.geometry.instanceCount = grassBladesPerChunk;
-    else chunk.geometry.instanceCount = grassBladesPerChunk;
-});
-/********************************************************************
+/*
+if (visitedFromMobileDevice) {
+    arrChunks.forEach(chunk => {
+        const cameraPosition = camera.position;
+        const cameraXZ = new THREE.Vector2(cameraPosition.x, cameraPosition.z);
+
+
+        const chunkPosition = chunk.position;
+
+
+        const distance = cameraXZ.distanceTo(chunkPosition);
+
+        if (distance > 1000) {
+            chunk.geometry.instanceCount = grassBladesPerChunk * 0.25;
+        } else if (distance > 900) {
+            chunk.geometry.instanceCount = grassBladesPerChunk * 0.4;
+        } else if (distance > 600) {
+            chunk.geometry.instanceCount = grassBladesPerChunk * 0.6;
+        } else if (distance > 400) {
+            chunk.geometry.instanceCount = grassBladesPerChunk;
+        } else if (distance >= 200) {
+            chunk.geometry.instanceCount = grassBladesPerChunk;
+        } else {
+            chunk.geometry.instanceCount = grassBladesPerChunk;
+        }
+
+    });
+}
+*/ /********************************************************************
 // Water Test plane
 ********************************************************************/ /*
 // Create a blue plane in the XZ plane
@@ -1715,45 +1915,62 @@ const plane = new THREE.Mesh(geometry, material);
 // Rotate the plane to align it with the XZ plane (default is XY plane)
 plane.rotation.x = Math.PI / 2; // Rotate by 90 degrees to lie on the XZ plane
 
-plane.position.set(0, -8, 0); // Position at y = 1
+plane.position.set(0, 0, 0); // Position at y = 1
 
 // Add the plane to the scene
 scene.add(plane);
 */ function animate() {
     renderer.setAnimationLoop(animate);
+    //let playerPosition = controls.getObject().position;
+    const playerPosition = camera.position;
+    updateTerrainChunks(playerPosition); // Dynamically update chunks
     fnAnimateCamera();
-    if (visitedFromMobileDevice) checkOrientation();
-    else {
-        fnUpdateControls();
-        restrictMovement();
-    }
+    if (visitedFromMobileDevice) fnCheckOrientation();
+    else fnUpdateControls();
     //shader uniform updates
     shaderMaterialLine.uniforms.uTime.value += 0.05;
     grassMaterial.uniforms.time.value += 0.01; // Update time for wind animation
     videoMaterial.uniforms.uTime.value += 0.005;
     //console.log(renderer.info);
     //composer.render();
-    if (!visitedFromMobileDevice) arrChunks.forEach((chunk)=>{
-        const cameraPosition = camera.position;
-        const cameraXZ = new _three.Vector2(cameraPosition.x, cameraPosition.z);
-        const chunkPosition = chunk.position;
-        const distance = cameraXZ.distanceTo(chunkPosition) - 20.0;
-        if (distance > 950) chunk.geometry.instanceCount = grassBladesPerChunk * 0.3;
-        else if (distance > 800) chunk.geometry.instanceCount = grassBladesPerChunk * 0.3;
-        else if (distance > 600) chunk.geometry.instanceCount = grassBladesPerChunk * 0.7;
-        else if (distance > 200) chunk.geometry.instanceCount = grassBladesPerChunk * 0.8;
-        else if (distance >= 100) chunk.geometry.instanceCount = grassBladesPerChunk * 1.0;
-        else chunk.geometry.instanceCount = grassBladesPerChunk;
-    });
-    // Update the video texture if the video is playing
-    if (video.readyState >= video.HAVE_CURRENT_DATA) videoTexture.needsUpdate = true;
-    //controls.update();
+    /*
+        if (!visitedFromMobileDevice) {
+            arrChunks.forEach(chunk => {
+                const cameraPosition = camera.position;
+                const cameraXZ = new THREE.Vector2(cameraPosition.x, cameraPosition.z);
+    
+                const chunkPosition = chunk.position;
+    
+                const distance = cameraXZ.distanceTo(chunkPosition) - 20.0;
+    
+    
+                if (distance > 950) {
+                    chunk.geometry.instanceCount = grassBladesPerChunk * 0.3;
+                } else if (distance > 800) {
+                    chunk.geometry.instanceCount = grassBladesPerChunk * 0.3;
+                } else if (distance > 600) {
+                    chunk.geometry.instanceCount = grassBladesPerChunk * 0.7;
+                } else if (distance > 200) {
+                    chunk.geometry.instanceCount = grassBladesPerChunk * 0.8;
+                } else if (distance >= 100) {
+                    chunk.geometry.instanceCount = grassBladesPerChunk * 1.0;
+                } else {
+                    chunk.geometry.instanceCount = grassBladesPerChunk;
+                }
+            });
+        }
+    */ // Update the video texture if the video is playing
+    /*
+    if (video.readyState >= video.HAVE_CURRENT_DATA) {
+        videoTexture.needsUpdate = true;
+    }
+    */ //controls.update();
     //LOD.update(camera);
     renderer.render(scene, camera);
-//stats.update();
+    stats.update();
 }
 
-},{"three":"ktPTu","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader":"dVRsF","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./shaders/grass.js":"cNzyR","./shaders/powerlines.js":"gJXUV","./shaders/videotexture.js":"5S7oy","../img/grassColor.png":"f6f8d","../img/videoFallback.jpg":"c3Kgd","../img/introvideo.mp4":"7VbOy","./content.json":"24cue","./GrassScene.js":"a5jmZ","73d37e91c71236a0":"02A2s","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"ktPTu":[function(require,module,exports) {
+},{"three":"ktPTu","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader":"dVRsF","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./shaders/grass.js":"cNzyR","./shaders/powerlines.js":"gJXUV","./shaders/videotexture.js":"5S7oy","../img/grassColor.png":"f6f8d","../img/groundtextures/mossy-grass/Albedo_4K.png":"8rzRf","../img/videoFallback.jpg":"c3Kgd","../img/introvideo.mp4":"7VbOy","./content.json":"24cue","./GrassScene.js":"a5jmZ","./ModelLoader.js":"5o86C","cdb16b6f1235a7ac":"9rntO","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"ktPTu":[function(require,module,exports) {
 /**
  * @license
  * Copyright 2010-2024 Three.js Authors
@@ -41801,7 +42018,10 @@ exports.getBundleURL = getBundleURLCached;
 exports.getBaseURL = getBaseURL;
 exports.getOrigin = getOrigin;
 
-},{}],"c3Kgd":[function(require,module,exports) {
+},{}],"8rzRf":[function(require,module,exports) {
+module.exports = require("fff9c5d41bd6fc6b").getBundleURL("g05j8") + "Albedo_4K.df5ff2d1.png" + "?" + Date.now();
+
+},{"fff9c5d41bd6fc6b":"lgJ39"}],"c3Kgd":[function(require,module,exports) {
 module.exports = require("1a6ec7dd4a1d58fc").getBundleURL("g05j8") + "videoFallback.34fbd2c7.jpg" + "?" + Date.now();
 
 },{"1a6ec7dd4a1d58fc":"lgJ39"}],"7VbOy":[function(require,module,exports) {
@@ -42455,13 +42675,99 @@ module.exports = require("cc56433803bbd96b").getBundleURL("g05j8") + "albedo.169
 },{"cc56433803bbd96b":"lgJ39"}],"eP17o":[function(require,module,exports) {
 module.exports = require("8a393e804b2800b3").getBundleURL("g05j8") + "Normal.3ce5a148.webp" + "?" + Date.now();
 
-},{"8a393e804b2800b3":"lgJ39"}],"02A2s":[function(require,module,exports) {
-let workerURL = require("422b1475f0c5a287");
-let bundleURL = require("4d7efceec8fcf58b");
-let url = bundleURL.getBundleURL("g05j8") + "worker.795c99cd.js" + "?" + Date.now();
+},{"8a393e804b2800b3":"lgJ39"}],"5o86C":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _three = require("three");
+var _gltfloaderJs = require("three/examples/jsm/loaders/GLTFLoader.js");
+//import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
+var _dracoloaderJs = require("three/examples/jsm/loaders/DRACOLoader.js");
+class ModelLoader {
+    constructor(manager){
+        this.manager = manager || new _three.LoadingManager();
+        this.loader = new (0, _gltfloaderJs.GLTFLoader)(this.manager);
+        this.dracoLoader = new (0, _dracoloaderJs.DRACOLoader)();
+        this.dracoLoader.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.4.3/"); // Or your local path
+        this.loader.setDRACOLoader(this.dracoLoader);
+    }
+    loadSingleModel(url, onLoad, onProgress, onError) {
+        this.loader.load(url, (gltf)=>{
+            onLoad(gltf.scene);
+        }, onProgress, onError);
+    }
+    loadLODModels(lodArray, onLoad, onProgress, onError) {
+        if (!Array.isArray(lodArray) || lodArray.length === 0) throw new Error("LOD array must be a non-empty array of objects.");
+        const lod = new _three.LOD();
+        let loadedModels = 0;
+        const totalModels = lodArray.length;
+        lodArray.forEach(({ url, distance }, index)=>{
+            this.loader.load(url, (gltf)=>{
+                const model = gltf.scene;
+                lod.addLevel(model, distance);
+                loadedModels++;
+                if (loadedModels === totalModels) onLoad(lod);
+            }, onProgress, onError);
+        });
+    }
+    dispose() {
+        this.dracoLoader.dispose();
+    }
+} /*
+// Example usage in a main class
+class Main {
+    constructor() {
+        this.scene = new THREE.Scene();
+        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.renderer = new THREE.WebGLRenderer();
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(this.renderer.domElement);
+
+        this.modelLoader = new ModelLoader();
+
+        this.init();
+    }
+
+    init() {
+        this.camera.position.z = 5;
+
+        // Load a single model
+        this.modelLoader.loadSingleModel('/models/exampleModel.glb', (model) => {
+            this.scene.add(model);
+        },
+            (xhr) => console.log((xhr.loaded / xhr.total * 100) + '% loaded'),
+            (error) => console.error('An error occurred:', error));
+
+        // Load LOD models
+        const lodModels = [
+            { url: '/models/lod0.glb', distance: 10 },
+            { url: '/models/lod1.glb', distance: 25 },
+            { url: '/models/lod2.glb', distance: 50 },
+        ];
+
+        this.modelLoader.loadLODModels(lodModels, (lod) => {
+            this.scene.add(lod);
+        },
+            (xhr) => console.log((xhr.loaded / xhr.total * 100) + '% loaded'),
+            (error) => console.error('An error occurred:', error));
+
+        this.animate();
+    }
+
+    animate() {
+        requestAnimationFrame(() => this.animate());
+        this.renderer.render(this.scene, this.camera);
+    }
+}
+*/ 
+exports.default = ModelLoader;
+
+},{"three":"ktPTu","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"9rntO":[function(require,module,exports) {
+let workerURL = require("6a83a7f32f957bdd");
+let bundleURL = require("d9355504f81e2227");
+let url = bundleURL.getBundleURL("g05j8") + "grassWorker.a627e1b8.js" + "?" + Date.now();
 module.exports = workerURL(url, bundleURL.getOrigin(url), false);
 
-},{"422b1475f0c5a287":"cn2gM","4d7efceec8fcf58b":"lgJ39"}],"cn2gM":[function(require,module,exports) {
+},{"6a83a7f32f957bdd":"cn2gM","d9355504f81e2227":"lgJ39"}],"cn2gM":[function(require,module,exports) {
 "use strict";
 module.exports = function(workerUrl, origin, isESM) {
     if (origin === self.location.origin) // If the worker bundle's url is on the same origin as the document,
