@@ -30,7 +30,7 @@
 }
 
 #welcome-screen {
-  z-index: 6000;
+  z-index: 4500;
   background-color: var(--color-overlay-main);
   opacity: 1;
   justify-content: center;
@@ -61,7 +61,6 @@
 }
 
 .card-container {
-  -webkit-user-select: none;
   user-select: none;
   flex-wrap: wrap;
   justify-content: flex-start;
@@ -199,7 +198,6 @@ footer {
 
 nav {
   z-index: 5000;
-  -webkit-user-select: none;
   user-select: none;
   opacity: 1;
   flex-direction: column;
@@ -323,7 +321,6 @@ nav:hover {
 
 .content > h2 {
   letter-spacing: -2px;
-  -webkit-user-select: none;
   user-select: none;
   margin-top: 4svh;
   margin-bottom: 4svh;
