@@ -986,11 +986,10 @@ const worldScene = new (0, _worldSceneJsDefault.default)(canvasContainer, visite
 const renderer = worldScene.getRenderer();
 const camera = worldScene.getCamera();
 //show stats, updated in animation loop
-/*
-const stats = Stats();
+const stats = (0, _statsModuleDefault.default)();
 stats.showPanel(0);
 document.body.appendChild(stats.dom);
-*/ /********************************************************************
+/********************************************************************
  // Check for Tab visibility
 ********************************************************************/ let gameIsActive = true;
 function fnStartRendering() {
@@ -2048,8 +2047,8 @@ function fnUpdateControls(deltaTime) {
     newPosition.addScaledVector(direction, -velocity.z * deltaTime);
     newPosition.addScaledVector(right, -velocity.x * deltaTime);
     // --- COLLISION CHECK START ---
-    const playerRadius = 1.75;
-    const playerSphere = new _three.Sphere(newPosition, playerRadius);
+    const playerRadius1 = 1.75;
+    const playerSphere = new _three.Sphere(newPosition, playerRadius1);
     //const intersects = [];
     //const intersects = colliderBVH.intersectsSphere(playerSphere);
     //console.log('Intersects:', intersects);
@@ -2060,8 +2059,8 @@ function fnUpdateControls(deltaTime) {
             tri.closestPointToPoint(newPosition, closestPoint);
             const distance = newPosition.distanceTo(closestPoint);
             //console.log(distance)
-            if (distance < playerRadius) {
-                const penetrationDepth = playerRadius - distance;
+            if (distance < playerRadius1) {
+                const penetrationDepth = playerRadius1 - distance;
                 const displacement = newPosition.clone().sub(closestPoint).normalize().multiplyScalar(penetrationDepth);
                 newPosition.add(displacement); // Push player out of collision
             }
@@ -2071,7 +2070,7 @@ function fnUpdateControls(deltaTime) {
         // Get collision normal
         const collisionNormal = tri.getNormal(new _three.Vector3());
         // Push the player out along the collision normal
-        const penetrationDepth = playerRadius - distance;
+        const penetrationDepth = playerRadius1 - distance;
         newPosition.addScaledVector(collisionNormal, penetrationDepth);
         // Slide along the collision plane
         const velocityDot = velocity.dot(collisionNormal);
@@ -2427,43 +2426,33 @@ const intersects = [];
         const allAdded = [
             ...modelRegistry.values()
         ].every((model)=>model.isAddedToScene);
-        if (allAdded) {
-            fnOnTerrainComplete();
-            allModelsAddedToScene = true;
-        }
+        if (allAdded) //fnOnTerrainComplete();
+        allModelsAddedToScene = true;
     }
     //change this, variable is set at each loop
     fnAnimateCamera();
     if (visitedFromMobileDevice) fnCheckOrientation();
     else if (!cameraAnimationState.isAnimating) fnUpdateControls(deltaTime);
+    if (colliderBVH && !visitedFromMobileDevice) colliderBVH.shapecast({
+        intersectsBounds: (box)=>box.intersectsSphere(playerCollider),
+        intersectsTriangle: (tri)=>{
+            const distance = tri.closestPointToPoint(playerPosition, new _three.Vector3());
+            const collisionNormal = tri.getNormal(new _three.Vector3());
+            // Push the player out along the collision normal
+            const penetrationDepth = playerRadius - distance;
+            playerPosition.addScaledVector(collisionNormal, penetrationDepth);
+            // Slide along the collision plane by projecting the velocity
+            const velocityDot = playerVelocity.dot(collisionNormal);
+            const slideVector = playerVelocity.clone().sub(collisionNormal.multiplyScalar(velocityDot));
+            playerVelocity.copy(slideVector);
+            console.log("collision normal: ", collisionNormal);
+            if (distance < playerRadius) intersects.push({
+                tri,
+                distance
+            });
+        }
+    });
     /*
-    if (colliderBVH) {
-        colliderBVH.shapecast({
-            intersectsBounds: box => box.intersectsSphere(playerCollider),
-            intersectsTriangle: tri => {
-                const distance = tri.closestPointToPoint(playerPosition, new THREE.Vector3());
-
-                const collisionNormal = tri.getNormal(new THREE.Vector3());
-
-                // Push the player out along the collision normal
-                const penetrationDepth = playerRadius - distance;
-                playerPosition.addScaledVector(collisionNormal, penetrationDepth);
-
-                // Slide along the collision plane by projecting the velocity
-                const velocityDot = playerVelocity.dot(collisionNormal);
-                const slideVector = playerVelocity.clone().sub(collisionNormal.multiplyScalar(velocityDot));
-                playerVelocity.copy(slideVector);
-
-
-                console.log("collision normal: ", collisionNormal)
-                if (distance < playerRadius) {
-                    intersects.push({ tri, distance });
-
-                }
-            }
-        });
-    }
-*/ /*
         if (colliderBVH) {
     
             //const localCollider = playerCollider.clone();
@@ -2501,7 +2490,7 @@ const intersects = [];
     grassMaterial.uniforms.time.value += deltaTime * 1.0; // Update time for wind animation
     videoShaderMaterial.uniforms.uTime.value += deltaTime * 0.5;
     renderer.render(worldScene.scene, camera);
-//stats.update();
+    stats.update();
 //console.log(renderer.info);
 //composer.render();
 //videoTexture.needsUpdate = true;
