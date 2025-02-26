@@ -2148,7 +2148,7 @@ const grassMaterial = new (0, _vanillaDefault.default)({
 const viewRadius = 2; // Number of chunks to load around the player (5)
 const unloadRadius = 5; // Number of chunks to unload outside this radius (6)
 const chunkVertexCount = 12; // 4
-const instanceCount = 500; //(4000) (19500)
+const instanceCount = 19500; //(4000) (19500)
 const loadedChunks = new Map(); // Store references to loaded chunks
 // Define special chunk configurations by their X, Z values
 const specialChunks = {
@@ -2162,42 +2162,42 @@ const grassWorkerQueue = []; // Queue for pending tasks
 for(let i = 0; i < workerPoolSize; i++){
     const worker = new Worker(require("cdb16b6f1235a7ac"));
     worker.onmessage = (event)=>{
-        requestIdleCallback(()=>{
-            const { chunkKey, grassGeometryData } = event.data;
-            //console.log(event.data)
-            // Create instanced buffer geometry for grass blades
-            const grassGeometry = new _three.InstancedBufferGeometry();
-            //grassGeometry.copy(new THREE.PlaneGeometry(5, 5)); // Base blade geometry
-            grassGeometry.copy(bladeGeometry);
-            grassGeometry.setAttribute('instanceRotationMatrix', new _three.InstancedBufferAttribute(grassGeometryData.rotationMatrices, 9));
-            grassGeometry.setAttribute('scale', new _three.InstancedBufferAttribute(grassGeometryData.scales, 1));
-            grassGeometry.setAttribute('uv', new _three.InstancedBufferAttribute(grassGeometryData.uvs, 2));
-            //grassGeometry.computeVertexNormals();
-            //calc the y-value using GetHeight()
-            for(let i = 0; i < grassGeometryData.instanceCount; i++)grassGeometryData.offsets[i * 3 + 1] = getHeight(grassGeometryData.offsets[i * 3], grassGeometryData.offsets[i * 3 + 2]) - 0.60; // Calculate height using getHeight
-            grassGeometry.setAttribute('offset', new _three.InstancedBufferAttribute(grassGeometryData.offsets, 3));
-            //const grassMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide });
-            const grassMesh = new _three.InstancedMesh(grassGeometry, grassMaterial, grassGeometryData.instanceCount);
-            //grassMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-            // Set the bounding box for the grass mesh to match the chunk size
-            //grassMesh.computeBoundingSphere();
-            grassMesh.geometry.boundingSphere = grassGeometryData.boundingSphere;
-            grassMesh.material.envMap = envMap;
-            grassMesh.material.envMapIntensity = 0.25;
-            // Add grass to the scene
-            worldScene.scene.add(grassMesh);
-            // Store the grass mesh in the loadedChunks map
-            if (loadedChunks.has(chunkKey)) loadedChunks.get(chunkKey).grassMesh = grassMesh;
-            // Process the next task in the queue, if any
-            if (grassWorkerQueue.length > 0) {
-                const nextTask = grassWorkerQueue.shift();
-                worker.postMessage(nextTask);
-            } else {
-                grassWorkerPool.push(worker); // Return worker to the pool
-                //fnOnTerrainComplete(); //and models have loaded, maybe set flag for terrain complete here
-                allGrassComputed = true;
-            }
-        });
+        //requestIdleCallback(() => {
+        const { chunkKey, grassGeometryData } = event.data;
+        //console.log(event.data)
+        // Create instanced buffer geometry for grass blades
+        const grassGeometry = new _three.InstancedBufferGeometry();
+        //grassGeometry.copy(new THREE.PlaneGeometry(5, 5)); // Base blade geometry
+        grassGeometry.copy(bladeGeometry);
+        grassGeometry.setAttribute('instanceRotationMatrix', new _three.InstancedBufferAttribute(grassGeometryData.rotationMatrices, 9));
+        grassGeometry.setAttribute('scale', new _three.InstancedBufferAttribute(grassGeometryData.scales, 1));
+        grassGeometry.setAttribute('uv', new _three.InstancedBufferAttribute(grassGeometryData.uvs, 2));
+        //grassGeometry.computeVertexNormals();
+        //calc the y-value using GetHeight()
+        for(let i = 0; i < grassGeometryData.instanceCount; i++)grassGeometryData.offsets[i * 3 + 1] = getHeight(grassGeometryData.offsets[i * 3], grassGeometryData.offsets[i * 3 + 2]) - 0.60; // Calculate height using getHeight
+        grassGeometry.setAttribute('offset', new _three.InstancedBufferAttribute(grassGeometryData.offsets, 3));
+        //const grassMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide });
+        const grassMesh = new _three.InstancedMesh(grassGeometry, grassMaterial, grassGeometryData.instanceCount);
+        //grassMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        // Set the bounding box for the grass mesh to match the chunk size
+        //grassMesh.computeBoundingSphere();
+        grassMesh.geometry.boundingSphere = grassGeometryData.boundingSphere;
+        grassMesh.material.envMap = envMap;
+        grassMesh.material.envMapIntensity = 0.25;
+        // Add grass to the scene
+        worldScene.scene.add(grassMesh);
+        // Store the grass mesh in the loadedChunks map
+        if (loadedChunks.has(chunkKey)) loadedChunks.get(chunkKey).grassMesh = grassMesh;
+        // Process the next task in the queue, if any
+        if (grassWorkerQueue.length > 0) {
+            const nextTask = grassWorkerQueue.shift();
+            worker.postMessage(nextTask);
+        } else {
+            grassWorkerPool.push(worker); // Return worker to the pool
+            //fnOnTerrainComplete(); //and models have loaded, maybe set flag for terrain complete here
+            allGrassComputed = true;
+        }
+    //});
     };
     grassWorkerPool.push(worker);
 }
@@ -2426,8 +2426,10 @@ const intersects = [];
         const allAdded = [
             ...modelRegistry.values()
         ].every((model)=>model.isAddedToScene);
-        if (allAdded) //fnOnTerrainComplete();
-        allModelsAddedToScene = true;
+        if (allAdded) {
+            fnOnTerrainComplete();
+            allModelsAddedToScene = true;
+        }
     }
     //change this, variable is set at each loop
     fnAnimateCamera();
