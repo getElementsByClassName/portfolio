@@ -2397,28 +2397,33 @@ const intersects = [];
     updateTerrainChunks(playerPosition); // Dynamically update chunks
     // Update LOD smooth transitions based on the camera's position
     //updateLOD();
-    modelRegistry.forEach((data, id)=>{
-        if (!(0, _utilsJsDefault.default).fnIsInFrustum(data.mesh, camera)) return;
-        //distance from mesh to player
-        const distance = camera.position.distanceTo(data.position);
-        if (data.needsTextureSwapToHQ && distance < DISTANCE_TEXTURE_SWAP) {
-            if (!data.textureIsLoaded) {
-                data.textureIsLoaded = true;
-                data.needsTextureSwapToHQ = false;
-                //update model registry
-                modelRegistry.set(id, data);
-                //load texture
-                fnLoadHQTexture(data);
+    /*
+        modelRegistry.forEach((data, id) => {
+    
+            if (!Utils.fnIsInFrustum(data.mesh, camera)) return;
+    
+            //distance from mesh to player
+            const distance = camera.position.distanceTo(data.position);
+    
+            if (data.needsTextureSwapToHQ && distance < DISTANCE_TEXTURE_SWAP) {
+                if (!data.textureIsLoaded) {
+                    data.textureIsLoaded = true;
+                    data.needsTextureSwapToHQ = false;
+                    //update model registry
+                    modelRegistry.set(id, data);
+                    //load texture
+                    fnLoadHQTexture(data);
+                }
             }
-        }
-        if (!data.needsTextureSwapToHQ && distance > DISTANCE_TEXTURE_DISPOSE) {
-            data.needsTextureSwapToHQ = true;
-            data.textureIsLoaded = false;
-            modelRegistry.set(id, data);
-            fnUnloadHQTexture(data);
-        }
-    });
-    if (allModelsLoaded && !allModelsAddedToScene && allGrassComputed) {
+            if (!data.needsTextureSwapToHQ && distance > DISTANCE_TEXTURE_DISPOSE) {
+    
+                data.needsTextureSwapToHQ = true;
+                data.textureIsLoaded = false;
+                modelRegistry.set(id, data);
+                fnUnloadHQTexture(data);
+            }
+        });
+    */ if (allModelsLoaded && !allModelsAddedToScene && allGrassComputed) {
         const allAdded = [
             ...modelRegistry.values()
         ].every((model)=>model.isAddedToScene);
