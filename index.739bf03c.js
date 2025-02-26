@@ -2264,7 +2264,7 @@ function fnGenerateChunk(x, z) {
 /********************************************************************
 // Load Initial Terrain
 ********************************************************************/ function loadInitialTerrain(sizeInChunks) {
-    totalChunks = sizeInChunks * sizeInChunks;
+    //const totalChunks = sizeInChunks * sizeInChunks;
     for(let z = 0; z < sizeInChunks; z++)for(let x = 0; x < sizeInChunks; x++){
         const chunkKey = `${x},${z}`;
         if (!loadedChunks.has(chunkKey)) {
