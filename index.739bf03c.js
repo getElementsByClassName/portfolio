@@ -2148,7 +2148,7 @@ const grassMaterial = new (0, _vanillaDefault.default)({
 const viewRadius = 2; // Number of chunks to load around the player (5)
 const unloadRadius = 5; // Number of chunks to unload outside this radius (6)
 const chunkVertexCount = 12; // 4
-const instanceCount = 19500; //(4000)
+const instanceCount = 500; //(4000) (19500)
 const loadedChunks = new Map(); // Store references to loaded chunks
 // Define special chunk configurations by their X, Z values
 const specialChunks = {
