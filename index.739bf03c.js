@@ -1155,7 +1155,6 @@ testPlane.position.set(0, 30, 30);
             csm_DiffuseColor = blendedVideo;
         
         },
-        silent: true
     `
 });
 const fadeShaderMaterial = new (0, _vanillaDefault.default)({
@@ -1229,7 +1228,6 @@ const fadeShaderMaterial = new (0, _vanillaDefault.default)({
         },
         
     `,
-    silent: false,
     side: _three.FrontSide
 });
 const powerlinesFadeShader = new (0, _vanillaDefault.default)({
@@ -1259,7 +1257,6 @@ const powerlinesFadeShader = new (0, _vanillaDefault.default)({
     },
     vertexShader: fadeShaderMaterial.__csm.vertexShader,
     fragmentShader: fadeShaderMaterial.__csm.fragmentShader,
-    silent: false,
     side: _three.FrontSide
 });
 const factoryShader = new (0, _vanillaDefault.default)({
@@ -1289,7 +1286,6 @@ const factoryShader = new (0, _vanillaDefault.default)({
     },
     vertexShader: fadeShaderMaterial.__csm.vertexShader,
     fragmentShader: fadeShaderMaterial.__csm.fragmentShader,
-    silent: false,
     side: _three.DoubleSide
 });
 const stoneFigureShader = new (0, _vanillaDefault.default)({
@@ -1319,7 +1315,6 @@ const stoneFigureShader = new (0, _vanillaDefault.default)({
     },
     vertexShader: fadeShaderMaterial.__csm.vertexShader,
     fragmentShader: fadeShaderMaterial.__csm.fragmentShader,
-    silent: true,
     side: _three.FrontSide
 });
 /*
@@ -1377,7 +1372,6 @@ const factoryShader = new CustomShaderMaterial({
         },
         
     `,
-    silent: false,
     side: THREE.DoubleSide
 });
 
@@ -1467,7 +1461,7 @@ let rockPosition = {
 };
 const rockLOD = new _three.LOD();
 const rockCount = 8;
-async function fnLoadRockVideoProjectionModel(url, scaleFactor1) {
+async function fnLoadRockVideoProjectionModel(url, scaleFactor) {
     const position = {
         x: -300,
         z: 400
@@ -1475,7 +1469,7 @@ async function fnLoadRockVideoProjectionModel(url, scaleFactor1) {
     const name = 'video_rock';
     let mesh, diffuseMap;
     const model = await modelLoader.loadModel(url);
-    model.scale.set(scaleFactor1, scaleFactor1, scaleFactor1);
+    model.scale.set(scaleFactor, scaleFactor, scaleFactor);
     model.rotateY(Math.PI * 6 / 4);
     model.position.set(position.x, getHeight(position.x, position.z) - 2, position.z);
     mesh = model.children.find((child)=>child.isMesh);
@@ -1629,7 +1623,7 @@ async function fnLoadStoneGoatModel(url) {
     */ worldScene.scene.add(stoneModel);
     (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, diffuseMap, true, true, false, null);
 }
-fnLoadRockVideoProjectionModel('./assets/models/video_rock/videoRockPreload.glb', scaleFactor = 10);
+fnLoadRockVideoProjectionModel('./assets/models/video_rock/videoRockPreload.glb', 10);
 fnLoadPowerlinesModel('./assets/powerlines.glb');
 fnLoadFactoryModel('./assets/models/factory/factory_new-opt-v1.glb');
 //fnLoadStoneGoatModel('./assets/models/stone_goat/test.glb');
@@ -2143,7 +2137,6 @@ const grassMaterial = new (0, _vanillaDefault.default)({
             value: grassDiffuseMap
         }
     },
-    silent: true,
     vertexShader: (0, _grassJsDefault.default).vert,
     fragmentShader: (0, _grassJsDefault.default).frag,
     vertexColors: false,
@@ -194713,7 +194706,6 @@ class GrassScene {
                 }
             `,
             transparent: false,
-            silent: true,
             fog: false
         });
     }
