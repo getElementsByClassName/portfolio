@@ -630,21 +630,12 @@ var _powerlinesJs = require("./shaders/powerlines.js");
 var _powerlinesJsDefault = parcelHelpers.interopDefault(_powerlinesJs);
 var _videotextureJs = require("./shaders/videotexture.js");
 var _videotextureJsDefault = parcelHelpers.interopDefault(_videotextureJs);
-var _grassColorPng = require("../img/grassColor.png");
-var _grassColorPngDefault = parcelHelpers.interopDefault(_grassColorPng);
-var _factoryDiffuseWebp = require("../img/factory_diffuse.webp");
-var _factoryDiffuseWebpDefault = parcelHelpers.interopDefault(_factoryDiffuseWebp);
-var _stoneGoatDiffuse1KWebp = require("../img/stoneGoat_diffuse1K.webp");
-var _stoneGoatDiffuse1KWebpDefault = parcelHelpers.interopDefault(_stoneGoatDiffuse1KWebp);
-var _rockAKtx2 = require("../img/textures/rock_A.ktx2");
-var _rockAKtx2Default = parcelHelpers.interopDefault(_rockAKtx2);
-var _rockNKtx2 = require("../img/textures/rock_N.ktx2");
-var _rockNKtx2Default = parcelHelpers.interopDefault(_rockNKtx2);
+var _stonefigureJs = require("./shaders/stonefigure.js");
+var _stonefigureJsDefault = parcelHelpers.interopDefault(_stonefigureJs);
+var _videoFadeJs = require("./shaders/videoFade.js");
+var _videoFadeJsDefault = parcelHelpers.interopDefault(_videoFadeJs);
 var _videoFallbackWebp = require("../img/videoFallback.webp");
 var _videoFallbackWebpDefault = parcelHelpers.interopDefault(_videoFallbackWebp);
-//import cloudTexture from '../img/cloud.jpg';
-var _introvideoMp4 = require("../img/introvideo.mp4");
-var _introvideoMp4Default = parcelHelpers.interopDefault(_introvideoMp4);
 var _contentJson = require("./content.json");
 var _contentJsonDefault = parcelHelpers.interopDefault(_contentJson);
 var _grassSceneJs = require("./GrassScene.js");
@@ -973,10 +964,14 @@ function fnLoadContent(id) {
 ********************************************************************/ /********************************************************************
 // Scene Constants
 ********************************************************************/ let velocity = new _three.Vector3();
-let SPEED = 500.0; //175
+let SPEED = 1600.0; //175
 const PERSON_HEIGHT = 17.0; //18
 const DISTANCE_TEXTURE_SWAP = 450.0;
 const DISTANCE_TEXTURE_DISPOSE = 650.0;
+//LOD
+const DISTANCE_LOD1 = 200;
+const DISTANCE_LOD2 = 250;
+const DISTANCE_LOD3 = 300;
 const FIELD_SIZE = visitedFromMobileDevice ? 2600 : 4000 // Field size in both x and z directions
 ;
 /********************************************************************
@@ -986,11 +981,10 @@ const worldScene = new (0, _worldSceneJsDefault.default)(canvasContainer, visite
 const renderer = worldScene.getRenderer();
 const camera = worldScene.getCamera();
 //show stats, updated in animation loop
-/*
-const stats = Stats();
+const stats = (0, _statsModuleDefault.default)();
 stats.showPanel(0);
 document.body.appendChild(stats.dom);
-*/ /********************************************************************
+/********************************************************************
  // Check for Tab visibility
 ********************************************************************/ let gameIsActive = true;
 function fnStartRendering() {
@@ -1010,12 +1004,7 @@ document.addEventListener('visibilitychange', ()=>{
 // Texture Loading
 ********************************************************************/ // Load the height map texture (a grayscale image)
 const textureLoader = new _three.TextureLoader();
-//const heightMap = textureLoader.load(displacementMap);
-const grassDiffuseMap = textureLoader.load((0, _grassColorPngDefault.default));
-const factoryDiffuseMap = textureLoader.load((0, _factoryDiffuseWebpDefault.default));
-const stoneGoatDiffuseMap = textureLoader.load((0, _stoneGoatDiffuse1KWebpDefault.default));
-//const groundTextureDiffuseMap = textureLoader.load(groundTexture);
-//const videoFallback = textureLoader.load(videoFallbackImage);
+const grassDiffuseMap = textureLoader.load('./assets/grassColor.png');
 /********************************************************************
 // Skybox loading
 ********************************************************************/ // Create a PMREMGenerator
@@ -1037,9 +1026,49 @@ rgbeLoader.load(`./assets/${skyboxToLoad}.hdr`, function(texture) {
     texture.dispose();
 });
 /********************************************************************
+// Landscape : Simplex Noise
+********************************************************************/ const simplex = new (0, _simplexNoise.SimplexNoise)();
+// Function to generate height based on simplex noise
+/*
+function getHeight(x, z) {
+
+    //let height = 6 * simplex.noise(x / 400, z / 400)
+    let height = 11.5 * simplex.noise(x / 400, z / 400) //how high should it be
+    //height += 0.2 * simplex.noise(x / 10, z / 10)
+    return height;
+}
+ */ // Define multiple flat areas (centerX, centerZ, size)
+const flatAreas = [
+    {
+        x: 1500,
+        z: 1500,
+        size: 150
+    }
+];
+function smoothstep(edge0, edge1, x) {
+    let t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+    return t * t * (3 - 2 * t); // Smoothstep function
+}
+function getHeight(x, z) {
+    let roughTerrain = 14.0 * simplex.noise(x / 400, z / 400); // Normal terrain
+    let smoothTerrain = 3 * simplex.noise(x / 1000, z / 1000); // Smooth flat terrain
+    let blendFactor = 1; // Default = full rough terrain
+    for (let area of flatAreas){
+        let distanceX = Math.abs(x - area.x);
+        let distanceZ = Math.abs(z - area.z);
+        let transitionSize = area.size * 0.5; // Transition zone
+        let factorX = smoothstep(area.size - transitionSize, area.size + transitionSize, distanceX);
+        let factorZ = smoothstep(area.size - transitionSize, area.size + transitionSize, distanceZ);
+        let areaBlend = Math.min(factorX, factorZ);
+        // Blend with the lowest factor to ensure a smooth transition
+        blendFactor = Math.min(blendFactor, areaBlend);
+    }
+    return roughTerrain * blendFactor + smoothTerrain * (1 - blendFactor);
+}
+/********************************************************************
 // Video Projections Test
 ********************************************************************/ const videoProject = document.createElement('video');
-videoProject.src = './assets/glass/video.webm'; // Your video file
+videoProject.src = './assets/glass/video.webm';
 videoProject.loop = true;
 videoProject.muted = true;
 videoProject.play();
@@ -1048,12 +1077,190 @@ videoTextureProject.minFilter = _three.LinearFilter;
 videoTextureProject.magFilter = _three.LinearFilter;
 videoTextureProject.format = _three.RGBFormat;
 videoTextureProject.generateMipmaps = false;
-const testMaterial = new _three.MeshBasicMaterial({
-    map: videoTextureProject
-});
-const testPlane = new _three.Mesh(new _three.PlaneGeometry(50, 50), testMaterial);
-testPlane.position.set(0, 30, 30);
-//worldScene.scene.add(testPlane);
+/*
+// Create a projector helper (optional) to visualize the projector
+const projectorHelper = new THREE.ConeGeometry(1, 2, 32);
+const projectorMesh = new THREE.Mesh(
+    projectorHelper,
+    new THREE.MeshBasicMaterial({ color: 0xffff00, wireframe: true })
+);
+projectorMesh.rotation.x = Math.PI; // Rotate to point forward
+projector.add(projectorMesh);
+*/ function fnCreateVideoMaterial() {
+    return new (0, _vanillaDefault.default)({
+        baseMaterial: _three.MeshStandardMaterial,
+        uniforms: {
+            uVideoTexture: {
+                value: null
+            },
+            uDiffuseTexture: {
+                value: null
+            },
+            uProjectorPosition: {
+                value: new _three.Vector3()
+            },
+            uProjectorDirection: {
+                value: new _three.Vector3()
+            },
+            uProjectorMatrix: {
+                value: new _three.Matrix4()
+            },
+            uProjectorFOV: {
+                value: 45.0 * (Math.PI / 180.0)
+            },
+            uProjectorAspect: {
+                value: 16 / 9
+            },
+            uBaseColor: {
+                value: new _three.Color(0.1, 0.1, 0.1)
+            },
+            uProjectionIntensity: {
+                value: 1.0
+            },
+            uVignette: {
+                value: 0.8
+            },
+            uBlendFactor: {
+                value: 0.9
+            },
+            uMinZDistance: {
+                value: null
+            }
+        },
+        vertexShader: (0, _videoFadeJsDefault.default).vert,
+        fragmentShader: (0, _videoFadeJsDefault.default).frag,
+        side: _three.DoubleSide
+    });
+}
+/*
+// Create a projection target surface (any mesh you want to project onto)
+const targetSurface = new THREE.Mesh(
+    new THREE.PlaneGeometry(20, 10),
+    new THREE.ShaderMaterial({
+        uniforms: {
+            uVideoTexture: { value: videoTextureTest },
+            uDiffuseTexture: { value: diffuseTexture },
+            uProjectorPosition: { value: new THREE.Vector3() },
+            uProjectorDirection: { value: new THREE.Vector3() },
+            uProjectorMatrix: { value: new THREE.Matrix4() },
+            uProjectorFOV: { value: 45.0 * (Math.PI / 180.0) }, // FOV in radians
+            uProjectorAspect: { value: 16 / 9 }, // Aspect ratio of your video
+            uBaseColor: { value: new THREE.Color(0.1, 0.1, 0.1) },
+            uProjectionIntensity: { value: 1.0 },
+            uVignette: { value: 0.2 }, // Vignette effect for old-school look
+            uBlendFactor: { value: 1.0 } // Control how much the projection blends with diffuse (0-1)
+        },
+        vertexShader: `
+      varying vec3 vWorldPosition;
+      varying vec2 vUv;
+      varying vec3 vNormal;
+      varying float vIsFrontFacing;
+      
+      void main() {
+        vUv = uv;
+        vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+        vWorldPosition = worldPosition.xyz;
+        
+        // Calculate world space normal
+        vNormal = normalize(mat3(modelMatrix) * normal);
+        
+        // Determine if front facing using the camera position
+        vec3 cameraPosition = cameraPosition; // Built-in three.js variable
+        vec3 viewDirection = normalize(cameraPosition - worldPosition.xyz);
+        vIsFrontFacing = dot(vNormal, viewDirection) > 0.0 ? -1.0 : 1.0;
+        
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+        fragmentShader: `
+      uniform sampler2D uVideoTexture;
+      uniform sampler2D uDiffuseTexture;
+      uniform vec3 uProjectorPosition;
+      uniform vec3 uProjectorDirection;
+      uniform mat4 uProjectorMatrix;
+      uniform float uProjectorFOV;
+      uniform float uProjectorAspect;
+      uniform vec3 uBaseColor;
+      uniform float uProjectionIntensity;
+      uniform float uVignette;
+      uniform float uBlendFactor;
+      
+      varying vec3 vWorldPosition;
+      varying vec2 vUv;
+      varying vec3 vNormal;
+      varying float vIsFrontFacing;
+      
+      void main() {
+        // Sample the diffuse texture
+        vec4 diffuseColor = texture2D(uDiffuseTexture, vUv);
+        diffuseColor.rgb *= 0.5;
+        
+        // We explicitly designate the positive normal direction as the side for projection
+        // For a standard plane, this is the side with normal (0,0,1)
+        bool isProjectionSide = vIsFrontFacing > 0.0; // Only project on front side
+        
+        if (isProjectionSide) {
+          // Direction from projector to this fragment
+          vec3 projToFrag = normalize(vWorldPosition - uProjectorPosition);
+          
+          // Project the point onto the projector's viewing plane
+          vec4 projectorViewPosition = uProjectorMatrix * vec4(vWorldPosition, 1.0);
+          
+          // If the fragment is in front of the projector, show the projection
+          if (projectorViewPosition.z > 0.0) {
+            // Calculate UV coordinates for projection
+            float distance = length(vWorldPosition - uProjectorPosition);
+            float attenuation = 1.0 / (1.0 + 0.1 * distance + 0.08 * distance);
+            
+            // Convert view position to NDC space, then to UV coordinates
+            vec2 projUV = projectorViewPosition.xy / projectorViewPosition.z;
+            projUV = projUV * 0.5 + 0.5;
+            
+            // Check if within projection bounds (0 to 1)
+            if (projUV.x >= 0.0 && projUV.x <= 1.0 && projUV.y >= 0.0 && projUV.y <= 1.0) {
+              // Sample video texture with projected coordinates
+              vec4 projectedColor = texture2D(uVideoTexture, projUV);
+              
+              // Add vignette effect for old-school projector look
+              float vignetteAmount = 1.0 - uVignette * length(projUV - 0.5) * 2.0;
+              vignetteAmount = clamp(vignetteAmount, 0.0, 1.0);
+              
+              // Add subtle noise for film grain effect
+              float noise = fract(sin(dot(projUV, vec2(12.9898, 78.233))) * 43758.5453) * 0.03;
+              
+              // Calculate projection color with effects
+              vec3 projColor = projectedColor.rgb * vignetteAmount * attenuation * uProjectionIntensity;
+              projColor += noise;
+              
+              // Blend between diffuse map and projection
+              // Use a modified blend mode like screen, multiply or overlay for more interesting effects
+              
+              // Screen blend mode (brightens the image)
+              vec3 blendedColor = 1.0 - (1.0 - diffuseColor.rgb) * (1.0 - projColor);
+              
+              // Multiply blend mode (darkens the image)
+               //vec3 blendedColor = diffuseColor.rgb * projColor;
+              
+              
+              // Final color is a blend between the diffuse and the blended projection
+              vec3 finalColor = mix(diffuseColor.rgb, blendedColor, uBlendFactor);
+              
+              gl_FragColor = vec4(finalColor, 1.0);
+              return;
+            }
+          }
+        }
+        
+        // For back face or outside projection area - just show the diffuse texture
+        gl_FragColor = diffuseColor;
+      }
+    `,
+        side: THREE.DoubleSide
+    })
+);
+*/ //targetSurface.position.set(0, 0, 100);
+//targetSurface.scale.set(10, 10, 10)
+//worldScene.scene.add(targetSurface);
 /********************************************************************
 // Materials
 ********************************************************************/ /** Powerlines Material */ const powerlinesShaderMaterial = new _three.ShaderMaterial({
@@ -1317,19 +1524,33 @@ const stoneFigureShader = new (0, _vanillaDefault.default)({
     fragmentShader: fadeShaderMaterial.__csm.fragmentShader,
     side: _three.FrontSide
 });
-/*
-const factoryShader = new CustomShaderMaterial({
-    baseMaterial: THREE.MeshStandardMaterial,
-    uniforms: {
-        uDiffuseMap: { value: null }, // Diffuse texture
-        uHasDiffuseMap: { value: true },    // Flag to indicate if the texture is passed
-        uColor: { value: null },
-        uTerrainHeight: { value: null },
-        uFadeHeight: { value: 5.5 }, // Height where fade effect occurs
-        uMeshPosition: { value: null }, // Mesh position in world space
-        uBrightness: { value: 1.0 }
-    },
-    vertexShader: `
+function createVideoFadeMaterial() {
+    return new (0, _vanillaDefault.default)({
+        baseMaterial: _three.MeshStandardMaterial,
+        uniforms: {
+            uDiffuseMap: {
+                value: null
+            },
+            uVideoTexture: {
+                value: videoTextureProject
+            },
+            uTerrainHeight: {
+                value: null
+            },
+            uFadeHeight: {
+                value: 5.3
+            },
+            uMeshPosition: {
+                value: null
+            },
+            uProjectionDirection: {
+                value: new _three.Vector3(0, 0, 1)
+            },
+            uProjectionScale: {
+                value: new _three.Vector2(0.5, 0.5)
+            } // Scale of the projection
+        },
+        vertexShader: `
         varying vec3 vWorldPosition;
         varying vec2 vUv;
         void main() {
@@ -1339,99 +1560,64 @@ const factoryShader = new CustomShaderMaterial({
             csm_PositionRaw = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
     `,
-    fragmentShader: `
-        uniform bool uHasDiffuseMap;
+        fragmentShader: `
         uniform sampler2D uDiffuseMap;
-        uniform vec3 uColor;
+        uniform sampler2D uVideoTexture;
         uniform float uFadeHeight;
         uniform float uTerrainHeight;
         uniform vec3 uMeshPosition;
-        uniform float uBrightness;
-        varying vec3 vWorldPosition;
+        uniform vec3 uProjectionDirection;
+        uniform vec2 uProjectionScale;
+
         varying vec2 vUv;
+        varying vec3 vWorldPosition;
 
         void main() {
-            vec4 colorDiffuse = vec4(uColor, 1.0); // Use solid color if no diffuse map
 
-            if (uHasDiffuseMap) {
-                colorDiffuse = texture2D(uDiffuseMap, vUv);
-            } else {
-                colorDiffuse = vec4(uColor, 1.0);
-            }
-            // Compute the fade effect
-            //float fadeFactor = smoothstep(uTerrainHeight, uTerrainHeight + uFadeHeight, vWorldPosition.y);
-
-            // Ensure the fade effect remains strong even with envMap blending
-            //colorDiffuse.rgb *= fadeFactor;
-
-            //add brightness
-            //colorDiffuse.rgb *= uBrightness;
-
-            csm_DiffuseColor = colorDiffuse;
-            //csm_DiffuseColor = vec4(1.0, 0.0, 0.0, 1.0);
-        },
         
-    `,
-    side: THREE.DoubleSide
-});
+            // Sample the diffuse texture
+            vec4 colorDiffuse = texture2D(uDiffuseMap, vUv).rgba;
+            //colorDiffuse *= 1.75;
 
-*/ //const powerlinesFadeShader = fadeShaderMaterial.clone();
-//powerlinesFadeShader.uniforms = UniformsUtils.clone(fadeShaderMaterial.uniforms);
-//const factoryShader = fadeShaderMaterial.clone();
-//factoryShader.uniforms = THREE.UniformsUtils.clone(fadeShaderMaterial.uniforms);
-//factoryShader.side = THREE.DoubleSide;
-/*
-const fadeShaderMaterial = new CustomShaderMaterial({
-    baseMaterial: THREE.MeshStandardMaterial,
-    uniforms: {
-        uDiffuseMap: { value: null }, // Albedo texture
-        //uNormalMap: { value: null },  // Normal map
-        uFadeHeight: { value: 13.0 }  // Control fade distance
-    },
+            // Compute fade factor based on world Y position
+            //float fadeFactor = smoothstep(0.0, uFadeHeight, vWorldPosition.y);
 
-    vertexShader: `
-        varying vec3 vWorldPosition;
-        varying vec2 vUv;
+            float fadeFactor = smoothstep(uTerrainHeight, uTerrainHeight + uFadeHeight, vWorldPosition.y);
+            colorDiffuse.rgb *= fadeFactor;
 
-        void main() {
-            //vec4 _mvPosition = instanceMatrix * vec4(position, 1.);
+            // Compute projection UV coordinates
 
-            vUv = uv;
-            vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
-            //gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);
-            //csm_PositionRaw = projectionMatrix * viewMatrix * _mvPosition;
-            csm_PositionRaw = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);
-        }
-    `,
-    fragmentShader: `
-        uniform sampler2D uDiffuseMap;
-        uniform sampler2D uNormalMap;
-        uniform float uFadeHeight;
+            vec3 projCoords = normalize(vWorldPosition - uMeshPosition);
+            projCoords = -projCoords;
 
-        varying vec3 vWorldPosition;
-        varying vec2 vUv;
-        //varying csm_vNormal;
-        float brightness = 7.0;
+            float projectionStrength = dot(projCoords, normalize(uProjectionDirection));
 
-        void main() {
-            // Sample the textures
-            vec4 albedo = texture2D(uDiffuseMap, vUv);
-            albedo *= brightness;
-            //vec3 normal = texture2D(uNormalMap, vUv).rgb;
-            //vec3 csm_FragNormal = texture2D(uNormalMap, vUv).rgb;
-            //csm_vNormal = normal;
-
-            // Calculate fade factor
-            float fade = smoothstep(0.0, uFadeHeight, vWorldPosition.y);
-            vec3 finalColor = mix(vec3(0.0), albedo.rgb, fade);
             
 
-            csm_DiffuseColor = vec4(finalColor, albedo.a);
-        }
-    `,
-    fog: true,
-});
-*/ /********************************************************************
+
+            vec2 projectedUV = vec2(projCoords.x * uProjectionScale.x + 0.5, projCoords.y * uProjectionScale.y + 0.5);
+
+            // Sample the video texture
+
+            vec4 videoColor = texture2D(uVideoTexture, projectedUV);
+
+            // Blend video onto the diffuse texture where projection applies
+
+            float blendFactor = smoothstep(0.4, 0.8, projectionStrength);
+            vec4 blendedVideo = mix(colorDiffuse, videoColor, blendFactor * (videoColor.a * 0.9));
+
+            // Ensure fade effect always applies
+
+            blendedVideo.rgb *= fadeFactor;
+
+            //gl_FragColor = blendedVideo;
+            csm_DiffuseColor = blendedVideo;
+        
+        },
+    `
+    });
+}
+/********************************************************************
 // Load Models
 ********************************************************************/ let allGrassComputed = false;
 let allModelsLoaded = false;
@@ -1467,7 +1653,7 @@ async function fnLoadRockVideoProjectionModel(url, scaleFactor) {
         z: 400
     };
     const name = 'video_rock';
-    let mesh, diffuseMap;
+    let mesh, diffuseMap, collider, colliderBVH;
     const model = await modelLoader.loadModel(url);
     model.scale.set(scaleFactor, scaleFactor, scaleFactor);
     model.rotateY(Math.PI * 6 / 4);
@@ -1480,9 +1666,21 @@ async function fnLoadRockVideoProjectionModel(url, scaleFactor) {
     videoFadeShaderMaterial.uniforms.uTerrainHeight.value = getHeight(position.x, position.z);
     mesh.material = videoFadeShaderMaterial;
     videoFadeShaderMaterial.envMap = envMap;
-    videoFadeShaderMaterial.envMapIntensity = 0.10;
+    videoFadeShaderMaterial.envMapIntensity = 0.20;
+    // Ensure world matrix is updated before applying it to geometry
+    //collider.updateMatrixWorld(true);
+    const geom = mesh.geometry.clone();
+    geom.applyMatrix4(mesh.matrixWorld);
+    //geom.updateMatrixWorld(true)
+    // Create BVH from the transformed geometry
+    geom.boundsTree = new (0, _threeMeshBvh.MeshBVH)(geom);
+    // Assign the transformed geometry to the mesh
+    mesh.geometry = geom;
+    // Add to the scene
+    colliderBVH = mesh.geometry.boundsTree;
+    const collisionRadius = colliderBVH.geometry.boundingSphere.radius;
     worldScene.scene.add(model);
-    (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, diffuseMap, true, true, false, null);
+    (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, diffuseMap, true, true, false, colliderBVH, collisionRadius);
 }
 async function fnLoadPowerlinesModel(url) {
     const position = {
@@ -1523,110 +1721,143 @@ async function fnLoadPowerlinesModel(url) {
     worldScene.scene.add(model);
     (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, null, true, false, false, null);
 }
-let colliderBVH;
-let model;
-let colliderMesh;
 async function fnLoadFactoryModel(url) {
     const position = {
-        x: 1500,
-        z: 1500
+        x: -700,
+        z: 700
     };
     const name = 'factory';
-    let mesh, diffuseMap;
-    model = await modelLoader.loadModel(url);
-    diffuseMap = model.children[0].material.map;
+    let mesh, material, diffuseMap, model, colliderMesh, colliderBVH;
+    /*
+        // Create a projector helper (optional) to visualize the projector
+        const projectorHelper = new THREE.ConeGeometry(1, 2, 32);
+        const projectorMesh = new THREE.Mesh(
+            projectorHelper,
+            new THREE.MeshBasicMaterial({ color: 0xffff00, wireframe: true })
+        );
+        projectorMesh.rotation.x = Math.PI; // Rotate to point forward
+        projector.add(projectorMesh);
+    */ model = await modelLoader.loadModel(url);
+    console.log(model);
+    diffuseMap = model.children[0].children[0].material.map;
+    console.log(diffuseMap);
     model.scale.set(10, 10, 10);
     model.rotateY(Math.PI * 6 / 4);
     model.position.set(position.x, getHeight(position.x, position.z) - 2, position.z);
-    mesh = model.children.find((child)=>child.isMesh && child.name === 'factory');
-    mesh.material = factoryShader;
-    factoryShader.uniforms.uDiffuseMap.value = diffuseMap;
-    factoryShader.uniforms.uHasDiffuseMap.value = true;
-    factoryShader.uniforms.uMeshPosition.value = new _three.Vector3(position.x, getHeight(position.x, position.z) - 2, position.z);
-    factoryShader.uniforms.uTerrainHeight.value = getHeight(position.x, position.z);
-    factoryShader.uniforms.uFadeHeight.value = 3.0;
-    factoryShader.uniforms.uBrightness.value = 0.45;
-    factoryShader.envMap = envMap;
-    factoryShader.envMapIntensity = 0.4;
-    colliderMesh = model.children.find((child)=>child.isMesh && child.name === 'collider');
-    colliderMesh.visible = false;
-    colliderMesh.scale.set(10, 10, 10);
-    colliderMesh.rotateY(Math.PI * 6 / 4);
-    colliderMesh.position.set(position.x, getHeight(position.x, position.z) - 2, position.z);
-    // Ensure world matrix is updated before applying it to geometry
-    colliderMesh.updateMatrixWorld(true);
-    const geom = colliderMesh.geometry.clone();
-    geom.applyMatrix4(colliderMesh.matrixWorld);
-    // Create BVH from the transformed geometry
-    geom.boundsTree = new (0, _threeMeshBvh.MeshBVH)(geom);
-    // Assign the transformed geometry to the mesh
-    colliderMesh.geometry = geom;
-    // Add to the scene
-    colliderBVH = colliderMesh.geometry.boundsTree;
-    // Optional: Visualize BVH
-    const visualizer = new (0, _threeMeshBvh.MeshBVHHelper)(colliderMesh, 10);
-    //worldScene.scene.add(visualizer);
-    worldScene.scene.add(model);
-    (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, diffuseMap, true, true, false, null);
-}
-let stoneColliderBVH;
-let stoneModel;
-let stoneColliderMesh;
-async function fnLoadStoneGoatModel(url) {
-    const position = {
-        x: 400,
-        z: 400
+    //mesh = model.children.find(child => child.isMesh && child.name === 'LOD0_1');
+    model.children[0].children[1].visible = true;
+    model.children[2].visible = false;
+    mesh = model.children[0].children[0];
+    material = fnCreateVideoMaterial();
+    // Update shader uniforms
+    const videoTest = document.createElement('video');
+    videoTest.src = './assets/nature/video.webm';
+    videoTest.loop = true;
+    videoTest.muted = true; // Important for autoplay
+    videoTest.crossOrigin = 'anonymous';
+    videoTest.play();
+    // Create a video texture
+    const videoTextureTest = new _three.VideoTexture(videoTest);
+    videoTextureTest.minFilter = _three.LinearFilter;
+    videoTextureTest.magFilter = _three.LinearFilter;
+    videoTextureTest.format = _three.RGBAFormat;
+    // Create a larger target surface
+    const surfaceWidth = 140; // Larger width
+    const surfaceHeight = 70; // Larger height
+    // Define the projection area relative to the surface size
+    // These values control the relative size and position of the projection on the surface
+    const projectionParams = {
+        // Size of projection as a fraction of the surface dimensions
+        relativeWidth: 0.5,
+        relativeHeight: 0.7,
+        // Center position of projection (0,0 is center, values from -0.5 to 0.5)
+        offsetX: 0.0,
+        offsetY: -0.5 // Offset slightly upward
     };
-    const name = 'stone_goat';
-    let mesh, diffuseMap;
-    stoneModel = await modelLoader.loadModel(url);
-    console.log(stoneModel);
-    diffuseMap = stoneModel.children[0].material.map;
-    stoneModel.scale.set(2.5, 2.5, 2.5);
-    //model.rotateY((Math.PI * 2) * 3 / 4);
-    stoneModel.position.set(position.x, getHeight(position.x, position.z) - 16, position.z);
-    mesh = stoneModel.children.find((child)=>child.isMesh && child.name === 'test');
-    mesh.material = stoneFigureShader;
-    stoneFigureShader.uniforms.uDiffuseMap.value = diffuseMap;
-    stoneFigureShader.uniforms.uHasDiffuseMap.value = true;
-    stoneFigureShader.uniforms.uMeshPosition.value = new _three.Vector3(position.x, getHeight(position.x, position.z) - 16, position.z);
-    stoneFigureShader.uniforms.uTerrainHeight.value = getHeight(position.x, position.z);
-    stoneFigureShader.uniforms.uFadeHeight.value = 16.5;
-    stoneFigureShader.uniforms.uBrightness.value = 0.8;
-    stoneFigureShader.envMap = envMap;
-    stoneFigureShader.envMapIntensity = 0.4;
+    const targetCenter = new _three.Vector3(projectionParams.offsetX * surfaceWidth, projectionParams.offsetY * surfaceHeight, 650);
+    // Create the projector object (this will be the source of projection)
+    const projector = new _three.Object3D();
+    projector.position.set(700, getHeight(-700, 700) + 3.5, 900); // Position your projector
+    projector.lookAt(projectionParams.offsetX * surfaceWidth, projectionParams.offsetY * surfaceHeight, 0); // Point at the center of the desired projection area
+    worldScene.scene.add(projector);
+    // Get the static projector position and direction
+    const projectorPosition = new _three.Vector3();
+    projector.getWorldPosition(projectorPosition);
+    const projectorDirection = new _three.Vector3();
+    projector.getWorldDirection(projectorDirection);
+    projectorDirection.negate(); // Flip to point forward
+    // Create a static view matrix for the projector
+    const projectorViewMatrix = new _three.Matrix4();
+    projectorViewMatrix.lookAt(projectorPosition, new _three.Vector3().addVectors(projectorPosition, projectorDirection), new _three.Vector3(0, 1, 0));
+    // Calculate field of view to cover only a portion of the surface
+    // We'll use a narrower FOV to restrict the projection area
+    const distance = projectorPosition.distanceTo(targetCenter);
+    const targetWidth = surfaceWidth * projectionParams.relativeWidth;
+    const targetHeight = surfaceHeight * projectionParams.relativeHeight;
+    // Calculate FOV based on the desired projection width and distance
+    const fovX = 2 * Math.atan(targetWidth / (2 * distance));
+    const fovY = 2 * Math.atan(targetHeight / (2 * distance));
+    const fov = Math.max(fovX, fovY); // Use the larger angle to ensure coverage
+    const aspect = targetWidth / targetHeight;
+    const projectorProjectionMatrix = new _three.Matrix4();
+    projectorProjectionMatrix.makePerspective(-aspect * Math.tan(fov / 2), aspect * Math.tan(fov / 2), Math.tan(fov / 2), -Math.tan(fov / 2), 1, 1000);
+    // Combine into one static projector matrix
+    const projectorMatrix = new _three.Matrix4().multiplyMatrices(projectorProjectionMatrix, projectorViewMatrix);
+    material.uniforms.uProjectorPosition.value = projectorPosition;
+    material.uniforms.uProjectorDirection.value = projectorDirection;
+    material.uniforms.uProjectorMatrix.value = projectorMatrix;
+    material.uniforms.uDiffuseTexture.value = diffuseMap;
+    material.uniforms.uVideoTexture.value = videoTextureTest;
+    material.uniforms.uMinZDistance.value = position.z + 200;
+    mesh.material = material;
+    material.envMap = envMap;
+    material.envMapIntensity = 1.4;
+    console.log(mesh);
+    //model.children[0].children[0].material.envMap = envMap;
+    model.children[0].children[1].material.envMap = envMap;
+    colliderMesh = model.children.find((child)=>child.isMesh && child.name === 'Collider');
+    colliderMesh.visible = false;
     /*
-    stoneColliderMesh = stoneModel.children.find(child => child.isMesh && child.name === 'collider');
-    stoneColliderMesh.visible = false;
-
-    stoneColliderMesh.scale.set(3, 3, 3);
-    //stoneColliderMesh.rotateY((Math.PI * 2) * 3 / 4);
-    stoneColliderMesh.position.set(position.x, getHeight(position.x, position.z) - 2, position.z);
-
-    // Ensure world matrix is updated before applying it to geometry
-    stoneColliderMesh.updateMatrixWorld(true);
-
-    const geom = stoneColliderMesh.geometry.clone();
-    geom.applyMatrix4(stoneColliderMesh.matrixWorld);
-
-    // Create BVH from the transformed geometry
-    geom.boundsTree = new MeshBVH(geom);
-
-    // Assign the transformed geometry to the mesh
-    stoneColliderMesh.geometry = geom;
-
-    // Add to the scene
-    stoneColliderBVH = stoneColliderMesh.geometry.boundsTree;
-    // Optional: Visualize BVH
-    //const visualizer = new MeshBVHHelper(colliderMesh, 10);
-    //worldScene.scene.add(visualizer);
-    */ worldScene.scene.add(stoneModel);
-    (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, diffuseMap, true, true, false, null);
+        mesh.material = factoryShader;
+        factoryShader.uniforms.uDiffuseMap.value = diffuseMap;
+        factoryShader.uniforms.uHasDiffuseMap.value = true;
+        factoryShader.uniforms.uMeshPosition.value = new THREE.Vector3(position.x, getHeight(position.x, position.z) - 2, position.z)
+        factoryShader.uniforms.uTerrainHeight.value = getHeight(position.x, position.z);
+        factoryShader.uniforms.uFadeHeight.value = 3.0;
+    
+        factoryShader.uniforms.uBrightness.value = 0.45;
+        factoryShader.envMap = envMap;
+        factoryShader.envMapIntensity = 0.4;
+    */ /*
+        colliderMesh = model.children.find(child => child.isMesh && child.name === 'collider');
+        colliderMesh.visible = false;
+    
+        colliderMesh.scale.set(10, 10, 10);
+        colliderMesh.rotateY((Math.PI * 2) * 3 / 4);
+        colliderMesh.position.set(position.x, getHeight(position.x, position.z) - 2, position.z);
+    
+        // Ensure world matrix is updated before applying it to geometry
+        colliderMesh.updateMatrixWorld(true);
+    
+        const geom = colliderMesh.geometry.clone();
+        geom.applyMatrix4(colliderMesh.matrixWorld);
+    
+        // Create BVH from the transformed geometry
+        geom.boundsTree = new MeshBVH(geom);
+    
+        // Assign the transformed geometry to the mesh
+        colliderMesh.geometry = geom;
+    
+        // Add to the scene
+        colliderBVH = colliderMesh.geometry.boundsTree;
+        const collisionRadius = colliderBVH.geometry.boundingSphere.radius + 200;
+    
+        // Optional: Visualize BVH
+        //const visualizer = new MeshBVHHelper(colliderMesh, 10);
+        //worldScene.scene.add(visualizer);
+        */ worldScene.scene.add(model);
+    (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, diffuseMap, true, true, false, null, null);
 }
-fnLoadRockVideoProjectionModel('./assets/models/video_rock/videoRockPreload.glb', 10);
-fnLoadPowerlinesModel('./assets/powerlines.glb');
-fnLoadFactoryModel('./assets/models/factory/factory_new-opt-v1.glb');
-//fnLoadStoneGoatModel('./assets/models/stone_goat/test.glb');
 async function fnLoadHQTexture(data) {
     if (!data) return;
     const material = data.mesh.material;
@@ -1666,67 +1897,6 @@ function fnUnloadHQTexture(data) {
     model.mesh.material.map = null;
     model.mesh.material.needsUpdate = true;
     */ }
-/*
-window.addEventListener('load', () => {
-    console.log("window on load")
-});
-
-
-
-if ('requestIdleCallback' in window) {
-    requestIdleCallback(() => {
-        console.log("request idle callback");
-
-        setTimeout(() => {
-            //fnLoadPNG();
-            //fnLoadHQTexture();
-            //console.log(rockMesh)
-        }, 15000);
-
-
-    });
-}
-*/ /*
-loader.load('./assets/stone.glb', function (gltf) {
-
-    const scene = gltf.scene;
-    console.log(scene);
-
-    scene.traverse((child) => {
-        //if (child.name == 'Scene') return; // Skip non-mesh objects like 'Scene' or 'Group'
-        console.log("Processing child:", child.name, "isMesh:", child.isMesh);
-
-        const clonedMesh = child.clone();
-
-        if (child.name === 'LOD0') {
-            lodRocks.addLevel(clonedMesh, 200);
-        } else if (child.name === 'LOD1') {
-            lodRocks.addLevel(clonedMesh, 250);
-        } else if (child.name === 'LOD2') {
-            lodRocks.addLevel(clonedMesh, 270);
-        }
-
-        console.log(lodRocks)
-        /*
-                //if (child.isMesh && !child.isMesh === 'undefined') {
-                if (child.name === 'LOD0') {
-                    lodRocks.addLevel(child, 200);
-                    console.log("level 0 added")
-                } else if (child.name === 'LOD1') {
-                    lodRocks.addLevel(child, 250);
-                    console.log("level 1 added")
-                } else if (child.name === 'LOD2') {
-                    lodRocks.addLevel(child, 270);
-                    console.log("level 2 added")
-                }
-                *
-
-    });
-
-
-
-});
-*/ /** Stone Model */ // Load Model Function
 async function fnLoadRockModels() {
     try {
         // Load the factory model
@@ -1780,51 +1950,289 @@ async function fnLoadRockModels() {
     }
 }
 //fnLoadRockModels();
-/********************************************************************
-// Landscape : Simplex Noise
-********************************************************************/ const simplex = new (0, _simplexNoise.SimplexNoise)();
-// Function to generate height based on simplex noise
-/*
-function getHeight(x, z) {
-
-    //let height = 6 * simplex.noise(x / 400, z / 400)
-    let height = 11.5 * simplex.noise(x / 400, z / 400) //how high should it be
-    //height += 0.2 * simplex.noise(x / 10, z / 10)
-    return height;
+function createStoneFigureMaterial() {
+    return new (0, _vanillaDefault.default)({
+        baseMaterial: _three.MeshStandardMaterial,
+        uniforms: {
+            uDiffuseMap: {
+                value: null
+            },
+            hologramColor: {
+                value: new _three.Color(0xab52e3)
+            },
+            time: {
+                value: 0
+            },
+            uOpacity: {
+                value: 0.75
+            },
+            scanLineFrequency: {
+                value: 0.1
+            },
+            scanLineSpeed: {
+                value: 0.5
+            },
+            distortionAmount: {
+                value: 0.0
+            },
+            glowAmount: {
+                value: 2.0
+            },
+            flickerSpeed: {
+                value: 0.05
+            },
+            flickerIntensity: {
+                value: 0.05
+            },
+            textureInfluence: {
+                value: 0.85
+            },
+            effectsIntensity: {
+                value: 0.0
+            },
+            positionScale: {
+                value: 1.0
+            },
+            uBrightness: {
+                value: 1.0
+            },
+            uTerrainHeight: {
+                value: null
+            },
+            uFadeHeight: {
+                value: 1.5
+            }
+        },
+        vertexShader: (0, _stonefigureJsDefault.default).vert,
+        fragmentShader: (0, _stonefigureJsDefault.default).frag,
+        side: _three.FrontSide,
+        transparent: true
+    });
 }
- */ // Define multiple flat areas (centerX, centerZ, size)
-const flatAreas = [
+/*
+let hologramMaterial;
+
+async function fnHologramShader(url, name, position, scale, material) {
+    //const position = { x: 300, z: 100 };
+    //const name = 'horse_figure';
+    let model, mesh, diffuseMap, colliderBVH;
+
+
+    model = await modelLoader.loadModel(url);
+    diffuseMap = model.children[0].material.map;
+
+
+    model.scale.set(scale.x, scale.y, scale.z);
+    model.position.set(position.x, getHeight(position.x, position.z), position.z);
+
+    mesh = model.children.find(child => child.isMesh && child.name === 'LOD0');
+
+    hologramMaterial = createStoneFigureMaterial();
+    hologramMaterial.uniforms.uDiffuseMap.value = diffuseMap;
+    hologramMaterial.uniforms.uTerrainHeight.value = getHeight(position.x, position.z);
+    hologramMaterial.uniforms.uFadeHeight.value = 7.0;
+    hologramMaterial.uniforms.uBrightness.value = 0.75;
+    hologramMaterial.envMap = envMap;
+    hologramMaterial.envMapIntensity = 0.8;
+
+    mesh.material = hologramMaterial;
+
+    const LOD1 = model.children.find(child => child.isMesh && child.name === 'LOD1');
+    const LOD2 = model.children.find(child => child.isMesh && child.name === 'LOD2');
+    const collider = model.children.find(child => child.isMesh && child.name === 'Collider');
+
+
+    LOD1.material = hologramMaterial;
+    LOD2.material = hologramMaterial;
+
+    const lod = new THREE.LOD();
+    lod.addLevel(mesh, 75);
+    lod.addLevel(LOD1, 125);
+    lod.addLevel(LOD2, 175);
+
+    lod.position.set(position.x, getHeight(position.x, position.z) - 2, position.z);
+    lod.scale.set(scale.x, scale.y, scale.z);
+
+
+    //collider.visible = true;
+    collider.position.set(position.x, getHeight(position.x, position.z) - 2, position.z);
+    collider.scale.set(scale.x, scale.y, scale.z);
+
+    // Ensure world matrix is updated before applying it to geometry
+    collider.updateMatrixWorld(true);
+
+    const geom = collider.geometry.clone();
+    geom.applyMatrix4(collider.matrixWorld);
+
+    // Create BVH from the transformed geometry
+    geom.boundsTree = new MeshBVH(geom);
+
+    // Assign the transformed geometry to the mesh
+    collider.geometry = geom;
+
+    // Add to the scene
+    colliderBVH = collider.geometry.boundsTree;
+    const collisionRadius = colliderBVH.geometry.boundingSphere.radius;
+
+    worldScene.scene.add(lod)
+    Utils.fnAddModelToRegistry(modelRegistry, name, mesh, diffuseMap, true, true, false, colliderBVH, collisionRadius);
+
+}
+//fnHologramShader('./assets/models/goat_figure/goat_figure.glb', 'goat_figure', { x: 0, z: 300 }, new THREE.Vector3(3, 3, 3))
+*/ const stoneFigureParams = [
     {
-        x: 1500,
-        z: 1500,
-        size: 150
+        url: './assets/models/horse_figure/horse_figure.glb',
+        name: 'horse_figure',
+        position: (0, _utilsJsDefault.default).fnGetRandomPosition(500, 800, 800),
+        scale: new _three.Vector3(2.5, 2.5, 2.5),
+        rotation: -Math.PI / 4,
+        material: createStoneFigureMaterial(),
+        isAnimating: false,
+        color: new _three.Color(0xf0ffff)
+    },
+    {
+        url: './assets/models/dog_figure/dog_figure.glb',
+        name: 'dog_figure',
+        position: (0, _utilsJsDefault.default).fnGetRandomPosition(600, 800, 850),
+        scale: new _three.Vector3(3.5, 3.5, 3.5),
+        rotation: -Math.PI / 4,
+        material: createStoneFigureMaterial(),
+        isAnimating: false,
+        color: new _three.Color(0xf0ffff)
+    },
+    {
+        url: './assets/models/mouse_figure/mouse_figure.glb',
+        name: 'mouse_figure',
+        position: (0, _utilsJsDefault.default).fnGetRandomPosition(800, 1000, 1000),
+        scale: new _three.Vector3(2.5, 2.5, 2.5),
+        rotation: -Math.PI / 4,
+        material: createStoneFigureMaterial(),
+        isAnimating: false,
+        color: new _three.Color(0xf0ffff)
+    },
+    {
+        url: './assets/models/snake_figure/snake_figure.glb',
+        name: 'snake_figure',
+        position: (0, _utilsJsDefault.default).fnGetRandomPosition(650, 500, 500),
+        scale: new _three.Vector3(2.5, 2.5, 2.5),
+        rotation: -Math.PI / 4,
+        material: createStoneFigureMaterial(),
+        isAnimating: false,
+        color: new _three.Color(0xf0ffff)
+    },
+    {
+        url: './assets/models/goat_figure/goat_figure.glb',
+        name: 'goat_figure',
+        position: (0, _utilsJsDefault.default).fnGetRandomPosition(500, 500, 500),
+        scale: new _three.Vector3(2.5, 2.5, 2.5),
+        rotation: Math.PI - Math.PI / 4,
+        material: createStoneFigureMaterial(),
+        isAnimating: false,
+        color: new _three.Color(0xf0ffff)
     }
 ];
-function smoothstep(edge0, edge1, x) {
-    let t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
-    return t * t * (3 - 2 * t); // Smoothstep function
+async function fnLoadStoneFigureModel(url, name, position, scale, rotation, material, color) {
+    let model, mesh, diffuseMap, colliderBVH;
+    model = await modelLoader.loadModel(url);
+    diffuseMap = model.children[0].material.map;
+    model.scale.set(scale.x, scale.y, scale.z);
+    model.position.set(position.x, getHeight(position.x, position.z), position.z);
+    mesh = model.children.find((child)=>child.isMesh && child.name === 'LOD0');
+    mesh.material = material;
+    material.uniforms.uDiffuseMap.value = diffuseMap;
+    material.uniforms.uTerrainHeight.value = getHeight(position.x, position.z);
+    material.uniforms.uFadeHeight.value = 8.0;
+    material.uniforms.uBrightness.value = 0.75;
+    material.uniforms.hologramColor.value = color;
+    material.envMap = envMap;
+    material.envMapIntensity = 0.45;
+    const LOD1 = model.children.find((child)=>child.isMesh && child.name === 'LOD1');
+    const LOD2 = model.children.find((child)=>child.isMesh && child.name === 'LOD2');
+    const collider = model.children.find((child)=>child.isMesh && child.name === 'Collider');
+    collider.rotateY(rotation);
+    //LOD1.visible = false;
+    //LOD1.material.color = new THREE.Vector3(0.9, 0.9, 0.9);
+    LOD1.material = material;
+    //LOD1.material.envMap = envMap;
+    //LOD1.material.envMapIntensity = 0.1;
+    //LOD1.material.side = THREE.FrontSide;
+    //LOD2.visible = false;
+    LOD2.material = material;
+    //LOD2.material.color = new THREE.Vector3(0.9, 0.9, 0.9);
+    //LOD2.material.envMap = envMap;
+    //LOD2.material.envMapIntensity = 0.1;
+    //LOD2.material.side = THREE.FrontSide;
+    const lod = new _three.LOD();
+    lod.addLevel(mesh, DISTANCE_LOD1);
+    lod.addLevel(LOD1, DISTANCE_LOD2);
+    lod.addLevel(LOD2, DISTANCE_LOD3);
+    lod.rotateY(rotation);
+    lod.position.set(position.x, getHeight(position.x, position.z), position.z);
+    lod.scale.set(scale.x, scale.y, scale.z);
+    //collider.visible = true;
+    collider.position.set(position.x, getHeight(position.x, position.z), position.z);
+    collider.scale.set(scale.x, scale.y, scale.z);
+    // Ensure world matrix is updated before applying it to geometry
+    collider.updateMatrixWorld(true);
+    const geom = collider.geometry.clone();
+    geom.applyMatrix4(collider.matrixWorld);
+    // Create BVH from the transformed geometry
+    geom.boundsTree = new (0, _threeMeshBvh.MeshBVH)(geom);
+    // Assign the transformed geometry to the mesh
+    collider.geometry = geom;
+    // Add to the scene
+    colliderBVH = collider.geometry.boundsTree;
+    const collisionRadius = colliderBVH.geometry.boundingSphere.radius;
+    //console.log(colliderBVH.geometry.boundingSphere.radius)
+    /*
+    stoneColliderMesh = stoneModel.children.find(child => child.isMesh && child.name === 'collider');
+    stoneColliderMesh.visible = false;
+
+    stoneColliderMesh.scale.set(3, 3, 3);
+    //stoneColliderMesh.rotateY((Math.PI * 2) * 3 / 4);
+    stoneColliderMesh.position.set(position.x, getHeight(position.x, position.z) - 2, position.z);
+
+    // Ensure world matrix is updated before applying it to geometry
+    stoneColliderMesh.updateMatrixWorld(true);
+
+    const geom = stoneColliderMesh.geometry.clone();
+    geom.applyMatrix4(stoneColliderMesh.matrixWorld);
+
+    // Create BVH from the transformed geometry
+    geom.boundsTree = new MeshBVH(geom);
+
+    // Assign the transformed geometry to the mesh
+    stoneColliderMesh.geometry = geom;
+
+    // Add to the scene
+    stoneColliderBVH = stoneColliderMesh.geometry.boundsTree;
+    // Optional: Visualize BVH
+    //const visualizer = new MeshBVHHelper(colliderMesh, 10);
+    //worldScene.scene.add(visualizer);
+    */ worldScene.scene.add(lod);
+    (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, diffuseMap, true, true, false, colliderBVH, collisionRadius);
 }
-function getHeight(x, z) {
-    let roughTerrain = 10.3 * simplex.noise(x / 400, z / 400); // Normal terrain
-    let smoothTerrain = 3 * simplex.noise(x / 1000, z / 1000); // Smooth flat terrain
-    let blendFactor = 1; // Default = full rough terrain
-    for (let area of flatAreas){
-        let distanceX = Math.abs(x - area.x);
-        let distanceZ = Math.abs(z - area.z);
-        let transitionSize = area.size * 0.5; // Transition zone
-        let factorX = smoothstep(area.size - transitionSize, area.size + transitionSize, distanceX);
-        let factorZ = smoothstep(area.size - transitionSize, area.size + transitionSize, distanceZ);
-        let areaBlend = Math.min(factorX, factorZ);
-        // Blend with the lowest factor to ensure a smooth transition
-        blendFactor = Math.min(blendFactor, areaBlend);
+if (!visitedFromMobileDevice) //fnLoadRockVideoProjectionModel('./assets/models/video_rock/videoRockPreload.glb', 10);
+//fnLoadFactoryModel('./assets/models/factory/factory_test.glb');
+stoneFigureParams.forEach((params)=>{
+    fnLoadStoneFigureModel(params.url, params.name, params.position, params.scale, params.rotation, params.material, params.color);
+});
+fnLoadPowerlinesModel('./assets/powerlines.glb');
+function fnToggleFigureAnimation(stoneFigureParams, figureName) {
+    for(let i = 0; i < stoneFigureParams.length; i++)if (stoneFigureParams[i].name === figureName) {
+        //stoneFigureParams[i].material.uniforms.effectsIntensity.value = 1.0;
+        setTimeout(()=>{
+            stoneFigureParams[i].isAnimating = true;
+        }, 2000);
+        break; // Exit loop once found
     }
-    return roughTerrain * blendFactor + smoothTerrain * (1 - blendFactor);
 }
+//fnToggleFigureAnimation(stoneFigureParams, 'goat_figure');
 /********************************************************************
 // Video Plane
 ********************************************************************/ // Create a video element
 const video = document.createElement('video');
-video.src = (0, _introvideoMp4Default.default); // Set the path to your video file
+video.src = './assets/introvideo.mp4'; // Set the path to your video file
 video.setAttribute('webkit-playsinline', 'webkit-playsinline'); // For older Safari versions
 video.setAttribute('playsinline', 'playsinline'); // For modern browsers
 video.muted = true;
@@ -2027,6 +2435,7 @@ document.addEventListener('keyup', onKeyUp);
 //let playerCollider = new THREE.Sphere(new THREE.Vector3(camera.position.x, getHeight(camera.position.x, camera.position.y) + PERSON_HEIGHT, camera.position.y), 3.0);
 const playerCollider = new _three.Sphere(new _three.Vector3(0, 0, 0));
 playerCollider.center.set(endPosition.x, getHeight(endPosition.x, endPosition.y), endPosition.z);
+const intersects = [];
 function fnUpdateControls(deltaTime) {
     // Create a new Vector3 for the player's potential next position
     const newPosition = playerCollider.center.clone();
@@ -2048,30 +2457,37 @@ function fnUpdateControls(deltaTime) {
     newPosition.addScaledVector(direction, -velocity.z * deltaTime);
     newPosition.addScaledVector(right, -velocity.x * deltaTime);
     // --- COLLISION CHECK START ---
-    const playerRadius1 = 1.75;
-    const playerSphere = new _three.Sphere(newPosition, playerRadius1);
+    const playerRadius = 2.0;
+    const playerSphere = new _three.Sphere(newPosition, playerRadius);
     //const intersects = [];
     //const intersects = colliderBVH.intersectsSphere(playerSphere);
     //console.log('Intersects:', intersects);
     const closestPoint = new _three.Vector3();
-    if (colliderBVH) colliderBVH.shapecast({
-        intersectsBounds: (box)=>box.intersectsSphere(playerSphere),
-        intersectsTriangle: (tri)=>{
-            tri.closestPointToPoint(newPosition, closestPoint);
-            const distance = newPosition.distanceTo(closestPoint);
-            //console.log(distance)
-            if (distance < playerRadius1) {
-                const penetrationDepth = playerRadius1 - distance;
-                const displacement = newPosition.clone().sub(closestPoint).normalize().multiplyScalar(penetrationDepth);
-                newPosition.add(displacement); // Push player out of collision
-            }
+    modelRegistry.forEach((data, id)=>{
+        //is object in frustrum and within distance
+        if (!(0, _utilsJsDefault.default).fnIsInFrustum(data.mesh, camera) || !(0, _utilsJsDefault.default).fnIsWithinDistance(data.position, newPosition, data.collisionRadius)) return;
+        if (data.bvh) {
+            if (data.name.includes('figure')) fnToggleFigureAnimation(stoneFigureParams, data.name);
+            data.bvh.shapecast({
+                intersectsBounds: (box)=>box.intersectsSphere(playerSphere),
+                intersectsTriangle: (tri)=>{
+                    tri.closestPointToPoint(newPosition, closestPoint);
+                    const distance = newPosition.distanceTo(closestPoint);
+                    //console.log(distance)
+                    if (distance < playerRadius) {
+                        const penetrationDepth = playerRadius - distance;
+                        const displacement = newPosition.clone().sub(closestPoint).normalize().multiplyScalar(penetrationDepth);
+                        newPosition.add(displacement); // Push player out of collision
+                    }
+                }
+            });
         }
     });
     if (intersects.length > 0) for (const { tri, closestPoint, distance } of intersects){
         // Get collision normal
         const collisionNormal = tri.getNormal(new _three.Vector3());
         // Push the player out along the collision normal
-        const penetrationDepth = playerRadius1 - distance;
+        const penetrationDepth = playerRadius - distance;
         newPosition.addScaledVector(collisionNormal, penetrationDepth);
         // Slide along the collision plane
         const velocityDot = velocity.dot(collisionNormal);
@@ -2123,16 +2539,13 @@ function createGrassBladeShapeLOD1() {
 // Convert shape to geometry
 const bladeShape = createGrassBladeShapeLOD1();
 const bladeGeometry = new _three.ShapeGeometry(bladeShape);
+const grassDiffuseMap2 = './assets/grassColor.png';
 const grassMaterial = new (0, _vanillaDefault.default)({
     baseMaterial: _three.MeshStandardMaterial,
     uniforms: {
         time: {
             value: 0.0
         },
-        //u_touch: { value: new THREE.Vector2(0.5, 0.5) }, // Default touch position
-        //u_touchActive: { value: 0 }, // Flag to indicate if the touch is active
-        //u_fadeSpeed: { value: 0.1 }, // Fadeout speed (adjust as needed)
-        //u_touchTime: { value: 0 }, // Time of the last touch
         grassTexture: {
             value: grassDiffuseMap
         }
@@ -2145,11 +2558,11 @@ const grassMaterial = new (0, _vanillaDefault.default)({
 });
 /********************************************************************
 // Terrain Logic
-********************************************************************/ /** Terrain Constants */ const chunkSize = 500; // Size of each terrain chunk (200)
-const viewRadius = 2; // Number of chunks to load around the player (5)
-const unloadRadius = 5; // Number of chunks to unload outside this radius (6)
-const chunkVertexCount = 12; // 4
-const instanceCount = 19500; //(4000) (19500)
+********************************************************************/ /** Terrain Constants */ const chunkSize = 200; // Size of each terrain chunk (200)
+const viewRadius = 6; // Number of chunks to load around the player (5)
+const unloadRadius = 7; // Number of chunks to unload outside this radius (6)
+const chunkVertexCount = 8; // 4
+const instanceCount = 4000; //(4000) (19500)
 const loadedChunks = new Map(); // Store references to loaded chunks
 // Define special chunk configurations by their X, Z values
 const specialChunks = {
@@ -2211,7 +2624,7 @@ function postToGrassWorker(task) {
 /********************************************************************
 // NEW TERRAIN GENERATION
 ********************************************************************/ const groundMaterial = new _three.MeshBasicMaterial({
-    color: 0x00000 // Use the specified material color
+    color: 0x00000
 });
 function fnGenerateChunk(x, z) {
     const offsetX = x * chunkSize;
@@ -2224,28 +2637,6 @@ function fnGenerateChunk(x, z) {
         materialColor: 0x000000,
         grassBladeCount: instanceCount
     };
-    // Create geometry for the terrain chunk
-    const baseGeometry = new _three.PlaneGeometry(chunkSize, chunkSize, chunkVertexCount, chunkVertexCount);
-    baseGeometry.rotateX(-Math.PI / 2);
-    // Adjust the geometry's position so that its origin aligns with the top-left corner
-    baseGeometry.translate(chunkSize / 2, 0, chunkSize / 2);
-    const chunkBoundingSphere = new _three.Sphere(new _three.Vector3(chunkSize, 0.0, chunkSize), chunkSize * 1.5);
-    baseGeometry.boundingSphere = chunkBoundingSphere;
-    const geometry = baseGeometry.clone();
-    // Modify the vertices based on simplex noise
-    const vertices = geometry.attributes.position.array;
-    for(let i = 0; i < vertices.length; i += 3){
-        const vertexX = vertices[i] + offsetX;
-        const vertexZ = vertices[i + 2] + offsetZ;
-        vertices[i + 1] = getHeight(vertexX, vertexZ); // Set Y position based on height
-    }
-    //geometry.computeVertexNormals(); // Recalculate normals for smooth shading
-    // Create the mesh
-    const chunkMesh = new _three.Mesh(geometry, groundMaterial);
-    chunkMesh.position.set(offsetX, 0, offsetZ);
-    //if (Utils.fnIsInFrustum(chunkMesh, camera)) {
-    //console.log("Is in Frustrum");
-    //requestIdleCallback(() => {
     postToGrassWorker({
         chunkKey,
         offsetX,
@@ -2253,12 +2644,26 @@ function fnGenerateChunk(x, z) {
         chunkSize,
         instanceCount: chunkProps.grassBladeCount
     });
-    //});
-    //}
-    // Add grass if the chunk has grassBladeCount > 0
-    //if (chunkProps.grassBladeCount !== undefined && chunkProps.grassBladeCount > 0) {
-    //}
-    //console.log(chunkMesh)
+    // Create geometry for the terrain chunk
+    const baseGeometry = new _three.PlaneGeometry(chunkSize, chunkSize, chunkVertexCount, chunkVertexCount);
+    baseGeometry.rotateX(-Math.PI / 2);
+    // Adjust the geometry's position so that its origin aligns with the top-left corner
+    baseGeometry.translate(chunkSize / 2, 0, chunkSize / 2);
+    const chunkBoundingSphere = new _three.Sphere(new _three.Vector3(chunkSize, 0.0, chunkSize), chunkSize * 1.5);
+    baseGeometry.boundingSphere = chunkBoundingSphere;
+    //const geometry = baseGeometry.clone();
+    // Modify the vertices based on simplex noise
+    const vertices = baseGeometry.attributes.position.array;
+    for(let i = 0; i < vertices.length; i += 3){
+        const vertexX = vertices[i] + offsetX;
+        const vertexZ = vertices[i + 2] + offsetZ;
+        vertices[i + 1] = getHeight(vertexX, vertexZ); // Set Y position based on height
+    }
+    // Create the mesh
+    const chunkMesh = new _three.Mesh(baseGeometry, groundMaterial);
+    chunkMesh.position.set(offsetX, 0, offsetZ);
+    // Track this chunk for opacity updates
+    //fadingChunks.add(chunkMesh);
     return chunkMesh;
 }
 /********************************************************************
@@ -2276,7 +2681,7 @@ function fnGenerateChunk(x, z) {
         }
     }
 }
-loadInitialTerrain(1);
+loadInitialTerrain(2);
 /********************************************************************
 // Function to run start animation and welcome screen fade, at page load
 ********************************************************************/ function fnCreateOnceFunction() {
@@ -2302,7 +2707,6 @@ const fnOnTerrainComplete = fnCreateOnceFunction();
         // Check if the chunk is already loaded
         if (!loadedChunks.has(chunkKey)) {
             const chunkMesh = fnGenerateChunk(chunkX, chunkZ);
-            console.log("worker run");
             worldScene.scene.add(chunkMesh);
             loadedChunks.set(chunkKey, {
                 terrainMesh: chunkMesh
@@ -2321,11 +2725,11 @@ const fnOnTerrainComplete = fnCreateOnceFunction();
         if (distance > unloadRadius) {
             worldScene.scene.remove(chunk.terrainMesh);
             chunk.terrainMesh.geometry.dispose();
-            chunk.terrainMesh.material.dispose();
+            //chunk.terrainMesh.material.dispose();
             if (chunk.grassMesh) {
                 worldScene.scene.remove(chunk.grassMesh);
                 chunk.grassMesh.geometry.dispose();
-                chunk.grassMesh.material.dispose();
+            //chunk.grassMesh.material.dispose();
             }
             loadedChunks.delete(key);
         }
@@ -2362,10 +2766,19 @@ const fnOnTerrainComplete = fnCreateOnceFunction();
             } else {
                 chunk.grassMesh.count = instanceCount;
             }
-            */ if (distance > 900) chunk.grassMesh.count = instanceCount * 0.2;
+            */ /*
+            if (distance > 1000) {
+                chunk.grassMesh.count = instanceCount * 0.3;
+            } else if (distance > 500) {
+                chunk.grassMesh.count = instanceCount * 0.60;
+            } else {
+                chunk.grassMesh.count = instanceCount;
+            }
+            */ if (distance > 1200) chunk.grassMesh.count = instanceCount * 0.2;
+            else if (distance > 900) chunk.grassMesh.count = instanceCount * 0.3;
             else if (distance > 800) chunk.grassMesh.count = instanceCount * 0.4;
-            else if (distance > 500) chunk.grassMesh.count = instanceCount * 0.5;
-            else if (distance > 400) chunk.grassMesh.count = instanceCount * 0.65;
+            else if (distance > 500) chunk.grassMesh.count = instanceCount * 0.65;
+            else if (distance > 400) chunk.grassMesh.count = instanceCount * 0.75;
             else if (distance > 200) chunk.grassMesh.count = instanceCount * 0.95;
             else chunk.grassMesh.count = instanceCount;
         }
@@ -2386,44 +2799,36 @@ const fnOnTerrainComplete = fnCreateOnceFunction();
     worldScene.scene.add(videoPlane);
     setTimeout(()=>{
         welcomeScreen.style.display = "none";
-    }, 3000); // Matches the duration of the CSS transition
+    }, 2100); // Matches the duration of the CSS transition
 }
-const intersects = [];
 /********************************************************************
 // Animate Function
 ********************************************************************/ function animate() {
     const deltaTime = clock.getDelta();
     const playerPosition = camera.position;
     updateTerrainChunks(playerPosition); // Dynamically update chunks
-    // Update LOD smooth transitions based on the camera's position
-    //updateLOD();
-    /*
-        modelRegistry.forEach((data, id) => {
-    
-            if (!Utils.fnIsInFrustum(data.mesh, camera)) return;
-    
-            //distance from mesh to player
-            const distance = camera.position.distanceTo(data.position);
-    
-            if (data.needsTextureSwapToHQ && distance < DISTANCE_TEXTURE_SWAP) {
-                if (!data.textureIsLoaded) {
-                    data.textureIsLoaded = true;
-                    data.needsTextureSwapToHQ = false;
-                    //update model registry
-                    modelRegistry.set(id, data);
-                    //load texture
-                    fnLoadHQTexture(data);
-                }
-            }
-            if (!data.needsTextureSwapToHQ && distance > DISTANCE_TEXTURE_DISPOSE) {
-    
-                data.needsTextureSwapToHQ = true;
-                data.textureIsLoaded = false;
+    modelRegistry.forEach((data, id)=>{
+        if (!(0, _utilsJsDefault.default).fnIsInFrustum(data.mesh, camera)) return;
+        //distance from mesh to player
+        const distance = camera.position.distanceTo(data.position);
+        if (data.needsTextureSwapToHQ && distance < DISTANCE_TEXTURE_SWAP) {
+            if (!data.textureIsLoaded) {
+                data.textureIsLoaded = true;
+                data.needsTextureSwapToHQ = false;
+                //update model registry
                 modelRegistry.set(id, data);
-                fnUnloadHQTexture(data);
+            //load texture
+            //fnLoadHQTexture(data);
             }
-        });
-    */ if (allModelsLoaded && !allModelsAddedToScene && allGrassComputed) {
+        }
+        if (!data.needsTextureSwapToHQ && distance > DISTANCE_TEXTURE_DISPOSE) {
+            data.needsTextureSwapToHQ = true;
+            data.textureIsLoaded = false;
+            modelRegistry.set(id, data);
+        //fnUnloadHQTexture(data);
+        }
+    });
+    if (allModelsLoaded && !allModelsAddedToScene && allGrassComputed) {
         const allAdded = [
             ...modelRegistry.values()
         ].every((model)=>model.isAddedToScene);
@@ -2432,68 +2837,21 @@ const intersects = [];
             allModelsAddedToScene = true;
         }
     }
-    //change this, variable is set at each loop
     fnAnimateCamera();
     if (visitedFromMobileDevice) fnCheckOrientation();
     else if (!cameraAnimationState.isAnimating) fnUpdateControls(deltaTime);
-    if (colliderBVH && !visitedFromMobileDevice) colliderBVH.shapecast({
-        intersectsBounds: (box)=>box.intersectsSphere(playerCollider),
-        intersectsTriangle: (tri)=>{
-            const distance = tri.closestPointToPoint(playerPosition, new _three.Vector3());
-            const collisionNormal = tri.getNormal(new _three.Vector3());
-            // Push the player out along the collision normal
-            const penetrationDepth = playerRadius - distance;
-            playerPosition.addScaledVector(collisionNormal, penetrationDepth);
-            // Slide along the collision plane by projecting the velocity
-            const velocityDot = playerVelocity.dot(collisionNormal);
-            const slideVector = playerVelocity.clone().sub(collisionNormal.multiplyScalar(velocityDot));
-            playerVelocity.copy(slideVector);
-            console.log("collision normal: ", collisionNormal);
-            if (distance < playerRadius) intersects.push({
-                tri,
-                distance
-            });
-        }
-    });
-    /*
-        if (colliderBVH) {
-    
-            //const localCollider = playerCollider.clone();
-            //model.worldToLocal(localCollider.center)
-            const intersects = colliderBVH.intersectsSphere(playerCollider);
-    
-            if (colliderBVH.intersectsSphere(playerCollider)) {
-                console.log(colliderBVH.intersectsSphere(playerCollider))
-                console.log(colliderBVH.closestPointToPoint)
-            }
-        }
-    */ //console.log(colliderMesh)
-    //const intersects = boxGeometry.boundsTree.intersectsSphere(playerCollider);
-    /*
-        if (colliderMesh) {
-            //console.log(colliderMesh)
-            if (colliderBVH.intersectsSphere(playerCollider)) {
-                console.log("intersect factory")
-            }
-    
-            //console.log("factory loaded")
-            
-            if (factoryModelMesh.geometry.boundsTree.intersectsSphere(playerCollider)) {
-                console.log("intersect factory")
-            }
-            
-    
-        }
-    */ /*
-        if (boxGeometry.boundsTree.intersectsSphere(playerCollider)) {
-            console.log("intersect")
-        }
-    */ //shader uniform updates
+    //shader uniform updates
     powerlinesShaderMaterial.uniforms.uTime.value += deltaTime * 3.0;
     grassMaterial.uniforms.time.value += deltaTime * 1.0; // Update time for wind animation
     videoShaderMaterial.uniforms.uTime.value += deltaTime * 0.5;
+    stoneFigureParams.forEach((item)=>{
+        if (item.isAnimating && item.material) {
+            if (item.material.uniforms.effectsIntensity.value < 1.0) item.material.uniforms.effectsIntensity.value += deltaTime / 5;
+            item.material.uniforms.time.value += deltaTime * 2.0;
+        }
+    });
     renderer.render(worldScene.scene, camera);
-//stats.update();
+    stats.update();
 //console.log(renderer.info);
 //composer.render();
 //videoTexture.needsUpdate = true;
@@ -2507,7 +2865,7 @@ const intersects = [];
     */ }
 renderer.setAnimationLoop(animate);
 
-},{"three":"ktPTu","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/Addons.js":"iBAni","three/examples/jsm/math/Octree.js":"iwBOl","three/examples/jsm/helpers/OctreeHelper.js":"70dYF","three-mesh-bvh":"6y2ur","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"8TdPQ","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./Utils.js":"c7A1Q","./shaders/grass.js":"cNzyR","./shaders/powerlines.js":"gJXUV","./shaders/videotexture.js":"5S7oy","../img/grassColor.png":"f6f8d","../img/factory_diffuse.webp":"bveXV","../img/stoneGoat_diffuse1K.webp":"kOcJO","../img/textures/rock_A.ktx2":"3PQAs","../img/textures/rock_N.ktx2":"75Eqw","../img/videoFallback.webp":"5ZsGE","../img/introvideo.mp4":"7VbOy","./content.json":"24cue","./GrassScene.js":"a5jmZ","./WorldScene.js":"5ZFD0","./ModelLoader.js":"5o86C","./LODManager.js":"3L9vB","cdb16b6f1235a7ac":"9rntO","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"ktPTu":[function(require,module,exports,__globalThis) {
+},{"three":"ktPTu","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/Addons.js":"iBAni","three/examples/jsm/math/Octree.js":"iwBOl","three/examples/jsm/helpers/OctreeHelper.js":"70dYF","three-mesh-bvh":"6y2ur","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"8TdPQ","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./Utils.js":"c7A1Q","./shaders/grass.js":"cNzyR","./shaders/powerlines.js":"gJXUV","./shaders/videotexture.js":"5S7oy","./shaders/stonefigure.js":"e77je","./shaders/videoFade.js":"2lLRY","../img/videoFallback.webp":"5ZsGE","./content.json":"24cue","./GrassScene.js":"a5jmZ","./WorldScene.js":"5ZFD0","./ModelLoader.js":"5o86C","./LODManager.js":"3L9vB","cdb16b6f1235a7ac":"9rntO","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"ktPTu":[function(require,module,exports,__globalThis) {
 /**
  * @license
  * Copyright 2010-2025 Three.js Authors
@@ -189048,7 +189406,7 @@ const shaderIntersectFunction = `
 	${_bvhshaderGLSLJs.bvh_ray_functions}
 `;
 
-},{"./core/MeshBVH.js":"biELs","./objects/MeshBVHHelper.js":"eVcBy","./core/Constants.js":false,"./debug/Debug.js":false,"./utils/ExtensionUtilities.js":false,"./utils/TriangleUtilities.js":false,"./math/ExtendedTriangle.js":false,"./math/OrientedBox.js":false,"./gpu/MeshBVHUniformStruct.js":false,"./gpu/VertexAttributeTexture.js":false,"./utils/StaticGeometryGenerator.js":false,"./gpu/BVHShaderGLSL.js":false,"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"biELs":[function(require,module,exports,__globalThis) {
+},{"./core/MeshBVH.js":"biELs","./objects/MeshBVHHelper.js":false,"./core/Constants.js":false,"./debug/Debug.js":false,"./utils/ExtensionUtilities.js":false,"./utils/TriangleUtilities.js":false,"./math/ExtendedTriangle.js":false,"./math/OrientedBox.js":false,"./gpu/MeshBVHUniformStruct.js":false,"./gpu/VertexAttributeTexture.js":false,"./utils/StaticGeometryGenerator.js":false,"./gpu/BVHShaderGLSL.js":false,"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"biELs":[function(require,module,exports,__globalThis) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "DEFAULT_OPTIONS", ()=>DEFAULT_OPTIONS);
@@ -192525,292 +192883,7 @@ depth1 = 0, depth2 = 0, currBox = null, reversed = false) {
     return result;
 }
 
-},{"three":"ktPTu","../utils/BufferStack.js":"bkDBK","../utils/nodeBufferUtils.js":"gJWU9","../../utils/ArrayBoxUtilities.js":"axERW","../../utils/PrimitivePool.js":"lvehm","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"eVcBy":[function(require,module,exports,__globalThis) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-parcelHelpers.export(exports, "MeshBVHVisualizer", ()=>MeshBVHVisualizer);
-parcelHelpers.export(exports, "MeshBVHHelper", ()=>MeshBVHHelper);
-var _three = require("three");
-var _arrayBoxUtilitiesJs = require("../utils/ArrayBoxUtilities.js");
-var _meshBVHJs = require("../core/MeshBVH.js");
-const boundingBox = /* @__PURE__ */ new (0, _three.Box3)();
-const matrix = /* @__PURE__ */ new (0, _three.Matrix4)();
-class MeshBVHRootHelper extends (0, _three.Object3D) {
-    get isMesh() {
-        return !this.displayEdges;
-    }
-    get isLineSegments() {
-        return this.displayEdges;
-    }
-    get isLine() {
-        return this.displayEdges;
-    }
-    getVertexPosition(...args) {
-        // implement this function so it works with Box3.setFromObject
-        return (0, _three.Mesh).prototype.getVertexPosition.call(this, ...args);
-    }
-    constructor(bvh, material, depth = 10, group = 0){
-        super();
-        this.material = material;
-        this.geometry = new (0, _three.BufferGeometry)();
-        this.name = 'MeshBVHRootHelper';
-        this.depth = depth;
-        this.displayParents = false;
-        this.bvh = bvh;
-        this.displayEdges = true;
-        this._group = group;
-    }
-    raycast() {}
-    update() {
-        const geometry = this.geometry;
-        const boundsTree = this.bvh;
-        const group = this._group;
-        geometry.dispose();
-        this.visible = false;
-        if (boundsTree) {
-            // count the number of bounds required
-            const targetDepth = this.depth - 1;
-            const displayParents = this.displayParents;
-            let boundsCount = 0;
-            boundsTree.traverse((depth, isLeaf)=>{
-                if (depth >= targetDepth || isLeaf) {
-                    boundsCount++;
-                    return true;
-                } else if (displayParents) boundsCount++;
-            }, group);
-            // fill in the position buffer with the bounds corners
-            let posIndex = 0;
-            const positionArray = new Float32Array(24 * boundsCount);
-            boundsTree.traverse((depth, isLeaf, boundingData)=>{
-                const terminate = depth >= targetDepth || isLeaf;
-                if (terminate || displayParents) {
-                    (0, _arrayBoxUtilitiesJs.arrayToBox)(0, boundingData, boundingBox);
-                    const { min, max } = boundingBox;
-                    for(let x = -1; x <= 1; x += 2){
-                        const xVal = x < 0 ? min.x : max.x;
-                        for(let y = -1; y <= 1; y += 2){
-                            const yVal = y < 0 ? min.y : max.y;
-                            for(let z = -1; z <= 1; z += 2){
-                                const zVal = z < 0 ? min.z : max.z;
-                                positionArray[posIndex + 0] = xVal;
-                                positionArray[posIndex + 1] = yVal;
-                                positionArray[posIndex + 2] = zVal;
-                                posIndex += 3;
-                            }
-                        }
-                    }
-                    return terminate;
-                }
-            }, group);
-            let indexArray;
-            let indices;
-            if (this.displayEdges) // fill in the index buffer to point to the corner points
-            indices = new Uint8Array([
-                // x axis
-                0,
-                4,
-                1,
-                5,
-                2,
-                6,
-                3,
-                7,
-                // y axis
-                0,
-                2,
-                1,
-                3,
-                4,
-                6,
-                5,
-                7,
-                // z axis
-                0,
-                1,
-                2,
-                3,
-                4,
-                5,
-                6,
-                7
-            ]);
-            else indices = new Uint8Array([
-                // X-, X+
-                0,
-                1,
-                2,
-                2,
-                1,
-                3,
-                4,
-                6,
-                5,
-                6,
-                7,
-                5,
-                // Y-, Y+
-                1,
-                4,
-                5,
-                0,
-                4,
-                1,
-                2,
-                3,
-                6,
-                3,
-                7,
-                6,
-                // Z-, Z+
-                0,
-                2,
-                4,
-                2,
-                6,
-                4,
-                1,
-                5,
-                3,
-                3,
-                5,
-                7
-            ]);
-            if (positionArray.length > 65535) indexArray = new Uint32Array(indices.length * boundsCount);
-            else indexArray = new Uint16Array(indices.length * boundsCount);
-            const indexLength = indices.length;
-            for(let i = 0; i < boundsCount; i++){
-                const posOffset = i * 8;
-                const indexOffset = i * indexLength;
-                for(let j = 0; j < indexLength; j++)indexArray[indexOffset + j] = posOffset + indices[j];
-            }
-            // update the geometry
-            geometry.setIndex(new (0, _three.BufferAttribute)(indexArray, 1, false));
-            geometry.setAttribute('position', new (0, _three.BufferAttribute)(positionArray, 3, false));
-            this.visible = true;
-        }
-    }
-}
-class MeshBVHHelper extends (0, _three.Group) {
-    get color() {
-        return this.edgeMaterial.color;
-    }
-    get opacity() {
-        return this.edgeMaterial.opacity;
-    }
-    set opacity(v) {
-        this.edgeMaterial.opacity = v;
-        this.meshMaterial.opacity = v;
-    }
-    constructor(mesh = null, bvh = null, depth = 10){
-        // handle bvh, depth signature
-        if (mesh instanceof (0, _meshBVHJs.MeshBVH)) {
-            depth = bvh || 10;
-            bvh = mesh;
-            mesh = null;
-        }
-        // handle mesh, depth signature
-        if (typeof bvh === 'number') {
-            depth = bvh;
-            bvh = null;
-        }
-        super();
-        this.name = 'MeshBVHHelper';
-        this.depth = depth;
-        this.mesh = mesh;
-        this.bvh = bvh;
-        this.displayParents = false;
-        this.displayEdges = true;
-        this.objectIndex = 0;
-        this._roots = [];
-        const edgeMaterial = new (0, _three.LineBasicMaterial)({
-            color: 0x00FF88,
-            transparent: true,
-            opacity: 0.3,
-            depthWrite: false
-        });
-        const meshMaterial = new (0, _three.MeshBasicMaterial)({
-            color: 0x00FF88,
-            transparent: true,
-            opacity: 0.3,
-            depthWrite: false
-        });
-        meshMaterial.color = edgeMaterial.color;
-        this.edgeMaterial = edgeMaterial;
-        this.meshMaterial = meshMaterial;
-        this.update();
-    }
-    update() {
-        const mesh = this.mesh;
-        let bvh = this.bvh || mesh.geometry.boundsTree || null;
-        if (mesh.isBatchedMesh && mesh.boundsTrees && !bvh) {
-            // get the bvh from a batchedMesh if not provided
-            // TODO: we should have an official way to get the geometry index cleanly
-            const drawInfo = mesh._drawInfo[this.objectIndex];
-            if (drawInfo) bvh = mesh.boundsTrees[drawInfo.geometryIndex] || bvh;
-        }
-        const totalRoots = bvh ? bvh._roots.length : 0;
-        while(this._roots.length > totalRoots){
-            const root = this._roots.pop();
-            root.geometry.dispose();
-            this.remove(root);
-        }
-        for(let i = 0; i < totalRoots; i++){
-            const { depth, edgeMaterial, meshMaterial, displayParents, displayEdges } = this;
-            if (i >= this._roots.length) {
-                const root = new MeshBVHRootHelper(bvh, edgeMaterial, depth, i);
-                this.add(root);
-                this._roots.push(root);
-            }
-            const root = this._roots[i];
-            root.bvh = bvh;
-            root.depth = depth;
-            root.displayParents = displayParents;
-            root.displayEdges = displayEdges;
-            root.material = displayEdges ? edgeMaterial : meshMaterial;
-            root.update();
-        }
-    }
-    updateMatrixWorld(...args) {
-        const mesh = this.mesh;
-        const parent = this.parent;
-        if (mesh !== null) {
-            mesh.updateWorldMatrix(true, false);
-            if (parent) this.matrix.copy(parent.matrixWorld).invert().multiply(mesh.matrixWorld);
-            else this.matrix.copy(mesh.matrixWorld);
-            // handle batched and instanced mesh bvhs
-            if (mesh.isInstancedMesh || mesh.isBatchedMesh) {
-                mesh.getMatrixAt(this.objectIndex, matrix);
-                this.matrix.multiply(matrix);
-            }
-            this.matrix.decompose(this.position, this.quaternion, this.scale);
-        }
-        super.updateMatrixWorld(...args);
-    }
-    copy(source) {
-        this.depth = source.depth;
-        this.mesh = source.mesh;
-        this.bvh = source.bvh;
-        this.opacity = source.opacity;
-        this.color.copy(source.color);
-    }
-    clone() {
-        return new MeshBVHHelper(this.mesh, this.bvh, this.depth);
-    }
-    dispose() {
-        this.edgeMaterial.dispose();
-        this.meshMaterial.dispose();
-        const children = this.children;
-        for(let i = 0, l = children.length; i < l; i++)children[i].geometry.dispose();
-    }
-}
-class MeshBVHVisualizer extends MeshBVHHelper {
-    constructor(...args){
-        super(...args);
-        console.warn('MeshBVHVisualizer: MeshBVHVisualizer has been deprecated. Use MeshBVHHelper, instead.');
-    }
-}
-
-},{"three":"ktPTu","../utils/ArrayBoxUtilities.js":"axERW","../core/MeshBVH.js":"biELs","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"8TdPQ":[function(require,module,exports,__globalThis) {
+},{"three":"ktPTu","../utils/BufferStack.js":"bkDBK","../utils/nodeBufferUtils.js":"gJWU9","../../utils/ArrayBoxUtilities.js":"axERW","../../utils/PrimitivePool.js":"lvehm","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"8TdPQ":[function(require,module,exports,__globalThis) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "default", ()=>z);
@@ -194267,7 +194340,7 @@ var _three = require("three");
 class Utils {
     /**
     * Generates a random float between min and max.
-    */ static fnAddModelToRegistry(modelRegistry, name, mesh, lqTexture, isAddedToScene, needsTextureSwapToHQ, textureIsLoaded, bvh) {
+    */ static fnAddModelToRegistry(modelRegistry, name, mesh, lqTexture, isAddedToScene, needsTextureSwapToHQ, textureIsLoaded, bvh, collisionRadius) {
         const modelID = Symbol(name); // Ensures uniqueness
         modelRegistry.set(modelID, {
             name,
@@ -194277,6 +194350,7 @@ class Utils {
             isAddedToScene,
             position: mesh.parent.position.clone(),
             bvh,
+            collisionRadius,
             lastDistance: Infinity,
             hqTexture: null,
             lqTexture
@@ -194406,10 +194480,46 @@ module.exports = "        precision mediump float;\n#define GLSLIFY 1\n\n\n     
 },{}],"riKA5":[function(require,module,exports,__globalThis) {
 module.exports = "#define GLSLIFY 1\n        uniform sampler2D videoTexture;\n        uniform float edgeTransparency;\n        varying vec2 vUv;\n\n        // Function to calculate alpha based on distance from edges\n        float getAlpha(vec2 uv) {\n            float distFromEdge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));\n            return 1.0 - smoothstep(0.1, 0.0, distFromEdge / edgeTransparency);\n        }\n\n        void main() {\n            vec4 color = texture2D(videoTexture, vUv);\n            float alpha = getAlpha(vUv);\n            alpha -= 0.35;\n            gl_FragColor = vec4(color.rgb, alpha);\n        }";
 
-},{}],"f6f8d":[function(require,module,exports,__globalThis) {
-module.exports = require("c8c3637be7158d53").getBundleURL('g05j8') + "grassColor.cd69343f.png" + "?" + Date.now();
+},{}],"e77je":[function(require,module,exports,__globalThis) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _stonefigureVertGlsl = require("./glsl/stonefigure.vert.glsl");
+var _stonefigureVertGlslDefault = parcelHelpers.interopDefault(_stonefigureVertGlsl);
+var _stonefigureFragGlsl = require("./glsl/stonefigure.frag.glsl");
+var _stonefigureFragGlslDefault = parcelHelpers.interopDefault(_stonefigureFragGlsl);
+exports.default = {
+    frag: (0, _stonefigureFragGlslDefault.default),
+    vert: (0, _stonefigureVertGlslDefault.default)
+};
 
-},{"c8c3637be7158d53":"lgJ39"}],"lgJ39":[function(require,module,exports,__globalThis) {
+},{"./glsl/stonefigure.vert.glsl":"lPvQK","./glsl/stonefigure.frag.glsl":"3p16a","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"lPvQK":[function(require,module,exports,__globalThis) {
+module.exports = "#define GLSLIFY 1\nvarying vec2 vUv;\nvarying vec3 vPosition;\nvarying vec3 vWorldPosition;\nvarying vec3 vNormalVector;\n\nvoid main() {\n  vUv = uv;\n  vPosition = position;\n  vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;\n  vNormalVector = normalize(normalMatrix * normal);\n  //gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);\n  csm_PositionRaw = projectionMatrix * modelViewMatrix * vec4(position, 1.0);\n}";
+
+},{}],"3p16a":[function(require,module,exports,__globalThis) {
+module.exports = "#define GLSLIFY 1\nuniform sampler2D uDiffuseMap;\nuniform vec3 hologramColor;\nuniform float time;\nuniform float uOpacity;\nuniform float scanLineFrequency;\nuniform float scanLineSpeed;\nuniform float distortionAmount;\nuniform float glowAmount;\nuniform float flickerSpeed;\nuniform float flickerIntensity;\nuniform float textureInfluence;\nuniform float effectsIntensity;\nuniform float positionScale;\nuniform float uFadeHeight;\nuniform float uTerrainHeight;\nuniform float uBrightness;\n\nvarying vec2 vUv;\nvarying vec3 vPosition;\nvarying vec3 vWorldPosition;\nvarying vec3 vNormalVector;\n\n// Random noise function\nfloat random(vec2 co) {\n  return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);\n}\n\nvoid main() {\n\n    vec3 finalColor;\n    float holoAlpha;\n    vec2 effectCoords;\n\n    // For effectsIntensity = 0, just show the original texture with full opacity\n\n    if (effectsIntensity < 0.001) {\n        vec4 originalTexture = texture2D(uDiffuseMap, vUv);\n        gl_FragColor = originalTexture;\n        //csm_DiffuseColor = originalTexture;\n        //csm_DiffuseColor = vec4(originalTexture.rgb, 1.0);\n        finalColor = originalTexture.rgb;\n        holoAlpha = 1.0;\n\n    }else{\n\n        // Using position for effects - normalize and scale\n        // Choose any two axes that work best for your model\n        effectCoords = vec2(vPosition.x * positionScale, vPosition.y * positionScale);\n\n        // Apply time-based distortion to texture coordinates\n        float distortionEffect = sin(effectCoords.y * 10.0 + time) * distortionAmount * 0.1 * effectsIntensity;\n        vec2 distortedCoords = vUv + distortionEffect;\n\n        vec4 texColor = texture2D(uDiffuseMap, distortedCoords);\n\n        // Base color with rim lighting effect\n        float rimLight = pow(1.0 - abs(dot(normalize(vNormalVector), vec3(0.0, 0.0, 1.0))), 2.0);\n        vec3 baseColor = hologramColor * (rimLight * glowAmount + 0.5);\n\n        // Blend texture with hologram color based on textureInfluence\n        baseColor = mix(baseColor, texColor.rgb * hologramColor, textureInfluence);\n\n        // Scanlines - use position or UV\n        float scanY = effectCoords.y;\n        float scanLine = sin(scanY * scanLineFrequency + time * scanLineSpeed) * 0.5 + 0.5;\n        scanLine = pow(scanLine, 0.5);\n        scanLine = mix(1.0, scanLine, effectsIntensity);\n\n        // Flickering effect\n        float flicker = 1.0 - (random(vec2(time * flickerSpeed, time * flickerSpeed)) * flickerIntensity * effectsIntensity);\n\n        // Horizontal glitch lines\n        float glitchY = effectCoords.y;\n        float glitchLine = step(0.98, random(vec2(floor(glitchY * 20.0), time * 0.1))) * effectsIntensity;\n\n        // Combine effects\n        finalColor = baseColor * scanLine * flicker;\n        finalColor += glitchLine * hologramColor * effectsIntensity;\n\n        // Apply distortion to color\n        finalColor += sin(time * 2.0 + scanY * 10.0) * distortionAmount * hologramColor * effectsIntensity;\n\n        // Calculate alpha - blend between full opacity and hologram effect based on effectsIntensity\n        holoAlpha = uOpacity * scanLine * flicker;\n\n        // Optional: Use texture alpha if available\n        if (texColor.a < 1.0) {\n            holoAlpha *= texColor.a;\n        }\n    }\n\n    // Compute the fade effect\n    float fadeFactor = smoothstep(uTerrainHeight, uTerrainHeight + uFadeHeight, vWorldPosition.y);\n\n    // Ensure the fade effect remains strong even with envMap blending\n    finalColor.rgb *= fadeFactor;\n\n    //add brightness\n    finalColor.rgb *= uBrightness;\n\n    // Final output with transparency\n    csm_DiffuseColor = vec4(finalColor, holoAlpha);\n}";
+
+},{}],"2lLRY":[function(require,module,exports,__globalThis) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _videofadeVertGlsl = require("./glsl/videofade.vert.glsl");
+var _videofadeVertGlslDefault = parcelHelpers.interopDefault(_videofadeVertGlsl);
+var _videofadeFragGlsl = require("./glsl/videofade.frag.glsl");
+var _videofadeFragGlslDefault = parcelHelpers.interopDefault(_videofadeFragGlsl);
+exports.default = {
+    frag: (0, _videofadeFragGlslDefault.default),
+    vert: (0, _videofadeVertGlslDefault.default)
+};
+
+},{"./glsl/videofade.vert.glsl":"kEyIl","./glsl/videofade.frag.glsl":"bbp22","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"kEyIl":[function(require,module,exports,__globalThis) {
+module.exports = "#define GLSLIFY 1\n      varying vec3 vWorldPos;\n      varying vec2 vUv;\n      varying vec3 vNormalVector;\n      varying float vIsFrontFacing;\n      \n      void main() {\n        vUv = uv;\n        vec4 worldPos = modelMatrix * vec4(position, 1.0);\n        vWorldPos = worldPos.xyz;\n        \n        // Calculate world space normal\n        vNormalVector = normalize(mat3(modelMatrix) * normal);\n        \n        // Determine if front facing using the camera position\n        vec3 cameraPosition = cameraPosition; // Built-in three.js variable\n        vec3 viewDirection = normalize(cameraPosition - worldPos.xyz);\n        vIsFrontFacing = dot(vNormalVector, viewDirection) > 0.0 ? -1.0 : 1.0;\n        \n        //gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);\n        csm_PositionRaw = projectionMatrix * modelViewMatrix * vec4(position, 1.0);\n      }";
+
+},{}],"bbp22":[function(require,module,exports,__globalThis) {
+module.exports = "#define GLSLIFY 1\n      uniform sampler2D uVideoTexture;\n      uniform sampler2D uDiffuseTexture;\n      uniform vec3 uProjectorPosition;\n      uniform vec3 uProjectorDirection;\n      uniform mat4 uProjectorMatrix;\n      uniform float uProjectorFOV;\n      uniform float uProjectorAspect;\n      uniform vec3 uBaseColor;\n      uniform float uProjectionIntensity;\n      uniform float uVignette;\n      uniform float uBlendFactor;\n      uniform float uMinZDistance;\n      \n      varying vec3 vWorldPos;\n      varying vec2 vUv;\n      varying vec3 vNormalVector;\n      varying float vIsFrontFacing;\n      \nvoid main() {\n  // Sample the diffuse texture\n  vec4 diffuseC = texture2D(uDiffuseTexture, vUv);\n  vec3 finalColor = diffuseC.rgb; // Initialize with diffuse color by default\n\n  // We explicitly designate the positive normal direction as the side for projection\n  // For a standard plane, this is the side with normal (0,0,1)\n  bool isProjectionSide = vIsFrontFacing > 0.0; // Only project on front side\n  \n  if (isProjectionSide) {\n    // Direction from projector to this fragment\n    vec3 projToFrag = normalize(vWorldPos - uProjectorPosition);\n    \n    // Project the point onto the projector's viewing plane\n    vec4 projectorViewPosition = uProjectorMatrix * vec4(vWorldPos, 1.0);\n    \n    // If the fragment is in front of the projector, show the projection\n    if (projectorViewPosition.z > uMinZDistance) {\n      // Calculate UV coordinates for projection\n      float distance = length(vWorldPos - uProjectorPosition);\n      float attenuation = 1.0 / (1.0 + 0.1 * distance + 0.0 * distance);\n      \n      // Convert view position to NDC space, then to UV coordinates\n      vec2 projUV = projectorViewPosition.xy / projectorViewPosition.z;\n      projUV = projUV * 0.5 + 0.5;\n      \n      // Check if within projection bounds (0 to 1)\n      if (projUV.x >= 0.0 && projUV.x <= 1.0 && projUV.y >= 0.0 && projUV.y <= 1.0) {\n        // Sample video texture with projected coordinates\n        vec4 projectedColor = texture2D(uVideoTexture, projUV);\n        \n        // Add vignette effect for old-school projector look\n        float vignetteAmount = 1.0 - uVignette * length(projUV - 0.5) * 2.0;\n        vignetteAmount = clamp(vignetteAmount, 0.0, 1.0);\n        \n        // Add subtle noise for film grain effect\n        float noise = fract(sin(dot(projUV, vec2(12.9898, 78.233))) * 43758.5453) * 0.05;\n        \n        // Calculate projection color with effects\n        vec3 projColor = projectedColor.rgb * vignetteAmount * uProjectionIntensity;\n        projColor += noise;\n        \n        // Screen blend mode (brightens the image)\n        vec3 blendedColor = 1.0 - (1.0 - diffuseC.rgb) * (1.0 - projColor);\n        \n        // Final color is a blend between the diffuse and the blended projection\n        finalColor = mix(diffuseC.rgb, blendedColor, uBlendFactor);\n      }\n    }\n  }\n  \n  // Always output the final color, whether it's been projected on or not\n  csm_DiffuseColor = vec4(finalColor, 1.0);\n}";
+
+},{}],"5ZsGE":[function(require,module,exports,__globalThis) {
+module.exports = require("8776c593459528ab").getBundleURL('g05j8') + "videoFallback.3530558f.webp" + "?" + Date.now();
+
+},{"8776c593459528ab":"lgJ39"}],"lgJ39":[function(require,module,exports,__globalThis) {
 "use strict";
 var bundleURL = {};
 function getBundleURLCached(id) {
@@ -194444,25 +194554,7 @@ exports.getBundleURL = getBundleURLCached;
 exports.getBaseURL = getBaseURL;
 exports.getOrigin = getOrigin;
 
-},{}],"bveXV":[function(require,module,exports,__globalThis) {
-module.exports = require("988c6765d7e17835").getBundleURL('g05j8') + "factory_diffuse.7a7bce20.webp" + "?" + Date.now();
-
-},{"988c6765d7e17835":"lgJ39"}],"kOcJO":[function(require,module,exports,__globalThis) {
-module.exports = require("1c35f809e5a54b9c").getBundleURL('g05j8') + "stoneGoat_diffuse1K.406b5fc8.webp" + "?" + Date.now();
-
-},{"1c35f809e5a54b9c":"lgJ39"}],"3PQAs":[function(require,module,exports,__globalThis) {
-module.exports = require("6662017806791e67").getBundleURL('g05j8') + "rock_A.6554cfd4.ktx2" + "?" + Date.now();
-
-},{"6662017806791e67":"lgJ39"}],"75Eqw":[function(require,module,exports,__globalThis) {
-module.exports = require("4628111ce40e54a1").getBundleURL('g05j8') + "rock_N.46ff3e2c.ktx2" + "?" + Date.now();
-
-},{"4628111ce40e54a1":"lgJ39"}],"5ZsGE":[function(require,module,exports,__globalThis) {
-module.exports = require("8776c593459528ab").getBundleURL('g05j8') + "videoFallback.3530558f.webp" + "?" + Date.now();
-
-},{"8776c593459528ab":"lgJ39"}],"7VbOy":[function(require,module,exports,__globalThis) {
-module.exports = require("a4fd9acfd732d001").getBundleURL('g05j8') + "introvideo.711ca827.mp4" + "?" + Date.now();
-
-},{"a4fd9acfd732d001":"lgJ39"}],"24cue":[function(require,module,exports,__globalThis) {
+},{}],"24cue":[function(require,module,exports,__globalThis) {
 module.exports = JSON.parse('{"glass":{"title":"The Virtual Glass Harmonica","video_ref":"./assets/glass/video.webm","main_txt":"Together with a fellow peer, the design and development of the virtual glass harmonica was a project completed for the <span class=\'color-glass\'>Danish Music Museum</span>. As part of the <i>Music History - Taken out of the Box</i> project, funded by the Augustinus Foundation, it explores the use of <span class=\'color-glass\'>Virtual Reality</span> to resurrect a forgotten instrument and present its history, sound, and interaction through an immersive virtual environment. The installation can be experienced at the Music Museum, where qualitative evaluations have shown that it establishes a good connection between the virtual instrument and the physical 1780-era glass harmonica on display.","client":"Danish Music Museum","tech":"Unity-C# | Blender | Meta Quest 2 Standalone | Handtracking | Shadergraph","publications":"<h4><a href=\'https://link.springer.com/chapter/10.1007/978-3-031-55312-7_16\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>ArtsIT, Interactivity and Game Creation 2023</a></h4> <h4><a href=\'https://doi.org/10.5281/zenodo.6822203\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>Sound and Music Computing Conference 2022</a></h4>","images":["./assets/glass/showcase-img1.webp","./assets/glass/showcase-img2.webp","./assets/glass/showcase-img3.webp"],"images_alt":["The virtual reality experience leverages the handtracking capabilities of the meta quest 2 device. Virtual environment capture.","Virtual environemnt capture showing interactive buttons for initiating tutorial and storytelling by Benjamin Franklin.","Photograph of excited visitor trying the virtual reality experience, at the Danish Music Museum."]},"nature":{"title":"Through the Eyes of Nature","video_ref":"./assets/nature/video.webm","main_txt":"In collaboration with Gehl Architects, this master\u2019s thesis explores the potential impact of integrating Virtual Reality into participatory workshops focused on urban biodiversity. The case study involved the urban greenspace development of Nordhavn in Copenhagen, with an immersive narrative that takes the user on a journey where the story is told through the perspective of nature at the site. The Virtual Reality experience was evaluated through a participatory workshop and expert interviews conducted within Gehl\'s R&D department. The findings showed that immersive storytelling in Virtual Reality can be a powerful tool to elicit empathy and foster emotionally engaged discussions on complex topics. This project serves as a pilot in Gehl Architects\u2019 exploration of integrating XR media into their urban planning processes.","client":"Gehl Architects","tech":"Unity | Blender | Meta Quest 3 Standalone | Handtracking | Shadergraph | Spatial Sounds","images":["./assets/nature/showcase-img1.webp","./assets/nature/showcase-img2.webp","./assets/nature/showcase-img3.webp"],"images_alt":["The three-stages of the virtual experience, showing the colour mood journey.","Exited users testing the experience, at the collaborative workshop held at Gehl Architects offices.","The core project team, at the Nordhavn site."]},"dad":{"title":"Denmark After Dark","video_ref":"./assets/dad/video.webm","main_txt":"As part of the Denmark After Dark exhibition, the Danish National Museum aimed to integrate interactivity into the installation. Together with a fellow student, I was part of the project team and worked on the rehearsal and recording studio for the exhibition. With the band D-A-D as the focus, we aimed to create a social space where visitors could unleash their inner rockstar by playing instruments and mixing a track. The main challenge in the process was to develop solutions that offered the robustness and usability required for a daily visited exhibition. Video credits: Natmus. Cover photo credits: Anders Groos Mikkelsen ","client":"Danish National Museum","link":"<h4><a href=\'https://www.dad.natmus.dk/\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>DAD - Natmus</a></h4>","tech":"Touch Designer | Ableton Live | Max4Live | Blender","images":["./assets/dad/showcase-img1.webp","./assets/dad/showcase-img2.webp"],"images_alt":["Excited user trying the interactive studio installation, where a DAD song can be mixed in real time. The backend was created using Max4Live and TouchDesigner. Photo credit: NatMus","An early project render of a studio installation suggestion, created in Blender 3D"]},"fragments":{"title":"Fragments of Fungi","video_ref":"./assets/fragments/video.webm","main_txt":"In this project, our group of four explored the relationship between art, nature, and technology to design and develop an interactive, immersive Virtual Reality experience centered around the phenomenon of Mycelium networks. The experience was conceptualized and designed through participatory workshops involving creative activities. The final evaluation aimed to create a shared experience in a physical forest setting that would enhance the immersive aspect. This evaluation highlighted the potential of Virtual Reality to elicit feelings of awe and emphasized the benefits of collective spaces for reflection and dialogue when presenting self-contained, emotional experiences inherent in Virtual Reality.","client":"Multisensory Experience Lab","publications":"<h4><a href=\'https://link.springer.com/chapter/10.1007/978-3-031-55312-7_6\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>Springer Link</a></h4>","tech":"Unity | Blender | Meta Quest 2 Standalone | AppSW | Handtracking | Shadergraph | Spatial Sounds","images":["./assets/fragments/showcase-img1.webp","./assets/fragments/showcase-img2.webp","./assets/fragments/showcase-img3.webp"],"images_alt":["Excited user immersed in the Hareskov forest, at the collective experiences VR workshop.","The Fragments of Fungi virtual experience.","Designing the virtual experience narrative journey."]},"mizwak":{"title":"Mizwak","video_ref":"./assets/mizwak/video.webm","main_txt":"As part of the EU-funded cooperation project Taking Care: Ethnographic and World Cultures Museums as Spaces of Care, the aim was to explore new and experimental ways of exhibiting in the context of ethnographic and world cultures. In collaboration with the Danish National Museum and the Multisensory Experience Lab, the story behind the world\u2019s oldest toothbrush, the Miswak, was designed and implemented over the course of a semester. The final installation was developed through co-creation workshops with museum staff and leveraged sensor technology alongside a 3D-printed tangible user interface that unlocked the stories behind the Miswak through physical interactions. The design, implementation, and user testing were conducted at the PlayLab at the Danish National Museum. The installation was on display throughout 2023.","client":"Danish National Museum","link":"<h4><a href=\'https://takingcareproject.eu/article/miswak-exhibition-at-the-nationalmuseet\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>Taking Care EU Project</a></h4> <h4><a href=\'https://natmus.dk/nyhed/verdens-aeldste-tandboerste-vokser-paa-et-trae/\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>National Museet - Mizwak</a></h4>","tech":"Blender | QLab | Ultimaker Cura","images":["./assets/mizwak/showcase-img1.webp","./assets/mizwak/showcase-img2.webp","./assets/mizwak/showcase-img3.webp"],"images_alt":["Mizwak installation at Nationalmuseet. The exhibited mizwaks.","Mizwak installation, at Nationalmuseet, with the 3D printed interactive objects.","Mizwak installation work in progress, at Nationalmuseet."]},"spaceshooter":{"title":"Embodied Spaceshooter","video_ref":"./assets/spaceshooter/video.webm","main_txt":"Work in progress.. A browser based mini game that explores the use of embodied interaction in gaming. Allowing the user to control a player through head- and body movement tracked by the webcam utilizing the Google MediaPipe framework. ","client":"AAU Exam Project","link":"<h4><a href=\'https://getelementsbyclassname.github.io/embodied_interaction_course/\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>Demo</a></h4>","tech":"ThreeJS | Google MediaPipe | Blender","images":[],"images_alt":[]}}');
 
 },{}],"a5jmZ":[function(require,module,exports,__globalThis) {
@@ -194570,8 +194662,8 @@ class GrassScene {
     setupHDR() {
         const loader = new (0, _rgbeloaderJs.RGBELoader)();
         let skyboxToLoad;
-        if (!this.visitedFromMobileDevice) skyboxToLoad = 'belfast_sunset_puresky_1k';
-        else skyboxToLoad = 'belfast_sunset_puresky_1k';
+        if (!this.visitedFromMobileDevice) skyboxToLoad = 'belfast_sunset_puresky_2k';
+        else skyboxToLoad = 'belfast_sunset_puresky_2k';
         loader.load(`./assets/${skyboxToLoad}.hdr`, (texture)=>{
             texture.mapping = _three.EquirectangularReflectionMapping; // Set mapping for environment
             this.envMap = texture;
@@ -194743,7 +194835,7 @@ class WorldScene {
     }
     init() {
         this.scene = new _three.Scene();
-        this.camera = new _three.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 1.0, 3000);
+        this.camera = new _three.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 1.0, 2500);
         this.renderer = new _three.WebGLRenderer({
             antialias: true,
             alpha: false,
@@ -194753,7 +194845,7 @@ class WorldScene {
         this.renderer.setPixelRatio(pixelRatio > 2 ? 1.5 : pixelRatio);
         this.renderer.outputEncoding = _three.SRGBColorSpace;
         this.renderer.toneMapping = _three.ACESFilmicToneMapping;
-        this.renderer.toneMappingExposure = 0.35;
+        this.renderer.toneMappingExposure = 0.25;
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.container.appendChild(this.renderer.domElement);
         // Resize Observer
@@ -194794,7 +194886,8 @@ class WorldScene {
         this.scene.add(rectLight);
     }
     addFog() {
-        this.scene.fog = new _three.FogExp2(0x4b4856, 0.0027); // 0.02 is the density of the fog
+        this.scene.fog = new _three.FogExp2(0x44424d, 0.0017); // 0.02 is the density of the fog
+    //4b4856
     //56545c
     //64616b
     //9692a1

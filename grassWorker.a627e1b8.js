@@ -613,9 +613,6 @@ onmessage = (event)=>{
         const z = offsetZ + Math.random() * chunkSize;
         offsets[i * 3] = x;
         offsets[i * 3 + 2] = z;
-        //offsets[i * 3 + 1] = 0;
-        //offsets[i * 3 + 1] = getHeight(offsets[i * 3], offsets[i * 3 + 2]); // Calculate height using getHeight
-        //console.log(offsets[i * 3 + 1])
         uvs[i] = convertRange(x, offsetX, offsetX + chunkSize, 0, 1);
         uvs[i + 2] = convertRange(z, offsetZ, offsetZ + chunkSize, 0, 1);
         const angle = Math.random() * Math.PI * 2;

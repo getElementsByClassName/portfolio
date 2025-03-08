@@ -37,7 +37,7 @@
   align-items: center;
   width: 100svw;
   height: 100svh;
-  transition: opacity 3s;
+  transition: opacity 2s;
   display: flex;
   position: absolute;
 }
