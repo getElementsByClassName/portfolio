@@ -964,8 +964,8 @@ function fnLoadContent(id) {
 ********************************************************************/ /********************************************************************
 // Scene Constants
 ********************************************************************/ let velocity = new _three.Vector3();
-let SPEED = 700.0; //175
-const PERSON_HEIGHT = 17.0; //18
+let SPEED = 700.0; //700
+const PERSON_HEIGHT = 22.0; //21
 const DISTANCE_TEXTURE_SWAP = 450.0;
 const DISTANCE_TEXTURE_DISPOSE = 650.0;
 //LOD
@@ -1051,7 +1051,7 @@ function smoothstep(edge0, edge1, x) {
     return t * t * (3 - 2 * t); // Smoothstep function
 }
 function getHeight(x, z) {
-    let roughTerrain = 14.0 * simplex.noise(x / 400, z / 400); // Normal terrain
+    let roughTerrain = 15.5 * simplex.noise(x / 400, z / 400); // Normal terrain
     let smoothTerrain = 0.0 * simplex.noise(x / 1000, z / 1000); // Smooth flat terrain
     let blendFactor = 1; // Default = full rough terrain
     for (let area of flatAreas){
