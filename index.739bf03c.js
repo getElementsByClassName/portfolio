@@ -964,7 +964,7 @@ function fnLoadContent(id) {
 ********************************************************************/ /********************************************************************
 // Scene Constants
 ********************************************************************/ let velocity = new _three.Vector3();
-let SPEED = 1600.0; //175
+let SPEED = 700.0; //175
 const PERSON_HEIGHT = 17.0; //18
 const DISTANCE_TEXTURE_SWAP = 450.0;
 const DISTANCE_TEXTURE_DISPOSE = 650.0;
