@@ -969,22 +969,23 @@ const PERSON_HEIGHT = 17.0; //18
 const DISTANCE_TEXTURE_SWAP = 450.0;
 const DISTANCE_TEXTURE_DISPOSE = 650.0;
 //LOD
+const DISTANCE_LOD0 = 100;
 const DISTANCE_LOD1 = 200;
-const DISTANCE_LOD2 = 250;
-const DISTANCE_LOD3 = 300;
-const FIELD_SIZE = visitedFromMobileDevice ? 2600 : 4000 // Field size in both x and z directions
-;
+const DISTANCE_LOD2 = 300;
 /********************************************************************
 // Scene Setup
 ********************************************************************/ const canvasContainer = document.querySelector('#container-opening-scene');
 const worldScene = new (0, _worldSceneJsDefault.default)(canvasContainer, visitedFromMobileDevice);
 const renderer = worldScene.getRenderer();
 const camera = worldScene.getCamera();
+//const axesHelper = new THREE.AxesHelper(1000);
+//worldScene.scene.add(axesHelper);
 //show stats, updated in animation loop
-const stats = (0, _statsModuleDefault.default)();
+/*
+const stats = Stats();
 stats.showPanel(0);
 document.body.appendChild(stats.dom);
-/********************************************************************
+*/ /********************************************************************
  // Check for Tab visibility
 ********************************************************************/ let gameIsActive = true;
 function fnStartRendering() {
@@ -1040,9 +1041,9 @@ function getHeight(x, z) {
  */ // Define multiple flat areas (centerX, centerZ, size)
 const flatAreas = [
     {
-        x: 1500,
-        z: 1500,
-        size: 150
+        x: 1200,
+        z: 950,
+        size: 250
     }
 ];
 function smoothstep(edge0, edge1, x) {
@@ -1051,12 +1052,12 @@ function smoothstep(edge0, edge1, x) {
 }
 function getHeight(x, z) {
     let roughTerrain = 14.0 * simplex.noise(x / 400, z / 400); // Normal terrain
-    let smoothTerrain = 3 * simplex.noise(x / 1000, z / 1000); // Smooth flat terrain
+    let smoothTerrain = 0.0 * simplex.noise(x / 1000, z / 1000); // Smooth flat terrain
     let blendFactor = 1; // Default = full rough terrain
     for (let area of flatAreas){
         let distanceX = Math.abs(x - area.x);
         let distanceZ = Math.abs(z - area.z);
-        let transitionSize = area.size * 0.5; // Transition zone
+        let transitionSize = area.size * 0.25; // Transition zone
         let factorX = smoothstep(area.size - transitionSize, area.size + transitionSize, distanceX);
         let factorZ = smoothstep(area.size - transitionSize, area.size + transitionSize, distanceZ);
         let areaBlend = Math.min(factorX, factorZ);
@@ -1093,7 +1094,7 @@ projector.add(projectorMesh);
             uVideoTexture: {
                 value: null
             },
-            uDiffuseTexture: {
+            uDiffuseMap: {
                 value: null
             },
             uProjectorPosition: {
@@ -1111,14 +1112,12 @@ projector.add(projectorMesh);
             uProjectorAspect: {
                 value: 16 / 9
             },
-            uBaseColor: {
-                value: new _three.Color(0.1, 0.1, 0.1)
-            },
+            //uBaseColor: { value: new THREE.Color(0.1, 0.1, 0.1) },
             uProjectionIntensity: {
                 value: 1.0
             },
             uVignette: {
-                value: 0.8
+                value: 1.0
             },
             uBlendFactor: {
                 value: 0.9
@@ -1132,135 +1131,6 @@ projector.add(projectorMesh);
         side: _three.DoubleSide
     });
 }
-/*
-// Create a projection target surface (any mesh you want to project onto)
-const targetSurface = new THREE.Mesh(
-    new THREE.PlaneGeometry(20, 10),
-    new THREE.ShaderMaterial({
-        uniforms: {
-            uVideoTexture: { value: videoTextureTest },
-            uDiffuseTexture: { value: diffuseTexture },
-            uProjectorPosition: { value: new THREE.Vector3() },
-            uProjectorDirection: { value: new THREE.Vector3() },
-            uProjectorMatrix: { value: new THREE.Matrix4() },
-            uProjectorFOV: { value: 45.0 * (Math.PI / 180.0) }, // FOV in radians
-            uProjectorAspect: { value: 16 / 9 }, // Aspect ratio of your video
-            uBaseColor: { value: new THREE.Color(0.1, 0.1, 0.1) },
-            uProjectionIntensity: { value: 1.0 },
-            uVignette: { value: 0.2 }, // Vignette effect for old-school look
-            uBlendFactor: { value: 1.0 } // Control how much the projection blends with diffuse (0-1)
-        },
-        vertexShader: `
-      varying vec3 vWorldPosition;
-      varying vec2 vUv;
-      varying vec3 vNormal;
-      varying float vIsFrontFacing;
-      
-      void main() {
-        vUv = uv;
-        vec4 worldPosition = modelMatrix * vec4(position, 1.0);
-        vWorldPosition = worldPosition.xyz;
-        
-        // Calculate world space normal
-        vNormal = normalize(mat3(modelMatrix) * normal);
-        
-        // Determine if front facing using the camera position
-        vec3 cameraPosition = cameraPosition; // Built-in three.js variable
-        vec3 viewDirection = normalize(cameraPosition - worldPosition.xyz);
-        vIsFrontFacing = dot(vNormal, viewDirection) > 0.0 ? -1.0 : 1.0;
-        
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
-        fragmentShader: `
-      uniform sampler2D uVideoTexture;
-      uniform sampler2D uDiffuseTexture;
-      uniform vec3 uProjectorPosition;
-      uniform vec3 uProjectorDirection;
-      uniform mat4 uProjectorMatrix;
-      uniform float uProjectorFOV;
-      uniform float uProjectorAspect;
-      uniform vec3 uBaseColor;
-      uniform float uProjectionIntensity;
-      uniform float uVignette;
-      uniform float uBlendFactor;
-      
-      varying vec3 vWorldPosition;
-      varying vec2 vUv;
-      varying vec3 vNormal;
-      varying float vIsFrontFacing;
-      
-      void main() {
-        // Sample the diffuse texture
-        vec4 diffuseColor = texture2D(uDiffuseTexture, vUv);
-        diffuseColor.rgb *= 0.5;
-        
-        // We explicitly designate the positive normal direction as the side for projection
-        // For a standard plane, this is the side with normal (0,0,1)
-        bool isProjectionSide = vIsFrontFacing > 0.0; // Only project on front side
-        
-        if (isProjectionSide) {
-          // Direction from projector to this fragment
-          vec3 projToFrag = normalize(vWorldPosition - uProjectorPosition);
-          
-          // Project the point onto the projector's viewing plane
-          vec4 projectorViewPosition = uProjectorMatrix * vec4(vWorldPosition, 1.0);
-          
-          // If the fragment is in front of the projector, show the projection
-          if (projectorViewPosition.z > 0.0) {
-            // Calculate UV coordinates for projection
-            float distance = length(vWorldPosition - uProjectorPosition);
-            float attenuation = 1.0 / (1.0 + 0.1 * distance + 0.08 * distance);
-            
-            // Convert view position to NDC space, then to UV coordinates
-            vec2 projUV = projectorViewPosition.xy / projectorViewPosition.z;
-            projUV = projUV * 0.5 + 0.5;
-            
-            // Check if within projection bounds (0 to 1)
-            if (projUV.x >= 0.0 && projUV.x <= 1.0 && projUV.y >= 0.0 && projUV.y <= 1.0) {
-              // Sample video texture with projected coordinates
-              vec4 projectedColor = texture2D(uVideoTexture, projUV);
-              
-              // Add vignette effect for old-school projector look
-              float vignetteAmount = 1.0 - uVignette * length(projUV - 0.5) * 2.0;
-              vignetteAmount = clamp(vignetteAmount, 0.0, 1.0);
-              
-              // Add subtle noise for film grain effect
-              float noise = fract(sin(dot(projUV, vec2(12.9898, 78.233))) * 43758.5453) * 0.03;
-              
-              // Calculate projection color with effects
-              vec3 projColor = projectedColor.rgb * vignetteAmount * attenuation * uProjectionIntensity;
-              projColor += noise;
-              
-              // Blend between diffuse map and projection
-              // Use a modified blend mode like screen, multiply or overlay for more interesting effects
-              
-              // Screen blend mode (brightens the image)
-              vec3 blendedColor = 1.0 - (1.0 - diffuseColor.rgb) * (1.0 - projColor);
-              
-              // Multiply blend mode (darkens the image)
-               //vec3 blendedColor = diffuseColor.rgb * projColor;
-              
-              
-              // Final color is a blend between the diffuse and the blended projection
-              vec3 finalColor = mix(diffuseColor.rgb, blendedColor, uBlendFactor);
-              
-              gl_FragColor = vec4(finalColor, 1.0);
-              return;
-            }
-          }
-        }
-        
-        // For back face or outside projection area - just show the diffuse texture
-        gl_FragColor = diffuseColor;
-      }
-    `,
-        side: THREE.DoubleSide
-    })
-);
-*/ //targetSurface.position.set(0, 0, 100);
-//targetSurface.scale.set(10, 10, 10)
-//worldScene.scene.add(targetSurface);
 /********************************************************************
 // Materials
 ********************************************************************/ /** Powerlines Material */ const powerlinesShaderMaterial = new _three.ShaderMaterial({
@@ -1624,13 +1494,13 @@ let allModelsLoaded = false;
 let allModelsAddedToScene = false;
 const loadingManager = new _three.LoadingManager();
 loadingManager.onStart = function(url, itemsLoaded, itemsTotal) {
-    console.log(`Started loading: ${url} (${itemsLoaded}/${itemsTotal})`);
+//console.log(`Started loading: ${url} (${itemsLoaded}/${itemsTotal})`);
 };
 loadingManager.onProgress = function(url, itemsLoaded, itemsTotal) {
-    console.log('Loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
+//console.log('Loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
 };
 loadingManager.onLoad = function() {
-    console.log("All models loaded!");
+    //console.log("All models loaded!");
     allModelsLoaded = true;
 };
 const modelLoader = new (0, _modelLoaderJsDefault.default)(loadingManager, renderer);
@@ -1680,6 +1550,7 @@ async function fnLoadRockVideoProjectionModel(url, scaleFactor) {
     colliderBVH = mesh.geometry.boundsTree;
     const collisionRadius = colliderBVH.geometry.boundingSphere.radius;
     worldScene.scene.add(model);
+    renderer.compile(model, camera, worldScene.scene);
     (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, diffuseMap, true, true, false, colliderBVH, collisionRadius);
 }
 async function fnLoadPowerlinesModel(url) {
@@ -1719,39 +1590,25 @@ async function fnLoadPowerlinesModel(url) {
         }
     });
     worldScene.scene.add(model);
-    (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, null, true, false, false, null);
+    (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, new _three.Vector3(position.x, getHeight(position.x, position.z) - 2, position.z), null, true, false, false, null, null);
 }
 async function fnLoadFactoryModel(url) {
-    const position = {
-        x: -700,
-        z: 700
-    };
+    //const position = { x: 1200, z: 1200 };
+    const position = new _three.Vector3(1200, getHeight(1200, 1200), 1200);
     const name = 'factory';
-    let mesh, material, diffuseMap, model, colliderMesh, colliderBVH;
-    /*
-        // Create a projector helper (optional) to visualize the projector
-        const projectorHelper = new THREE.ConeGeometry(1, 2, 32);
-        const projectorMesh = new THREE.Mesh(
-            projectorHelper,
-            new THREE.MeshBasicMaterial({ color: 0xffff00, wireframe: true })
-        );
-        projectorMesh.rotation.x = Math.PI; // Rotate to point forward
-        projector.add(projectorMesh);
-    */ model = await modelLoader.loadModel(url);
-    console.log(model);
-    diffuseMap = model.children[0].children[0].material.map;
-    console.log(diffuseMap);
-    model.scale.set(10, 10, 10);
-    model.rotateY(Math.PI * 6 / 4);
-    model.position.set(position.x, getHeight(position.x, position.z) - 2, position.z);
-    //mesh = model.children.find(child => child.isMesh && child.name === 'LOD0_1');
-    model.children[0].children[1].visible = true;
-    model.children[2].visible = false;
+    let mesh, material, diffuseMap, model, colliderMesh, colliderBVH, collisionRadius;
+    model = await modelLoader.loadModel(url);
     mesh = model.children[0].children[0];
+    model.rotateY(-Math.PI / 2);
+    model.position.set(position);
+    model.scale.set(10, 10, 10);
+    diffuseMap = mesh.material.map;
+    colliderMesh = model.children[1];
     material = fnCreateVideoMaterial();
+    mesh.material = material;
     // Update shader uniforms
     const videoTest = document.createElement('video');
-    videoTest.src = './assets/nature/video.webm';
+    videoTest.src = './assets/glass/video.webm';
     videoTest.loop = true;
     videoTest.muted = true; // Important for autoplay
     videoTest.crossOrigin = 'anonymous';
@@ -1762,23 +1619,25 @@ async function fnLoadFactoryModel(url) {
     videoTextureTest.magFilter = _three.LinearFilter;
     videoTextureTest.format = _three.RGBAFormat;
     // Create a larger target surface
-    const surfaceWidth = 140; // Larger width
-    const surfaceHeight = 70; // Larger height
+    const surfaceWidth = 100; // Larger width
+    const surfaceHeight = surfaceWidth * (9 / 16); // Larger height
     // Define the projection area relative to the surface size
     // These values control the relative size and position of the projection on the surface
     const projectionParams = {
         // Size of projection as a fraction of the surface dimensions
         relativeWidth: 0.5,
-        relativeHeight: 0.7,
+        relativeHeight: 0.5,
         // Center position of projection (0,0 is center, values from -0.5 to 0.5)
         offsetX: 0.0,
-        offsetY: -0.5 // Offset slightly upward
+        offsetY: -0.3 // Offset slightly upward
     };
-    const targetCenter = new _three.Vector3(projectionParams.offsetX * surfaceWidth, projectionParams.offsetY * surfaceHeight, 650);
+    const targetCenter = new _three.Vector3(projectionParams.offsetX * surfaceWidth, projectionParams.offsetY * surfaceHeight, 0);
     // Create the projector object (this will be the source of projection)
     const projector = new _three.Object3D();
-    projector.position.set(700, getHeight(-700, 700) + 3.5, 900); // Position your projector
-    projector.lookAt(projectionParams.offsetX * surfaceWidth, projectionParams.offsetY * surfaceHeight, 0); // Point at the center of the desired projection area
+    projector.position.set(projectionParams.offsetX * surfaceWidth - 500, getHeight(1200, 1200) + 10, 600 // Center Z over target
+    );
+    //projector.rotation.set(0, -Math.PI / 2, 0);  // -90 degrees on X axis
+    projector.lookAt(projectionParams.offsetX * surfaceWidth + 50, projectionParams.offsetY * surfaceHeight, 0); // Point at the center of the desired projection area
     worldScene.scene.add(projector);
     // Get the static projector position and direction
     const projectorPosition = new _three.Vector3();
@@ -1806,57 +1665,56 @@ async function fnLoadFactoryModel(url) {
     material.uniforms.uProjectorPosition.value = projectorPosition;
     material.uniforms.uProjectorDirection.value = projectorDirection;
     material.uniforms.uProjectorMatrix.value = projectorMatrix;
-    material.uniforms.uDiffuseTexture.value = diffuseMap;
+    material.uniforms.uDiffuseMap.value = diffuseMap;
     material.uniforms.uVideoTexture.value = videoTextureTest;
-    material.uniforms.uMinZDistance.value = position.z + 200;
-    mesh.material = material;
+    material.uniforms.uMinZDistance.value = position.z + 500;
     material.envMap = envMap;
-    material.envMapIntensity = 1.4;
-    console.log(mesh);
-    //model.children[0].children[0].material.envMap = envMap;
+    material.envMapIntensity = 0.4;
+    const windowMaterial = new _three.MeshStandardMaterial({
+        color: 0xffffff,
+        roughness: 0.85,
+        metalness: 0.5,
+        opacity: 0.75,
+        transparent: true,
+        map: diffuseMap,
+        side: _three.DoubleSide,
+        fog: true
+    });
+    model.children[0].children[1].material = windowMaterial;
+    model.children[2].children[1].material = windowMaterial;
     model.children[0].children[1].material.envMap = envMap;
-    colliderMesh = model.children.find((child)=>child.isMesh && child.name === 'Collider');
+    model.children[2].children[1].material.envMap = envMap;
+    model.children[0].children[1].material.envMapIntensity = 1.2;
+    model.children[2].children[1].material.envMapIntensity = 1.2;
+    const LOD0 = model.children[0];
+    const LOD1 = model.children[2];
+    LOD1.children[0].material.envMap = envMap;
+    LOD1.children[0].material.envMapIntensity = 0.4;
+    const lod = new _three.LOD();
+    lod.addLevel(LOD0, 700);
+    lod.addLevel(LOD1, 1000);
+    lod.rotateY(-Math.PI / 2);
+    lod.position.set(position.x, position.y, position.z);
+    lod.scale.set(10, 10, 10);
+    //colliderMesh = model.children.find(child => child.isMesh && child.name === 'collider');
     colliderMesh.visible = false;
-    /*
-        mesh.material = factoryShader;
-        factoryShader.uniforms.uDiffuseMap.value = diffuseMap;
-        factoryShader.uniforms.uHasDiffuseMap.value = true;
-        factoryShader.uniforms.uMeshPosition.value = new THREE.Vector3(position.x, getHeight(position.x, position.z) - 2, position.z)
-        factoryShader.uniforms.uTerrainHeight.value = getHeight(position.x, position.z);
-        factoryShader.uniforms.uFadeHeight.value = 3.0;
-    
-        factoryShader.uniforms.uBrightness.value = 0.45;
-        factoryShader.envMap = envMap;
-        factoryShader.envMapIntensity = 0.4;
-    */ /*
-        colliderMesh = model.children.find(child => child.isMesh && child.name === 'collider');
-        colliderMesh.visible = false;
-    
-        colliderMesh.scale.set(10, 10, 10);
-        colliderMesh.rotateY((Math.PI * 2) * 3 / 4);
-        colliderMesh.position.set(position.x, getHeight(position.x, position.z) - 2, position.z);
-    
-        // Ensure world matrix is updated before applying it to geometry
-        colliderMesh.updateMatrixWorld(true);
-    
-        const geom = colliderMesh.geometry.clone();
-        geom.applyMatrix4(colliderMesh.matrixWorld);
-    
-        // Create BVH from the transformed geometry
-        geom.boundsTree = new MeshBVH(geom);
-    
-        // Assign the transformed geometry to the mesh
-        colliderMesh.geometry = geom;
-    
-        // Add to the scene
-        colliderBVH = colliderMesh.geometry.boundsTree;
-        const collisionRadius = colliderBVH.geometry.boundingSphere.radius + 200;
-    
-        // Optional: Visualize BVH
-        //const visualizer = new MeshBVHHelper(colliderMesh, 10);
-        //worldScene.scene.add(visualizer);
-        */ worldScene.scene.add(model);
-    (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, diffuseMap, true, true, false, null, null);
+    colliderMesh.rotateY(-Math.PI / 2);
+    colliderMesh.position.set(position.x, position.y, position.z);
+    colliderMesh.scale.set(10, 10, 10);
+    // Ensure world matrix is updated before applying it to geometry
+    colliderMesh.updateMatrixWorld(true);
+    const geom = colliderMesh.geometry.clone();
+    geom.applyMatrix4(colliderMesh.matrixWorld);
+    // Create BVH from the transformed geometry
+    geom.boundsTree = new (0, _threeMeshBvh.MeshBVH)(geom);
+    // Assign the transformed geometry to the mesh
+    colliderMesh.geometry = geom;
+    // Add to the scene
+    colliderBVH = colliderMesh.geometry.boundsTree;
+    collisionRadius = colliderBVH.geometry.boundingSphere.radius + 170;
+    (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, position, diffuseMap, true, true, false, colliderBVH, collisionRadius);
+    worldScene.scene.add(lod);
+    renderer.compile(lod, camera, worldScene.scene);
 }
 async function fnLoadHQTexture(data) {
     if (!data) return;
@@ -1901,9 +1759,6 @@ async function fnLoadRockModels() {
     try {
         // Load the factory model
         const model = await modelLoader.loadModel('./assets/models/rock_model.glb');
-        //factoryModel.children[0].children[0].material.envMap = envMap;
-        //factoryModel.children[0].children[0].material.envMapIntensity = 0.3;
-        console.log(model);
         model.scale.set(45, 45, 45);
         model.position.set(100, getHeight(100, 800) - 15, 800);
         model.children[0].material.color = new _three.Color(0.8, 0.8, 0.8);
@@ -1918,7 +1773,7 @@ async function fnLoadRockModels() {
             clonedMesh.scale.set(2.45, 2.45, 2.45);
             clonedMesh.material.envMap = envMap;
             clonedMesh.material.envMapIntensity = 0.35;
-            /*
+        /*
                         if (child.name === 'LOD0') {
                             lodRocks.addLevel(clonedMesh, 150);
                             //clonedMesh.scale.set(1, 1, 1)
@@ -1930,26 +1785,23 @@ async function fnLoadRockModels() {
                             //clonedMesh.scale.set(1, 1, 1)
                         }
                     */ //clonedMesh.updateMatrixWorld(true);
-            //clonedMesh.applyMatrix4(child.matrixWorld);
-            //clonedMesh.scale.set(1.7, 1.7, 1.7)
-            //clonedMesh.position.set(100, getHeight(100, 1000), 1000)
-            //lodRocks.updateMatrixWorld(true);
-            //clonedMesh.updateMatrixWorld(true);
-            //clonedMesh.matrixAutoUpdate = false;
-            console.log(clonedMesh.position);
+        //clonedMesh.applyMatrix4(child.matrixWorld);
+        //clonedMesh.scale.set(1.7, 1.7, 1.7)
+        //clonedMesh.position.set(100, getHeight(100, 1000), 1000)
+        //lodRocks.updateMatrixWorld(true);
+        //clonedMesh.updateMatrixWorld(true);
+        //clonedMesh.matrixAutoUpdate = false;
         //clonedMesh.material.side = THREE.FrontSide;
         //clonedMesh.material.transparent = true;
         });
         lodRocks.position.set(100, getHeight(100, 1000), 1000);
         worldScene.scene.add(lodRocks);
-        //model.scale.set(100, 100, 100);
-        //console.log(model.children[0])
-        console.log(lodRocks);
+    //model.scale.set(100, 100, 100);
+    //console.log(model.children[0])
     } catch (error) {
         console.error('Error loading models:', error);
     }
 }
-//fnLoadRockModels();
 function createStoneFigureMaterial() {
     return new (0, _vanillaDefault.default)({
         baseMaterial: _three.MeshStandardMaterial,
@@ -2009,77 +1861,7 @@ function createStoneFigureMaterial() {
         transparent: true
     });
 }
-/*
-let hologramMaterial;
-
-async function fnHologramShader(url, name, position, scale, material) {
-    //const position = { x: 300, z: 100 };
-    //const name = 'horse_figure';
-    let model, mesh, diffuseMap, colliderBVH;
-
-
-    model = await modelLoader.loadModel(url);
-    diffuseMap = model.children[0].material.map;
-
-
-    model.scale.set(scale.x, scale.y, scale.z);
-    model.position.set(position.x, getHeight(position.x, position.z), position.z);
-
-    mesh = model.children.find(child => child.isMesh && child.name === 'LOD0');
-
-    hologramMaterial = createStoneFigureMaterial();
-    hologramMaterial.uniforms.uDiffuseMap.value = diffuseMap;
-    hologramMaterial.uniforms.uTerrainHeight.value = getHeight(position.x, position.z);
-    hologramMaterial.uniforms.uFadeHeight.value = 7.0;
-    hologramMaterial.uniforms.uBrightness.value = 0.75;
-    hologramMaterial.envMap = envMap;
-    hologramMaterial.envMapIntensity = 0.8;
-
-    mesh.material = hologramMaterial;
-
-    const LOD1 = model.children.find(child => child.isMesh && child.name === 'LOD1');
-    const LOD2 = model.children.find(child => child.isMesh && child.name === 'LOD2');
-    const collider = model.children.find(child => child.isMesh && child.name === 'Collider');
-
-
-    LOD1.material = hologramMaterial;
-    LOD2.material = hologramMaterial;
-
-    const lod = new THREE.LOD();
-    lod.addLevel(mesh, 75);
-    lod.addLevel(LOD1, 125);
-    lod.addLevel(LOD2, 175);
-
-    lod.position.set(position.x, getHeight(position.x, position.z) - 2, position.z);
-    lod.scale.set(scale.x, scale.y, scale.z);
-
-
-    //collider.visible = true;
-    collider.position.set(position.x, getHeight(position.x, position.z) - 2, position.z);
-    collider.scale.set(scale.x, scale.y, scale.z);
-
-    // Ensure world matrix is updated before applying it to geometry
-    collider.updateMatrixWorld(true);
-
-    const geom = collider.geometry.clone();
-    geom.applyMatrix4(collider.matrixWorld);
-
-    // Create BVH from the transformed geometry
-    geom.boundsTree = new MeshBVH(geom);
-
-    // Assign the transformed geometry to the mesh
-    collider.geometry = geom;
-
-    // Add to the scene
-    colliderBVH = collider.geometry.boundsTree;
-    const collisionRadius = colliderBVH.geometry.boundingSphere.radius;
-
-    worldScene.scene.add(lod)
-    Utils.fnAddModelToRegistry(modelRegistry, name, mesh, diffuseMap, true, true, false, colliderBVH, collisionRadius);
-
-}
-//fnHologramShader('./assets/models/goat_figure/goat_figure.glb', 'goat_figure', { x: 0, z: 300 }, new THREE.Vector3(3, 3, 3))
-*/ const stoneFigureParams = [
+const stoneFigureParams = [
     {
         url: './assets/models/horse_figure/horse_figure.glb',
         name: 'horse_figure',
@@ -2135,8 +1917,6 @@ async function fnLoadStoneFigureModel(url, name, position, scale, rotation, mate
     let model, mesh, diffuseMap, colliderBVH;
     model = await modelLoader.loadModel(url);
     diffuseMap = model.children[0].material.map;
-    model.scale.set(scale.x, scale.y, scale.z);
-    model.position.set(position.x, getHeight(position.x, position.z), position.z);
     mesh = model.children.find((child)=>child.isMesh && child.name === 'LOD0');
     mesh.material = material;
     material.uniforms.uDiffuseMap.value = diffuseMap;
@@ -2150,26 +1930,17 @@ async function fnLoadStoneFigureModel(url, name, position, scale, rotation, mate
     const LOD2 = model.children.find((child)=>child.isMesh && child.name === 'LOD2');
     const collider = model.children.find((child)=>child.isMesh && child.name === 'Collider');
     collider.rotateY(rotation);
-    //LOD1.visible = false;
-    //LOD1.material.color = new THREE.Vector3(0.9, 0.9, 0.9);
     LOD1.material = material;
-    //LOD1.material.envMap = envMap;
-    //LOD1.material.envMapIntensity = 0.1;
-    //LOD1.material.side = THREE.FrontSide;
-    //LOD2.visible = false;
     LOD2.material = material;
-    //LOD2.material.color = new THREE.Vector3(0.9, 0.9, 0.9);
-    //LOD2.material.envMap = envMap;
-    //LOD2.material.envMapIntensity = 0.1;
-    //LOD2.material.side = THREE.FrontSide;
     const lod = new _three.LOD();
-    lod.addLevel(mesh, DISTANCE_LOD1);
-    lod.addLevel(LOD1, DISTANCE_LOD2);
-    lod.addLevel(LOD2, DISTANCE_LOD3);
+    lod.addLevel(mesh, DISTANCE_LOD0);
+    lod.addLevel(LOD1, DISTANCE_LOD1);
+    lod.addLevel(LOD2, DISTANCE_LOD2);
     lod.rotateY(rotation);
     lod.position.set(position.x, getHeight(position.x, position.z), position.z);
     lod.scale.set(scale.x, scale.y, scale.z);
     //collider.visible = true;
+    collider.rotateY(rotation);
     collider.position.set(position.x, getHeight(position.x, position.z), position.z);
     collider.scale.set(scale.x, scale.y, scale.z);
     // Ensure world matrix is updated before applying it to geometry
@@ -2183,41 +1954,18 @@ async function fnLoadStoneFigureModel(url, name, position, scale, rotation, mate
     // Add to the scene
     colliderBVH = collider.geometry.boundsTree;
     const collisionRadius = colliderBVH.geometry.boundingSphere.radius;
-    //console.log(colliderBVH.geometry.boundingSphere.radius)
-    /*
-    stoneColliderMesh = stoneModel.children.find(child => child.isMesh && child.name === 'collider');
-    stoneColliderMesh.visible = false;
-
-    stoneColliderMesh.scale.set(3, 3, 3);
-    //stoneColliderMesh.rotateY((Math.PI * 2) * 3 / 4);
-    stoneColliderMesh.position.set(position.x, getHeight(position.x, position.z) - 2, position.z);
-
-    // Ensure world matrix is updated before applying it to geometry
-    stoneColliderMesh.updateMatrixWorld(true);
-
-    const geom = stoneColliderMesh.geometry.clone();
-    geom.applyMatrix4(stoneColliderMesh.matrixWorld);
-
-    // Create BVH from the transformed geometry
-    geom.boundsTree = new MeshBVH(geom);
-
-    // Assign the transformed geometry to the mesh
-    stoneColliderMesh.geometry = geom;
-
-    // Add to the scene
-    stoneColliderBVH = stoneColliderMesh.geometry.boundsTree;
-    // Optional: Visualize BVH
-    //const visualizer = new MeshBVHHelper(colliderMesh, 10);
-    //worldScene.scene.add(visualizer);
-    */ worldScene.scene.add(lod);
-    (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, diffuseMap, true, true, false, colliderBVH, collisionRadius);
+    worldScene.scene.add(lod);
+    //renderer.compile(lod, camera, worldScene.scene);
+    (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, new _three.Vector3(position.x, getHeight(position.x, position.z), position.z), diffuseMap, true, true, false, colliderBVH, collisionRadius);
 }
-if (!visitedFromMobileDevice) //fnLoadRockVideoProjectionModel('./assets/models/video_rock/videoRockPreload.glb', 10);
-//fnLoadFactoryModel('./assets/models/factory/factory_test.glb');
-stoneFigureParams.forEach((params)=>{
-    fnLoadStoneFigureModel(params.url, params.name, params.position, params.scale, params.rotation, params.material, params.color);
-});
-fnLoadPowerlinesModel('./assets/powerlines.glb');
+if (!visitedFromMobileDevice) {
+    stoneFigureParams.forEach((params)=>{
+        fnLoadStoneFigureModel(params.url, params.name, params.position, params.scale, params.rotation, params.material, params.color);
+    });
+    //fnLoadRockVideoProjectionModel('./assets/models/video_rock/videoRockPreload.glb', 10);
+    fnLoadFactoryModel('./assets/models/factory/factory.glb');
+}
+fnLoadPowerlinesModel('./assets/models/powerlines/powerlines.glb');
 function fnToggleFigureAnimation(stoneFigureParams, figureName) {
     for(let i = 0; i < stoneFigureParams.length; i++)if (stoneFigureParams[i].name === figureName) {
         //stoneFigureParams[i].material.uniforms.effectsIntensity.value = 1.0;
@@ -2227,7 +1975,6 @@ function fnToggleFigureAnimation(stoneFigureParams, figureName) {
         break; // Exit loop once found
     }
 }
-//fnToggleFigureAnimation(stoneFigureParams, 'goat_figure');
 /********************************************************************
 // Video Plane
 ********************************************************************/ // Create a video element
@@ -2457,7 +2204,7 @@ function fnUpdateControls(deltaTime) {
     newPosition.addScaledVector(direction, -velocity.z * deltaTime);
     newPosition.addScaledVector(right, -velocity.x * deltaTime);
     // --- COLLISION CHECK START ---
-    const playerRadius = 2.0;
+    const playerRadius = 4.5;
     const playerSphere = new _three.Sphere(newPosition, playerRadius);
     //const intersects = [];
     //const intersects = colliderBVH.intersectsSphere(playerSphere);
@@ -2520,8 +2267,6 @@ controls.addEventListener("change", event => {
     //console.log(controls.object.position);
 });
 */ //console.log('here');
-const axesHelper = new _three.AxesHelper(1000);
-//worldScene.scene.add(axesHelper);
 /********************************************************************
 // Grass Blade Shape and Material
 ********************************************************************/ // Create grass blade shape
@@ -2539,7 +2284,6 @@ function createGrassBladeShapeLOD1() {
 // Convert shape to geometry
 const bladeShape = createGrassBladeShapeLOD1();
 const bladeGeometry = new _three.ShapeGeometry(bladeShape);
-const grassDiffuseMap2 = './assets/grassColor.png';
 const grassMaterial = new (0, _vanillaDefault.default)({
     baseMaterial: _three.MeshStandardMaterial,
     uniforms: {
@@ -2561,8 +2305,8 @@ const grassMaterial = new (0, _vanillaDefault.default)({
 ********************************************************************/ /** Terrain Constants */ const chunkSize = 200; // Size of each terrain chunk (200)
 const viewRadius = 6; // Number of chunks to load around the player (5)
 const unloadRadius = 7; // Number of chunks to unload outside this radius (6)
-const chunkVertexCount = 8; // 4
-const instanceCount = 4000; //(4000) (19500)
+const chunkVertexCount = 6; // 4
+const instanceCount = 3750; //(4000) (19500)
 const loadedChunks = new Map(); // Store references to loaded chunks
 // Define special chunk configurations by their X, Z values
 const specialChunks = {
@@ -2776,10 +2520,10 @@ const fnOnTerrainComplete = fnCreateOnceFunction();
             }
             */ if (distance > 1200) chunk.grassMesh.count = instanceCount * 0.2;
             else if (distance > 900) chunk.grassMesh.count = instanceCount * 0.3;
-            else if (distance > 800) chunk.grassMesh.count = instanceCount * 0.4;
-            else if (distance > 500) chunk.grassMesh.count = instanceCount * 0.65;
+            else if (distance > 800) chunk.grassMesh.count = instanceCount * 0.35;
+            else if (distance > 500) chunk.grassMesh.count = instanceCount * 0.5;
             else if (distance > 400) chunk.grassMesh.count = instanceCount * 0.75;
-            else if (distance > 200) chunk.grassMesh.count = instanceCount * 0.95;
+            else if (distance > 200) chunk.grassMesh.count = instanceCount * 0.90;
             else chunk.grassMesh.count = instanceCount;
         }
     });
@@ -2817,22 +2561,25 @@ const fnOnTerrainComplete = fnCreateOnceFunction();
                 data.needsTextureSwapToHQ = false;
                 //update model registry
                 modelRegistry.set(id, data);
-            //load texture
-            //fnLoadHQTexture(data);
+                //load texture
+                fnLoadHQTexture(data);
             }
         }
+    /*
         if (!data.needsTextureSwapToHQ && distance > DISTANCE_TEXTURE_DISPOSE) {
+
             data.needsTextureSwapToHQ = true;
             data.textureIsLoaded = false;
             modelRegistry.set(id, data);
-        //fnUnloadHQTexture(data);
+            fnUnloadHQTexture(data);
         }
-    });
+        */ });
     if (allModelsLoaded && !allModelsAddedToScene && allGrassComputed) {
         const allAdded = [
             ...modelRegistry.values()
         ].every((model)=>model.isAddedToScene);
         if (allAdded) {
+            //renderer.compile(worldScene.scene, camera);
             fnOnTerrainComplete();
             allModelsAddedToScene = true;
         }
@@ -2851,18 +2598,9 @@ const fnOnTerrainComplete = fnCreateOnceFunction();
         }
     });
     renderer.render(worldScene.scene, camera);
-    stats.update();
+//stats.update();
 //console.log(renderer.info);
-//composer.render();
-//videoTexture.needsUpdate = true;
-//videoProjectTexture.needsUpdate = true;
-// Update the video texture if the video is playing
-/*
-        if (video.readyState >= video.HAVE_CURRENT_DATA) {
-            videoTexture.needsUpdate = true;
-            videoProjectTexture.needsUpdate = true;
-        }
-    */ }
+}
 renderer.setAnimationLoop(animate);
 
 },{"three":"ktPTu","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/Addons.js":"iBAni","three/examples/jsm/math/Octree.js":"iwBOl","three/examples/jsm/helpers/OctreeHelper.js":"70dYF","three-mesh-bvh":"6y2ur","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"8TdPQ","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./Utils.js":"c7A1Q","./shaders/grass.js":"cNzyR","./shaders/powerlines.js":"gJXUV","./shaders/videotexture.js":"5S7oy","./shaders/stonefigure.js":"e77je","./shaders/videoFade.js":"2lLRY","../img/videoFallback.webp":"5ZsGE","./content.json":"24cue","./GrassScene.js":"a5jmZ","./WorldScene.js":"5ZFD0","./ModelLoader.js":"5o86C","./LODManager.js":"3L9vB","cdb16b6f1235a7ac":"9rntO","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"ktPTu":[function(require,module,exports,__globalThis) {
@@ -194340,7 +194078,7 @@ var _three = require("three");
 class Utils {
     /**
     * Generates a random float between min and max.
-    */ static fnAddModelToRegistry(modelRegistry, name, mesh, lqTexture, isAddedToScene, needsTextureSwapToHQ, textureIsLoaded, bvh, collisionRadius) {
+    */ static fnAddModelToRegistry(modelRegistry, name, mesh, position, lqTexture, isAddedToScene, needsTextureSwapToHQ, textureIsLoaded, bvh, collisionRadius) {
         const modelID = Symbol(name); // Ensures uniqueness
         modelRegistry.set(modelID, {
             name,
@@ -194348,7 +194086,7 @@ class Utils {
             needsTextureSwapToHQ,
             textureIsLoaded,
             isAddedToScene,
-            position: mesh.parent.position.clone(),
+            position,
             bvh,
             collisionRadius,
             lastDistance: Infinity,
@@ -194514,7 +194252,7 @@ exports.default = {
 module.exports = "#define GLSLIFY 1\n      varying vec3 vWorldPos;\n      varying vec2 vUv;\n      varying vec3 vNormalVector;\n      varying float vIsFrontFacing;\n      \n      void main() {\n        vUv = uv;\n        vec4 worldPos = modelMatrix * vec4(position, 1.0);\n        vWorldPos = worldPos.xyz;\n        \n        // Calculate world space normal\n        vNormalVector = normalize(mat3(modelMatrix) * normal);\n        \n        // Determine if front facing using the camera position\n        vec3 cameraPosition = cameraPosition; // Built-in three.js variable\n        vec3 viewDirection = normalize(cameraPosition - worldPos.xyz);\n        vIsFrontFacing = dot(vNormalVector, viewDirection) > 0.0 ? -1.0 : 1.0;\n        \n        //gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);\n        csm_PositionRaw = projectionMatrix * modelViewMatrix * vec4(position, 1.0);\n      }";
 
 },{}],"bbp22":[function(require,module,exports,__globalThis) {
-module.exports = "#define GLSLIFY 1\n      uniform sampler2D uVideoTexture;\n      uniform sampler2D uDiffuseTexture;\n      uniform vec3 uProjectorPosition;\n      uniform vec3 uProjectorDirection;\n      uniform mat4 uProjectorMatrix;\n      uniform float uProjectorFOV;\n      uniform float uProjectorAspect;\n      uniform vec3 uBaseColor;\n      uniform float uProjectionIntensity;\n      uniform float uVignette;\n      uniform float uBlendFactor;\n      uniform float uMinZDistance;\n      \n      varying vec3 vWorldPos;\n      varying vec2 vUv;\n      varying vec3 vNormalVector;\n      varying float vIsFrontFacing;\n      \nvoid main() {\n  // Sample the diffuse texture\n  vec4 diffuseC = texture2D(uDiffuseTexture, vUv);\n  vec3 finalColor = diffuseC.rgb; // Initialize with diffuse color by default\n\n  // We explicitly designate the positive normal direction as the side for projection\n  // For a standard plane, this is the side with normal (0,0,1)\n  bool isProjectionSide = vIsFrontFacing > 0.0; // Only project on front side\n  \n  if (isProjectionSide) {\n    // Direction from projector to this fragment\n    vec3 projToFrag = normalize(vWorldPos - uProjectorPosition);\n    \n    // Project the point onto the projector's viewing plane\n    vec4 projectorViewPosition = uProjectorMatrix * vec4(vWorldPos, 1.0);\n    \n    // If the fragment is in front of the projector, show the projection\n    if (projectorViewPosition.z > uMinZDistance) {\n      // Calculate UV coordinates for projection\n      float distance = length(vWorldPos - uProjectorPosition);\n      float attenuation = 1.0 / (1.0 + 0.1 * distance + 0.0 * distance);\n      \n      // Convert view position to NDC space, then to UV coordinates\n      vec2 projUV = projectorViewPosition.xy / projectorViewPosition.z;\n      projUV = projUV * 0.5 + 0.5;\n      \n      // Check if within projection bounds (0 to 1)\n      if (projUV.x >= 0.0 && projUV.x <= 1.0 && projUV.y >= 0.0 && projUV.y <= 1.0) {\n        // Sample video texture with projected coordinates\n        vec4 projectedColor = texture2D(uVideoTexture, projUV);\n        \n        // Add vignette effect for old-school projector look\n        float vignetteAmount = 1.0 - uVignette * length(projUV - 0.5) * 2.0;\n        vignetteAmount = clamp(vignetteAmount, 0.0, 1.0);\n        \n        // Add subtle noise for film grain effect\n        float noise = fract(sin(dot(projUV, vec2(12.9898, 78.233))) * 43758.5453) * 0.05;\n        \n        // Calculate projection color with effects\n        vec3 projColor = projectedColor.rgb * vignetteAmount * uProjectionIntensity;\n        projColor += noise;\n        \n        // Screen blend mode (brightens the image)\n        vec3 blendedColor = 1.0 - (1.0 - diffuseC.rgb) * (1.0 - projColor);\n        \n        // Final color is a blend between the diffuse and the blended projection\n        finalColor = mix(diffuseC.rgb, blendedColor, uBlendFactor);\n      }\n    }\n  }\n  \n  // Always output the final color, whether it's been projected on or not\n  csm_DiffuseColor = vec4(finalColor, 1.0);\n}";
+module.exports = "#define GLSLIFY 1\n      uniform sampler2D uVideoTexture;\n      uniform sampler2D uDiffuseMap;\n      uniform vec3 uProjectorPosition;\n      uniform vec3 uProjectorDirection;\n      uniform mat4 uProjectorMatrix;\n      uniform float uProjectorFOV;\n      uniform float uProjectorAspect;\n      uniform vec3 uBaseColor;\n      uniform float uProjectionIntensity;\n      uniform float uVignette;\n      uniform float uBlendFactor;\n      uniform float uMinZDistance;\n      \n      varying vec3 vWorldPos;\n      varying vec2 vUv;\n      varying vec3 vNormalVector;\n      varying float vIsFrontFacing;\n      \nvoid main() {\n  // Sample the diffuse texture\n  vec4 diffuseC = texture2D(uDiffuseMap, vUv);\n  vec3 finalColor = diffuseC.rgb; // Initialize with diffuse color by default\n\n  // We explicitly designate the positive normal direction as the side for projection\n  // For a standard plane, this is the side with normal (0,0,1)\n  bool isProjectionSide = vIsFrontFacing > 0.0; // Only project on front side\n  \n  if (isProjectionSide) {\n    // Direction from projector to this fragment\n    vec3 projToFrag = normalize(vWorldPos - uProjectorPosition);\n    \n    // Project the point onto the projector's viewing plane\n    vec4 projectorViewPosition = uProjectorMatrix * vec4(vWorldPos, 1.0);\n    \n    // If the fragment is in front of the projector, show the projection\n    if (projectorViewPosition.z > uMinZDistance) {\n      // Calculate UV coordinates for projection\n      //float distance = length(vWorldPos - uProjectorPosition);\n      //float attenuation = 1.0 / (1.0 + 0.1 * distance + 0.0 * distance);\n      \n      // Convert view position to NDC space, then to UV coordinates\n      vec2 projUV = projectorViewPosition.xy / projectorViewPosition.z;\n      projUV = projUV * 0.5 + 0.5;\n      \n      // Check if within projection bounds (0 to 1)\n      if (projUV.x >= 0.0 && projUV.x <= 1.0 && projUV.y >= 0.0 && projUV.y <= 1.0) {\n        // Sample video texture with projected coordinates\n        vec4 projectedColor = texture2D(uVideoTexture, projUV);\n        \n        // Add vignette effect for old-school projector look\n        float vignetteAmount = 1.0 - uVignette * length(projUV - 0.5) * 2.0;\n        vignetteAmount = clamp(vignetteAmount, 0.0, 1.0);\n        \n        // Add subtle noise for film grain effect\n        float noise = fract(sin(dot(projUV, vec2(12.9898, 78.233))) * 43758.5453) * 0.06;\n        \n        // Calculate projection color with effects\n        vec3 projColor = projectedColor.rgb * vignetteAmount * uProjectionIntensity;\n        projColor += noise;\n        \n        // Screen blend mode (brightens the image)\n        vec3 blendedColor = 1.0 - (1.0 - diffuseC.rgb) * (1.0 - projColor);\n        \n        // Final color is a blend between the diffuse and the blended projection\n        finalColor = mix(diffuseC.rgb , blendedColor, uBlendFactor);\n        finalColor *= 3.0;\n      }\n    }\n  }\n  \n  // Always output the final color, whether it's been projected on or not\n  csm_DiffuseColor = vec4(finalColor, 1.0);\n}";
 
 },{}],"5ZsGE":[function(require,module,exports,__globalThis) {
 module.exports = require("8776c593459528ab").getBundleURL('g05j8') + "videoFallback.3530558f.webp" + "?" + Date.now();
@@ -194976,7 +194714,7 @@ class ModelLoader {
         // Return cached model if available
         if (this.modelCache[url]) {
             this.lastAccessTime[url] = Date.now();
-            console.log(`Returning cached model: ${url}`);
+            //console.log(`Returning cached model: ${url}`);
             return this.modelCache[url];
         }
         return new Promise((resolve, reject)=>{

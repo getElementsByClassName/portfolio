@@ -613,22 +613,24 @@ onmessage = (event)=>{
         const z = offsetZ + Math.random() * chunkSize;
         offsets[i * 3] = x;
         offsets[i * 3 + 2] = z;
-        uvs[i] = convertRange(x, offsetX, offsetX + chunkSize, 0, 1);
-        uvs[i + 2] = convertRange(z, offsetZ, offsetZ + chunkSize, 0, 1);
-        const angle = Math.random() * Math.PI * 2;
-        const cosAngle = Math.cos(angle);
-        const sinAngle = Math.sin(angle);
-        const index = i * 9;
-        rotationMatrices[index + 0] = cosAngle;
-        rotationMatrices[index + 1] = 0;
-        rotationMatrices[index + 2] = -sinAngle;
-        rotationMatrices[index + 3] = 0;
-        rotationMatrices[index + 4] = 1;
-        rotationMatrices[index + 5] = 0;
-        rotationMatrices[index + 6] = sinAngle;
-        rotationMatrices[index + 7] = 0;
-        rotationMatrices[index + 8] = cosAngle;
-        scales[i] = Math.random() * 2.0 + 4.5;
+        if (!(x > 1028 && x < 1390 && z > 840 && z < 1300)) {
+            uvs[i] = convertRange(x, offsetX, offsetX + chunkSize, 0, 1);
+            uvs[i + 2] = convertRange(z, offsetZ, offsetZ + chunkSize, 0, 1);
+            const angle = Math.random() * Math.PI * 2;
+            const cosAngle = Math.cos(angle);
+            const sinAngle = Math.sin(angle);
+            const index = i * 9;
+            rotationMatrices[index + 0] = cosAngle;
+            rotationMatrices[index + 1] = 0;
+            rotationMatrices[index + 2] = -sinAngle;
+            rotationMatrices[index + 3] = 0;
+            rotationMatrices[index + 4] = 1;
+            rotationMatrices[index + 5] = 0;
+            rotationMatrices[index + 6] = sinAngle;
+            rotationMatrices[index + 7] = 0;
+            rotationMatrices[index + 8] = cosAngle;
+            scales[i] = Math.random() * 2.0 + 5.5;
+        }
     }
     function convertRange(val, oldMin, oldMax, newMin, newMax) {
         return (val - oldMin) * (newMax - newMin) / (oldMax - oldMin) + newMin;
