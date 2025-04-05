@@ -964,7 +964,7 @@ function fnLoadContent(id) {
 ********************************************************************/ /********************************************************************
 // Scene Constants
 ********************************************************************/ let velocity = new _three.Vector3();
-let SPEED = 2800.0; //700
+let SPEED = 750.0; //700
 const PERSON_HEIGHT = 22.0; //21
 const DISTANCE_TEXTURE_SWAP = 400.0;
 const DISTANCE_TEXTURE_DISPOSE = 650.0;
@@ -1755,7 +1755,7 @@ async function fnLoadFactoryModel(url) {
         lod.renderOrder = 1;
         windowMeshLOD0.renderOrder = 2;
         windowMeshLOD1.renderOrder = 2;
-    */ (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, position, diffuseMap, true, true, 1400, false, colliderBVH, collisionRadius);
+    */ (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, position, diffuseMap, true, true, 700, false, colliderBVH, collisionRadius);
     worldScene.scene.add(lod);
 /*
         // Force compilation specifically for the window materials
@@ -1851,7 +1851,7 @@ async function fnLoadFactoryInteriorModel(url) {
     material.uniforms.uMinZDistance.value = position.z + 500; //500
     material.envMap = envMap;
     material.envMapIntensity = 2.10;
-    (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, position, diffuseMap, true, true, 1350, false, colliderBVH, collisionRadius);
+    (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, position, diffuseMap, true, true, 700, false, colliderBVH, collisionRadius);
     worldScene.scene.add(mesh);
 /*
         // Force compilation specifically for the window materials
@@ -2719,7 +2719,7 @@ function animate() {
         if (!(0, _utilsJsDefault.default).fnIsInFrustum(data.mesh, camera)) return;
         //distance from mesh to player
         const distance = camera.position.distanceTo(data.position);
-        if (data.needsTextureSwapToHQ && distance < DISTANCE_TEXTURE_SWAP) {
+        if (data.needsTextureSwapToHQ && distance < data.distanceTextureSwap) {
             if (!data.textureIsLoaded) {
                 data.textureIsLoaded = true;
                 data.needsTextureSwapToHQ = false;
