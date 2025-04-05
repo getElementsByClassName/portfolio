@@ -2135,7 +2135,7 @@ video.setAttribute('playsinline', 'playsinline'); // For modern browsers
 video.muted = true;
 video.autoPlay = true;
 video.loop = true;
-video.play();
+//video.play();
 // Create a texture from the video element
 const videoTexture = new _three.VideoTexture(video);
 videoTexture.minFilter = _three.LinearFilter;
@@ -2170,10 +2170,19 @@ const videoShaderMaterial = new _three.ShaderMaterial({
     transparent: true,
     wireframe: false
 });
-if (video.paused) videoMaterial.uniforms.videoTexture.value = textureLoader.load((0, _videoFallbackWebpDefault.default)); //problem here
-document.body.addEventListener("touchstart", function() {
+video.play().then(()=>{
+    // Video is playing, use video texture
+    videoShaderMaterial.uniforms.videoTexture.value = videoTexture;
+}).catch((error)=>{
+    // Video failed to play, only now load the fallback
+    videoShaderMaterial.uniforms.videoTexture.value = textureLoader.load('../img/videoFallback.webp');
+});
+/*
+if (video.paused) {
+    videoShaderMaterial.uniforms.videoTexture.value = textureLoader.load(videoFallbackImage); 
+}*/ document.body.addEventListener("touchstart", function() {
     //set texture to video
-    videoMaterial.uniforms.videoTexture.value = videoTexture;
+    videoShaderMaterial.uniforms.videoTexture.value = videoTexture;
     video.play();
 }, {
     once: true
@@ -223096,7 +223105,7 @@ class GrassScene {
         rectLight.position.set(-5, 5, 0);
         rectLight.lookAt(0, 0, 0);
         //this.scene.add(rectLight)
-        this.pointLight = new _three.PointLight(0xfcb43a, 3.5, 2);
+        this.pointLight = new _three.PointLight(0xfcb43a, 2.5, 2);
         //fcb43a
         this.pointLight.position.set(0.0, 0.0, 5.0);
         this.scene.add(this.pointLight);
