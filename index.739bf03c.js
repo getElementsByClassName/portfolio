@@ -646,6 +646,8 @@ var _modelLoaderJs = require("./ModelLoader.js");
 var _modelLoaderJsDefault = parcelHelpers.interopDefault(_modelLoaderJs);
 var _lodmanagerJs = require("./LODManager.js");
 var _lodmanagerJsDefault = parcelHelpers.interopDefault(_lodmanagerJs);
+var _soundManagerJs = require("./SoundManager.js");
+var _soundManagerJsDefault = parcelHelpers.interopDefault(_soundManagerJs);
 /********************************************************************
 // Vanilla Javascript
 ********************************************************************/ /********************************************************************
@@ -964,7 +966,7 @@ function fnLoadContent(id) {
 ********************************************************************/ /********************************************************************
 // Scene Constants
 ********************************************************************/ let velocity = new _three.Vector3();
-let SPEED = 750.0; //700
+let SPEED = 750.0; //750
 const PERSON_HEIGHT = 22.0; //21
 const DISTANCE_TEXTURE_SWAP = 400.0;
 const DISTANCE_TEXTURE_DISPOSE = 650.0;
@@ -972,6 +974,8 @@ const DISTANCE_TEXTURE_DISPOSE = 650.0;
 const DISTANCE_LOD0 = 100;
 const DISTANCE_LOD1 = 200;
 const DISTANCE_LOD2 = 300;
+//Environment Map intensities
+const GRASS_MESH_ENVMAP_INTENSITY = 0.5;
 /********************************************************************
 // Scene Setup
 ********************************************************************/ const canvasContainer = document.querySelector('#container-opening-scene');
@@ -985,6 +989,20 @@ const camera = worldScene.getCamera();
 const stats = Stats();
 stats.showPanel(0);
 document.body.appendChild(stats.dom);
+*/ /********************************************************************
+// Sounds
+********************************************************************/ const soundManager = new (0, _soundManagerJsDefault.default)(camera);
+/*
+// Load ambient sound and play it when loaded
+soundManager.loadAmbientSound('outdoors', './assets/sounds/ambience.mp3', true, () => {
+    // This callback is called when loading is complete
+    soundManager.setAmbienceVolume(0.1);
+    window.addEventListener('click', () => {
+        soundManager.playAmbience('outdoors', true, 3.0);
+
+    });
+
+});
 */ /********************************************************************
  // Check for Tab visibility
 ********************************************************************/ let gameIsActive = true;
@@ -1044,6 +1062,11 @@ const flatAreas = [
         x: 1200,
         z: 950,
         size: 250
+    },
+    {
+        x: 385,
+        z: -300,
+        size: 120
     }
 ];
 function smoothstep(edge0, edge1, x) {
@@ -1051,7 +1074,7 @@ function smoothstep(edge0, edge1, x) {
     return t * t * (3 - 2 * t); // Smoothstep function
 }
 function getHeight(x, z) {
-    let roughTerrain = 15.5 * simplex.noise(x / 400, z / 400); // Normal terrain
+    let roughTerrain = 16.0 * simplex.noise(x / 400, z / 400); // Normal terrain
     let smoothTerrain = 0.0 * simplex.noise(x / 1000, z / 1000); // Smooth flat terrain
     let blendFactor = 1; // Default = full rough terrain
     for (let area of flatAreas){
@@ -1070,23 +1093,44 @@ function getHeight(x, z) {
 // Post-processing Stuff
 ********************************************************************/ // Post Processing
 //console.log(renderer.capabilities.maxSamples)
-const composer = new (0, _postprocessing.EffectComposer)(renderer, {
-    multisampling: Math.min(4, renderer.capabilities.maxSamples),
+const composerFactoryInterior = new (0, _postprocessing.EffectComposer)(renderer, {
+    //multisampling: Math.min(4, renderer.capabilities.maxSamples),
+    multisampling: 4,
     frameBufferType: (0, _three.HalfFloatType)
 });
-const effect = new (0, _postprocessing.ToneMappingEffect)({
-    blendFunction: (0, _postprocessing.BlendFunction).SET,
-    mode: (0, _postprocessing.ToneMappingMode).ACES_FILMIC,
-    exposure: 1.0
+const composerDefault = new (0, _postprocessing.EffectComposer)(renderer, {
+    multisampling: 4,
+    frameBufferType: (0, _three.HalfFloatType)
 });
-const params = {
-    density: 0.0050,
+const effectTonemapping = new (0, _postprocessing.ToneMappingEffect)({
+    blendFunction: (0, _postprocessing.BlendFunction).SET,
+    mode: (0, _postprocessing.ToneMappingMode).ACES_FILMIC
+});
+const depthOfFieldEffect = new (0, _postprocessing.DepthOfFieldEffect)(camera, {
+    focusDistance: 0.0,
+    focalLength: 0.85,
+    bokehScale: 5.0,
+    height: 480,
+    mode: (0, _postprocessing.BlendFunction).DARKEN
+});
+const brightnessContrastEffect = new (0, _postprocessing.BrightnessContrastEffect)({
+    blendFunction: (0, _postprocessing.BlendFunction).SCR,
+    contrast: 0.175,
+    brightness: -0.05
+});
+const hueSaturationEffect = new (0, _postprocessing.HueSaturationEffect)({
+    blendFunction: (0, _postprocessing.BlendFunction).SRC,
+    saturation: -0.5,
+    hue: 0.0
+});
+const godraysParams = {
+    density: 0.002,
     maxDensity: 0.01,
     edgeStrength: 5.0,
     edgeRadius: 2.0,
-    distanceAttenuation: 3.1,
+    distanceAttenuation: 2.0,
     color: new _three.Color(0xFFB55C),
-    raymarchSteps: 45,
+    raymarchSteps: 42,
     blur: true,
     blurVariance: 0.1,
     //blurKernelSize: SMALL,
@@ -1116,14 +1160,73 @@ const dirLightHelper = new _three.DirectionalLightHelper(dirLight, 5);
 //worldScene.scene.add(dirLightHelper);
 const dirLightCameraHelper = new _three.CameraHelper(dirLight.shadow.camera);
 //worldScene.scene.add(dirLightCameraHelper);
-const godraysPass = new (0, _threeGoodGodrays.GodraysPass)(dirLight, camera, params);
+const godraysPass = new (0, _threeGoodGodrays.GodraysPass)(dirLight, camera, godraysParams);
 // If this is the last pass in your pipeline, set `renderToScreen` to `true`
 godraysPass.renderToScreen = false;
-const effectPass = new (0, _postprocessing.EffectPass)(camera, effect);
-effectPass.renderToScreen = false;
-composer.addPass(new (0, _postprocessing.RenderPass)(worldScene.scene, camera));
-composer.addPass(effectPass);
-composer.addPass(godraysPass);
+const effectPassTonemapping = new (0, _postprocessing.EffectPass)(camera, effectTonemapping);
+effectPassTonemapping.renderToScreen = false;
+const effectPassTonemappingInterior = new (0, _postprocessing.EffectPass)(camera, effectTonemapping);
+effectPassTonemappingInterior.renderToScreen = false;
+const effectDOF = new (0, _postprocessing.EffectPass)(camera, depthOfFieldEffect);
+effectDOF.renderToScreen = false;
+const brightnessContrast = new (0, _postprocessing.EffectPass)(camera, brightnessContrastEffect);
+brightnessContrast.renderToScreen = false;
+const hueSaturation = new (0, _postprocessing.EffectPass)(camera, hueSaturationEffect);
+hueSaturation.renderToScreen = false;
+composerFactoryInterior.addPass(new (0, _postprocessing.RenderPass)(worldScene.scene, camera));
+composerFactoryInterior.addPass(brightnessContrast);
+composerFactoryInterior.addPass(effectPassTonemapping);
+composerFactoryInterior.addPass(godraysPass);
+composerDefault.addPass(new (0, _postprocessing.RenderPass)(worldScene.scene, camera));
+composerDefault.addPass(brightnessContrast);
+//composerDefault.addPass(hueSaturation);
+composerDefault.addPass(effectPassTonemappingInterior);
+//composerDefault.addPass(godraysPass);
+let playerIsInsideFactory = false;
+let activeComposer = composerDefault;
+const factoryEntranceTrigger = new _three.Box3(new _three.Vector3(-190, -50, -350), new _three.Vector3(200, 50, 90));
+factoryEntranceTrigger.translate(new _three.Vector3(1200, getHeight(1200, 1200), 1200));
+/*
+// Calculate dimensions of the box
+const size = new THREE.Vector3();
+factoryEntranceTrigger.getSize(size);
+
+// Create a BoxGeometry with those dimensions
+const triggerGeometry = new THREE.BoxGeometry(size.x, size.y, size.z);
+
+// Create material
+const materialTrigger = new THREE.MeshBasicMaterial({
+    color: 0x00ff00,
+    wireframe: true,
+    transparent: true,
+    opacity: 0.5
+});
+
+// Create mesh
+const triggerMesh = new THREE.Mesh(triggerGeometry, materialTrigger);
+
+// Position the mesh at the center of the Box3
+const center = new THREE.Vector3();
+factoryEntranceTrigger.getCenter(center);
+triggerMesh.position.copy(center);
+
+// Add to scene
+worldScene.scene.add(triggerMesh);
+*/ function fnCheckIfPlayerIsInFactoryTrigger(playerPosition, deltaTime) {
+    const isPlayerInTrigger = factoryEntranceTrigger.containsPoint(playerPosition);
+    // Only update composer when state changes (entering/exiting)
+    if (isPlayerInTrigger) {
+        playerIsInsideFactory = true;
+        activeComposer = composerFactoryInterior;
+    // Optional: Add transition effect here
+    } else if (!isPlayerInTrigger) {
+        playerIsInsideFactory = false;
+        activeComposer = composerDefault;
+    // Optional: Add transition effect here
+    }
+    // Use the active composer for rendering
+    activeComposer.render(deltaTime);
+}
 /********************************************************************
 // Video Projections Test
 ********************************************************************/ const videoProject = document.createElement('video');
@@ -1657,25 +1760,6 @@ windowMaterial.depthWrite = false;
 windowMaterial.depthTest = true;
 //windowMaterial.renderOrder = 1;
 //windowMaterial.forceSinglePass = true;
-const windowMaterialOpaque = new _three.MeshStandardMaterial({
-    color: 0xffffff,
-    roughness: 0.85,
-    metalness: 0.5,
-    opacity: 0.97,
-    transparent: false,
-    side: _three.DoubleSide,
-    fog: true
-});
-// Create a simple mesh with your material
-const geometry = new _three.BoxGeometry(1, 1, 1);
-const mesh = new _three.Mesh(geometry, windowMaterial);
-// Add the mesh to the scene (you can make it invisible)
-mesh.visible = false;
-worldScene.scene.add(mesh);
-// Prewarm the material by compiling it
-renderer.compile(worldScene.scene, camera);
-// You can remove the mesh afterward if needed
-worldScene.scene.remove(mesh);
 async function fnLoadFactoryModel(url) {
     //const position = { x: 1200, z: 1200 };
     const position = new _three.Vector3(1200, getHeight(1200, 1200), 1200);
@@ -1757,19 +1841,18 @@ async function fnLoadFactoryModel(url) {
         windowMeshLOD1.renderOrder = 2;
     */ (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, position, diffuseMap, true, true, 700, false, colliderBVH, collisionRadius);
     worldScene.scene.add(lod);
+    // Force compilation specifically for the window materials
+    renderer.compile(windowMeshLOD0, camera, worldScene.scene);
+    renderer.compile(windowMeshLOD1, camera, worldScene.scene);
+//renderer.compile(mesh, camera, worldScene.scene)
+//renderer.compile(LOD1.children[0], camera, worldScene.scene)
 /*
-        // Force compilation specifically for the window materials
-        renderer.compile(windowMeshLOD0, camera, worldScene.scene);
-        renderer.compile(windowMeshLOD1, camera, worldScene.scene);
-        renderer.compile(mesh, camera, worldScene.scene)
-        renderer.compile(LOD1.children[0], camera, worldScene.scene)
-    
         lod.levels.forEach(level => {
             if (level.object) {
                 renderer.compile(level.object, camera, worldScene.scene);
             }
         });
-        */ }
+    */ }
 async function fnLoadFactoryInteriorModel(url) {
     //const position = { x: 1200, z: 1200 };
     const position = new _three.Vector3(1200, getHeight(1200, 1200), 1200);
@@ -1789,7 +1872,7 @@ async function fnLoadFactoryInteriorModel(url) {
     mesh.material = material;
     // Update shader uniforms
     const videoTest = document.createElement('video');
-    videoTest.src = './assets/glass/video.webm';
+    videoTest.src = './assets/glass/super8.webm';
     videoTest.loop = true;
     videoTest.muted = true; // Important for autoplay
     videoTest.crossOrigin = 'anonymous';
@@ -1801,7 +1884,8 @@ async function fnLoadFactoryInteriorModel(url) {
     videoTextureTest.format = _three.RGBAFormat;
     // Create a larger target surface
     const surfaceWidth = 75; // Larger width
-    const surfaceHeight = surfaceWidth * (9 / 16); // Larger height
+    //const surfaceHeight = surfaceWidth * (9 / 16);// Larger height
+    const surfaceHeight = surfaceWidth * (3 / 4); // Larger height
     // Define the projection area relative to the surface size
     // These values control the relative size and position of the projection on the surface
     const projectionParams = {
@@ -1810,7 +1894,7 @@ async function fnLoadFactoryInteriorModel(url) {
         relativeHeight: 0.5,
         // Center position of projection (0,0 is center, values from -0.5 to 0.5)
         offsetX: 0.0,
-        offsetY: -0.3 // Offset slightly upward
+        offsetY: -0.25 // Offset slightly upward
     };
     const targetCenter = new _three.Vector3(projectionParams.offsetX * surfaceWidth, projectionParams.offsetY * surfaceHeight, 0);
     // Create the projector object (this will be the source of projection)
@@ -2135,7 +2219,7 @@ video.setAttribute('playsinline', 'playsinline'); // For modern browsers
 video.muted = true;
 video.autoPlay = true;
 video.loop = true;
-//video.play();
+video.play();
 // Create a texture from the video element
 const videoTexture = new _three.VideoTexture(video);
 videoTexture.minFilter = _three.LinearFilter;
@@ -2170,14 +2254,22 @@ const videoShaderMaterial = new _three.ShaderMaterial({
     transparent: true,
     wireframe: false
 });
-video.play().then(()=>{
+// First, create the texture outside the conditional
+// Then handle both paused and low-power conditions
+if (video.paused || video.autoplay && !video.playing) {
+    //if (video.paused) {
+    const fallbackTexture = textureLoader.load('../img/videoFallback.webp');
+    videoShaderMaterial.uniforms.videoTexture.value = fallbackTexture;
+}
+/*
+video.play().then(() => {
     // Video is playing, use video texture
     videoShaderMaterial.uniforms.videoTexture.value = videoTexture;
-}).catch((error)=>{
+}).catch(error => {
     // Video failed to play, only now load the fallback
     videoShaderMaterial.uniforms.videoTexture.value = textureLoader.load('../img/videoFallback.webp');
 });
-/*
+*/ /*
 if (video.paused) {
     videoShaderMaterial.uniforms.videoTexture.value = textureLoader.load(videoFallbackImage); 
 }*/ document.body.addEventListener("touchstart", function() {
@@ -2444,12 +2536,12 @@ controls.addEventListener("change", event => {
 function createGrassBladeShapeLOD1() {
     const shape = new _three.Shape();
     // Start at the bottom-left corner of the rectangle
-    shape.moveTo(-0.045, 0);
+    shape.moveTo(-0.05, 0);
     // Define the rectangle part
-    shape.lineTo(0.045, 0); // Bottom-right corner
+    shape.lineTo(0.050, 0); // Bottom-right corner
     // Define the tapering part towards the tip
     shape.lineTo(0, 2.0); // Pointed tip
-    shape.lineTo(-0.045, 0); // Back to the starting point
+    shape.lineTo(-0.05, 0); // Back to the starting point
     return shape;
 }
 // Convert shape to geometry
@@ -2476,8 +2568,8 @@ const grassMaterial = new (0, _vanillaDefault.default)({
 ********************************************************************/ /** Terrain Constants */ const chunkSize = 200; // Size of each terrain chunk (200)
 const viewRadius = 6; // Number of chunks to load around the player (5)
 const unloadRadius = 7; // Number of chunks to unload outside this radius (6)
-const chunkVertexCount = 6; // 4
-const instanceCount = 3750; //(4000) (19500)
+const chunkVertexCount = 5; // 4
+const instanceCount = 3600; //(4000) (19500)
 const loadedChunks = new Map(); // Store references to loaded chunks
 // Define special chunk configurations by their X, Z values
 const specialChunks = {
@@ -2491,7 +2583,6 @@ const grassWorkerQueue = []; // Queue for pending tasks
 for(let i = 0; i < workerPoolSize; i++){
     const worker = new Worker(require("cdb16b6f1235a7ac"));
     worker.onmessage = (event)=>{
-        //requestIdleCallback(() => {
         const { chunkKey, grassGeometryData } = event.data;
         //console.log(event.data)
         // Create instanced buffer geometry for grass blades
@@ -2512,7 +2603,7 @@ for(let i = 0; i < workerPoolSize; i++){
         //grassMesh.computeBoundingSphere();
         grassMesh.geometry.boundingSphere = grassGeometryData.boundingSphere;
         grassMesh.material.envMap = envMap;
-        grassMesh.material.envMapIntensity = 0.2;
+        grassMesh.material.envMapIntensity = GRASS_MESH_ENVMAP_INTENSITY;
         // Add grass to the scene
         worldScene.scene.add(grassMesh);
         // Store the grass mesh in the loadedChunks map
@@ -2526,7 +2617,6 @@ for(let i = 0; i < workerPoolSize; i++){
             //fnOnTerrainComplete(); //and models have loaded, maybe set flag for terrain complete here
             allGrassComputed = true;
         }
-    //});
     };
     grassWorkerPool.push(worker);
 }
@@ -2770,18 +2860,18 @@ function animate() {
             item.material.uniforms.time.value += deltaTime * 2.0;
         }
     });
-    // Update the time uniform for animation
-    //raymarchMaterial.uniforms.time.value += deltaTime * 2.0;
     //renderer.render(worldScene.scene, camera);
     //composer.render(deltaTime);
     //animateParticles();
-    composer.render(deltaTime);
+    //composerDefault.render(deltaTime);
+    fnCheckIfPlayerIsInFactoryTrigger(playerPosition, deltaTime);
+    soundManager.update(deltaTime);
 //stats.update();
 //console.log(renderer.info);
 }
 renderer.setAnimationLoop(animate);
 
-},{"postprocessing":"bM81O","three":"ktPTu","three-good-godrays":"j7KiZ","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/Addons.js":"iBAni","three/examples/jsm/math/Octree.js":"iwBOl","three/examples/jsm/helpers/OctreeHelper.js":"70dYF","three-mesh-bvh":"6y2ur","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"8TdPQ","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./Utils.js":"c7A1Q","./shaders/grass.js":"cNzyR","./shaders/powerlines.js":"gJXUV","./shaders/videotexture.js":"5S7oy","./shaders/stonefigure.js":"e77je","./shaders/videoFade.js":"2lLRY","../img/videoFallback.webp":"5ZsGE","./content.json":"24cue","./GrassScene.js":"a5jmZ","./WorldScene.js":"5ZFD0","./ModelLoader.js":"5o86C","./LODManager.js":"3L9vB","cdb16b6f1235a7ac":"9rntO","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"bM81O":[function(require,module,exports,__globalThis) {
+},{"postprocessing":"bM81O","three":"ktPTu","three-good-godrays":"j7KiZ","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/Addons.js":"iBAni","three/examples/jsm/math/Octree.js":"iwBOl","three/examples/jsm/helpers/OctreeHelper.js":"70dYF","three-mesh-bvh":"6y2ur","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"8TdPQ","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./Utils.js":"c7A1Q","./shaders/grass.js":"cNzyR","./shaders/powerlines.js":"gJXUV","./shaders/videotexture.js":"5S7oy","./shaders/stonefigure.js":"e77je","./shaders/videoFade.js":"2lLRY","../img/videoFallback.webp":"5ZsGE","./content.json":"24cue","./GrassScene.js":"a5jmZ","./WorldScene.js":"5ZFD0","./ModelLoader.js":"5o86C","./LODManager.js":"3L9vB","cdb16b6f1235a7ac":"9rntO","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","./SoundManager.js":"70lfs"}],"bM81O":[function(require,module,exports,__globalThis) {
 /**
  * postprocessing v6.37.1 build Thu Mar 06 2025
  * https://github.com/pmndrs/postprocessing
@@ -222935,7 +223025,7 @@ exports.default = {
 module.exports = "uniform float time;\nuniform vec2 u_touch; // Touch position\nuniform float u_time; // Time for animating wind\nuniform float u_touchActive; // Indicates if the touch is active\nuniform float u_fadeSpeed;\nuniform float u_touchTime;\nuniform float windStrength;\nuniform sampler2D displacementMap;\nuniform float fieldSize;\nuniform float displacementScale;\n\nattribute vec3 offset;\nattribute float scale;\n//attribute float normalizedHeight;\nattribute mat3 instanceRotationMatrix;\nattribute vec2 uvs; // Incoming UV coordinates\n//varying vec2 sendUV;\n//attribute float rotation;\nvarying vec2 vUv;\n//varying vec2 csm_cloudUV;\n//varying vec3 csm_vWorldPosition;\n//varying vec3 csm_vViewPosition;\nvarying float vHeight;\n//varying vec3 csm_vPosition;\n\nfloat hash(vec2 p) {\n    p = 50.0 * fract(p * 0.3183099 + vec2(0.71));\n    return -1.0 + 2.0 * fract(p.x * p.y * (p.x + p.y));\n}\n\nfloat noise(vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n    vec2 u = f * f * (3.0 - 2.0 * f);\n    \n    return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),\n               mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);\n}\n\nvoid main() {\n    precision mediump float;\n#define GLSLIFY 1\n\n\n            vUv = uv;\n       \n            vec3 transformedGrass = position * scale;\n            transformedGrass = instanceRotationMatrix * transformedGrass;\n            transformedGrass += offset;\n\n            vHeight = clamp(position.y, 0.0, 1.0); \n            \n            // Generate noise based on time\n            float n = noise(vec2(time * 0.1, time * 0.05));\n\n            // Scale the noise value to be in the range [0.0, 0.2]\n            float varyingValue = n * 0.35;\n  \n            float noise = noise(offset.xz);\n/*\n            // Compute distance from touch position (world space)\n            vec2 touchPos2D = u_touch.xy; // Touch position in XZ plane\n            vec2 vertexPos2D = transformedGrass.xz; // Vertex position in XZ plane\n            float distance = length(touchPos2D - vertexPos2D); // Distance between touch and vertex\n\n            // Wind effect only within the radius\n            float windRadius = 30.0; // Radius of influence\n            float windEffect = 0.0;\n            float falloff;\n            float displacementMultiplier = 1.0;\n            if (distance < windRadius) {\n                // Smooth falloff based on distance\n                falloff = 1.0 - (distance / windRadius);\n                //float fadeout = (time - u_touchTime) * u_fadeSpeed; // Fade effect with time\n                //fadeout = clamp(fadeout, 0.0, 1.0);\n                //float fadeout = exp(-u_fadeSpeed * (time - u_touchTime)); // Exponential fade\n                //float fadeout = max(0.0, 3.0 - (time - u_touchTime) * u_fadeSpeed);\n                float fadeout = max(0.0, 1.0 - (time - u_touchTime) * u_fadeSpeed * 0.1);\n                windEffect =  1.0 * falloff * fadeout; // Amplify wind effect based on proximity and time\n                //displacementMultiplier += falloff; // Increase displacement power\n                //float fadeout = max(0.0, 1.0 - (time - u_touchTime) * u_fadeSpeed); // Gradual fade to zero\n                //windEffect = falloff * sin((time) * 10.0);\n                //windEffect = fadeout;\n            }\n\n\n            //float touchWindEffect = sin(time + distance * 5.0) * 0.2;\n            //float touchWindEffect = exp(-distance * 10.0) * sin(time * 2.0); // Exponential falloff for wind effect\n\n*/\n  \n\n            // Displacement power calculation\n            float displacementPower = 1.0 - cos( vHeight * 3.1416 / 0.4 );\n\n            //displacementMultiplier = 1.0 - cos(windEffect * vHeight * 3.1416);\n\n            transformedGrass.z += sin(offset.z * noise  + time * 2.0) * (0.13 + varyingValue) * displacementPower;\n            //transformedGrass.z += displacementMultiplier; // Add fading push effect on Z-axis\n\n            transformedGrass.x += sin(offset.x * noise  + time * 2.0) * (0.17 + varyingValue) * displacementPower;\n            //transformedGrass.x += displacementMultiplier; // Add fading push effect on X-axis\n            // + ((windEffect * 1.2) * vHeight) \n\n            csm_Position = transformedGrass;\n  \n}\n\n";
 
 },{}],"rAUpS":[function(require,module,exports,__globalThis) {
-module.exports = "uniform sampler2D grassTexture;\n//uniform sampler2D cloudTexture;\n//uniform vec3 fogColor;\n//uniform float fogDensity;\n//uniform vec3 vCameraPosition;\nvarying vec2 vUv;\n//varying vec2 sendUV;\n//varying vec2 cloudUV;\n//varying vec3 vWorldPosition;\n//varying vec3 csm_vWorldPosition;\nvarying float vHeight;\n//varying vec3 vPosition;\n//varying vec3 vViewPosition;\n//varying vec4 csm_DiffuseColor;\n\n//float contrast = 1.5;\nfloat brightness = 1.35;\n//vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n\nvec3 topBladeColor = vec3(0.365, 0.588, 0.369);\n\nvoid main() {\n\n    precision mediump float;\n#define GLSLIFY 1\n\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    \n    //float depth = length(csm_vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    //float fogFactor = 1.0 - exp(-fogDensity * depth);\n    //fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv / 100.0).rgb;\n    textureColor = mix(textureColor, topBladeColor, 0.75);\n    //float vHeight = clamp(vHeight, 0.0, 1.0);\n    textureColor *= vHeight * vHeight * vHeight;\n    textureColor *= brightness;\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    //vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n    //finalColor = mix(csm_DiffuseColor.rgb, topBladeColor, 1.0);\n    //csm_Emissive = textureColor;\n\n    csm_DiffuseColor = vec4(textureColor, 1.0);\n\n    /*\n    //precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n    float depth = length(vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    float fogFactor = 1.0 - exp(-fogDensity * depth);\n    fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv/1000.0).rgb;\n    textureColor = textureColor * vec3(brightness, brightness, brightness);\n    textureColor = mix(textureColor, topBladeColor, 0.75);\n    textureColor *= vHeight * vHeight;\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n\n    csm_DiffuseColor = vec4(finalColor, 1.0);\n    */\n\n}\n\n";
+module.exports = "uniform sampler2D grassTexture;\n//uniform sampler2D cloudTexture;\n//uniform vec3 fogColor;\n//uniform float fogDensity;\n//uniform vec3 vCameraPosition;\nvarying vec2 vUv;\n//varying vec2 sendUV;\n//varying vec2 cloudUV;\n//varying vec3 vWorldPosition;\n//varying vec3 csm_vWorldPosition;\nvarying float vHeight;\n//varying vec3 vPosition;\n//varying vec3 vViewPosition;\n//varying vec4 csm_DiffuseColor;\n\n//float contrast = 1.5;\nfloat brightness = 1.35;\n//vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n\nvec3 topBladeColor = vec3(0.365, 0.588, 0.369);\n\nvoid main() {\n\n    precision mediump float;\n#define GLSLIFY 1\n\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    \n    //float depth = length(csm_vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    //float fogFactor = 1.0 - exp(-fogDensity * depth);\n    //fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv / 100.0).rgb;\n    textureColor = mix(textureColor, topBladeColor, 0.55);\n    //float vHeight = clamp(vHeight, 0.0, 1.0);\n    textureColor *= vHeight * vHeight * vHeight;\n    textureColor *= brightness;\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    //vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n    //finalColor = mix(csm_DiffuseColor.rgb, topBladeColor, 1.0);\n    //csm_Emissive = textureColor;\n\n    csm_DiffuseColor = vec4(textureColor, 1.0);\n\n    /*\n    //precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n    float depth = length(vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    float fogFactor = 1.0 - exp(-fogDensity * depth);\n    fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv/1000.0).rgb;\n    textureColor = textureColor * vec3(brightness, brightness, brightness);\n    textureColor = mix(textureColor, topBladeColor, 0.75);\n    textureColor *= vHeight * vHeight;\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n\n    csm_DiffuseColor = vec4(finalColor, 1.0);\n    */\n\n}\n\n";
 
 },{}],"gJXUV":[function(require,module,exports,__globalThis) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
@@ -222971,7 +223061,7 @@ exports.default = {
 module.exports = "#define GLSLIFY 1\n        //precision highp float;\n\n        varying vec2 vUv;\n        uniform float uTime;\n\n        //\n        // Description : Array and textureless GLSL 2D/3D/4D simplex\n        //               noise functions.\n        //      Author : Ian McEwan, Ashima Arts.\n        //  Maintainer : ijm\n        //     Lastmod : 20110822 (ijm)\n        //     License : Copyright (C) 2011 Ashima Arts. All rights reserved.\n        //               Distributed under the MIT License. See LICENSE file.\n        //               https://github.com/ashima/webgl-noise\n        //\n\n        vec3 mod289(vec3 x) {\n        return x - floor(x * (1.0 / 289.0)) * 289.0;\n        }\n\n        vec4 mod289(vec4 x) {\n        return x - floor(x * (1.0 / 289.0)) * 289.0;\n        }\n\n        vec4 permute(vec4 x) {\n            return mod289(((x*34.0)+1.0)*x);\n        }\n\n        vec4 taylorInvSqrt(vec4 r)\n        {\n        return 1.79284291400159 - 0.85373472095314 * r;\n        }\n\n        float snoise(vec3 v) {\n        const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;\n        const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);\n\n        // First corner\n        vec3 i  = floor(v + dot(v, C.yyy) );\n        vec3 x0 =   v - i + dot(i, C.xxx) ;\n\n        // Other corners\n        vec3 g = step(x0.yzx, x0.xyz);\n        vec3 l = 1.0 - g;\n        vec3 i1 = min( g.xyz, l.zxy );\n        vec3 i2 = max( g.xyz, l.zxy );\n\n        //   x0 = x0 - 0.0 + 0.0 * C.xxx;\n        //   x1 = x0 - i1  + 1.0 * C.xxx;\n        //   x2 = x0 - i2  + 2.0 * C.xxx;\n        //   x3 = x0 - 1.0 + 3.0 * C.xxx;\n        vec3 x1 = x0 - i1 + C.xxx;\n        vec3 x2 = x0 - i2 + C.yyy; // 2.0*C.x = 1/3 = C.y\n        vec3 x3 = x0 - D.yyy;      // -1.0+3.0*C.x = -0.5 = -D.y\n\n        // Permutations\n        i = mod289(i);\n        vec4 p = permute( permute( permute(\n                    i.z + vec4(0.0, i1.z, i2.z, 1.0 ))\n                + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))\n                + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));\n\n        // Gradients: 7x7 points over a square, mapped onto an octahedron.\n        // The ring size 17*17 = 289 is close to a multiple of 49 (49*6 = 294)\n        float n_ = 0.142857142857; // 1.0/7.0\n        vec3  ns = n_ * D.wyz - D.xzx;\n\n        vec4 j = p - 49.0 * floor(p * ns.z * ns.z);  //  mod(p,7*7)\n\n        vec4 x_ = floor(j * ns.z);\n        vec4 y_ = floor(j - 7.0 * x_ );    // mod(j,N)\n\n        vec4 x = x_ *ns.x + ns.yyyy;\n        vec4 y = y_ *ns.x + ns.yyyy;\n        vec4 h = 1.0 - abs(x) - abs(y);\n\n        vec4 b0 = vec4( x.xy, y.xy );\n        vec4 b1 = vec4( x.zw, y.zw );\n\n        //vec4 s0 = vec4(lessThan(b0,0.0))*2.0 - 1.0;\n        //vec4 s1 = vec4(lessThan(b1,0.0))*2.0 - 1.0;\n        vec4 s0 = floor(b0)*2.0 + 1.0;\n        vec4 s1 = floor(b1)*2.0 + 1.0;\n        vec4 sh = -step(h, vec4(0.0));\n\n        vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;\n        vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;\n\n        vec3 p0 = vec3(a0.xy,h.x);\n        vec3 p1 = vec3(a0.zw,h.y);\n        vec3 p2 = vec3(a1.xy,h.z);\n        vec3 p3 = vec3(a1.zw,h.w);\n\n        // Normalise gradients\n        vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));\n        p0 *= norm.x;\n        p1 *= norm.y;\n        p2 *= norm.z;\n        p3 *= norm.w;\n\n        // Mix final noise value\n        vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);\n        m = m * m;\n        return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1),\n                                        dot(p2,x2), dot(p3,x3) ) );\n        }\n\n        void main() {\n            vUv = uv;\n\n            vec3 pos = position;\n            float noiseFreq = 0.008;\n            float noiseAmp = 4.0;\n            vec3 noisePos = vec3(pos.x * noiseFreq + uTime, pos.y, pos.z);\n            pos.z += snoise(noisePos) * noiseAmp;\n\n            gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.);\n        }";
 
 },{}],"riKA5":[function(require,module,exports,__globalThis) {
-module.exports = "#define GLSLIFY 1\n//precision highp float;\n\nuniform sampler2D videoTexture;\nuniform float edgeTransparency;\nuniform float globalOpacity; // Add this new uniform - value between 0.0 and 1.0\n\nvarying vec2 vUv;\n\n// Function to calculate alpha based on distance from edges\nfloat getAlpha(vec2 uv) {\n    float distFromEdge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));\n    return 1.0 - smoothstep(0.1, 0.0, distFromEdge / edgeTransparency);\n}\n\nvoid main() {\n    vec4 color = texture2D(videoTexture, vUv);\n\n     // For gamma correction from linear to gamma space (if your video is in linear space)\n    //float gamma = 2.2;\n    //color.rgb = pow(color.rgb, vec3(1.0/gamma));\n\n    //color *= 0.75;\n    float edgeAlpha = getAlpha(vUv);\n    \n    // Multiply by the global opacity factor\n    float finalAlpha = edgeAlpha * globalOpacity;\n\n       // Apply contrast adjustment\n    // First convert to luminance-centered space (-0.5 to 0.5)\n    vec3 contrastColor = (color.rgb - 0.5) * 1.5 + 0.5;\n    \n    // Clamp results to valid range\n    contrastColor = clamp(contrastColor, 0.0, 1.0);\n    \n    // Ensure alpha doesn't go below 0.0 (technically unnecessary as multiplication won't go below 0)\n    //finalAlpha = max(0.0, finalAlpha);\n    \n    gl_FragColor = vec4(color.rgb, finalAlpha);\n}\n/*\n        uniform sampler2D videoTexture;\n        uniform float edgeTransparency;\n        varying vec2 vUv;\n\n        // Function to calculate alpha based on distance from edges\n        float getAlpha(vec2 uv) {\n            float distFromEdge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));\n            return 1.0 - smoothstep(0.1, 0.0, distFromEdge / edgeTransparency);\n        }\n\n        void main() {\n            vec4 color = texture2D(videoTexture, vUv);\n            float alpha = getAlpha(vUv);\n            gl_FragColor = vec4(color.rgb, alpha);\n        }\n\n    *//*\n        uniform sampler2D videoTexture;\n        uniform float edgeTransparency;\n        varying vec2 vUv;\n\n        // Function to calculate alpha based on distance from edges\n        float getAlpha(vec2 uv) {\n            float distFromEdge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));\n            return 1.0 - smoothstep(0.1, 0.0, distFromEdge / edgeTransparency);\n        }\n\n        void main() {\n            vec4 color = texture2D(videoTexture, vUv);\n            float alpha = getAlpha(vUv);\n            gl_FragColor = vec4(color.rgb, alpha);\n        }\n\n    *//*\n        uniform sampler2D videoTexture;\n        uniform float edgeTransparency;\n        varying vec2 vUv;\n\n        // Function to calculate alpha based on distance from edges\n        float getAlpha(vec2 uv) {\n            float distFromEdge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));\n            return 1.0 - smoothstep(0.1, 0.0, distFromEdge / edgeTransparency);\n        }\n\n        void main() {\n            vec4 color = texture2D(videoTexture, vUv);\n            float alpha = getAlpha(vUv);\n            gl_FragColor = vec4(color.rgb, alpha);\n        }\n\n    *//*\n        uniform sampler2D videoTexture;\n        uniform float edgeTransparency;\n        varying vec2 vUv;\n\n        // Function to calculate alpha based on distance from edges\n        float getAlpha(vec2 uv) {\n            float distFromEdge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));\n            return 1.0 - smoothstep(0.1, 0.0, distFromEdge / edgeTransparency);\n        }\n\n        void main() {\n            vec4 color = texture2D(videoTexture, vUv);\n            float alpha = getAlpha(vUv);\n            gl_FragColor = vec4(color.rgb, alpha);\n        }\n\n    */";
+module.exports = "#define GLSLIFY 1\n//precision highp float;\n\nuniform sampler2D videoTexture;\nuniform float edgeTransparency;\nuniform float globalOpacity; // Add this new uniform - value between 0.0 and 1.0\n\nvarying vec2 vUv;\n\n// Function to calculate alpha based on distance from edges\nfloat getAlpha(vec2 uv) {\n    float distFromEdge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));\n    return 1.0 - smoothstep(0.1, 0.0, distFromEdge / edgeTransparency);\n}\n\nvoid main() {\n    vec4 color = texture2D(videoTexture, vUv);\n\n     // For gamma correction from linear to gamma space (if your video is in linear space)\n    //float gamma = 2.2;\n    //color.rgb = pow(color.rgb, vec3(1.0/gamma));\n\n    //color *= 0.75;\n    float edgeAlpha = getAlpha(vUv);\n    \n    // Multiply by the global opacity factor\n    float finalAlpha = edgeAlpha * globalOpacity;\n\n       // Apply contrast adjustment\n    // First convert to luminance-centered space (-0.5 to 0.5)\n    //vec3 contrastColor = (color.rgb - 0.5) * 1.5 + 0.5;\n    \n    // Clamp results to valid range\n    //contrastColor = clamp(contrastColor, 0.0, 1.0);\n    \n    // Ensure alpha doesn't go below 0.0 (technically unnecessary as multiplication won't go below 0)\n    //finalAlpha = max(0.0, finalAlpha);\n    \n    gl_FragColor = vec4(color.rgb, finalAlpha);\n}";
 
 },{}],"e77je":[function(require,module,exports,__globalThis) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
@@ -223007,7 +223097,7 @@ exports.default = {
 module.exports = "#define GLSLIFY 1\n      varying vec3 vWorldPos;\n      varying vec2 vUv;\n      varying vec3 vNormalVector;\n      varying float vIsFrontFacing;\n      \n      void main() {\n        vUv = uv;\n        vec4 worldPos = modelMatrix * vec4(position, 1.0);\n        vWorldPos = worldPos.xyz;\n        \n        // Calculate world space normal\n        vNormalVector = normalize(mat3(modelMatrix) * normal);\n        \n        // Determine if front facing using the camera position\n        vec3 cameraPosition = cameraPosition; // Built-in three.js variable\n        vec3 viewDirection = normalize(cameraPosition - worldPos.xyz);\n        vIsFrontFacing = dot(vNormalVector, viewDirection) > 0.0 ? 1.0 : -1.0;\n        \n        //gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);\n        csm_PositionRaw = projectionMatrix * modelViewMatrix * vec4(position, 1.0);\n      }";
 
 },{}],"bbp22":[function(require,module,exports,__globalThis) {
-module.exports = "#define GLSLIFY 1\n      uniform sampler2D uVideoTexture;\n      uniform sampler2D uDiffuseMap;\n      uniform vec3 uProjectorPosition;\n      uniform vec3 uProjectorDirection;\n      uniform mat4 uProjectorMatrix;\n      uniform float uProjectorFOV;\n      uniform float uProjectorAspect;\n      uniform vec3 uBaseColor;\n      uniform float uProjectionIntensity;\n      uniform float uVignette;\n      uniform float uBlendFactor;\n      uniform float uMinZDistance;\n      \n      varying vec3 vWorldPos;\n      varying vec2 vUv;\n      varying vec3 vNormalVector;\n      varying float vIsFrontFacing;\n      \nvoid main() {\n  // Sample the diffuse texture\n  vec4 diffuseC = texture2D(uDiffuseMap, vUv);\n  vec3 finalColor = diffuseC.rgb; // Initialize with diffuse color by default\n\n  // We explicitly designate the positive normal direction as the side for projection\n  // For a standard plane, this is the side with normal (0,0,1)\n  bool isProjectionSide = vIsFrontFacing > 0.0; // Only project on front side\n  \n  if (isProjectionSide) {\n    // Direction from projector to this fragment\n    vec3 projToFrag = normalize(vWorldPos - uProjectorPosition);\n    \n    // Project the point onto the projector's viewing plane\n    vec4 projectorViewPosition = uProjectorMatrix * vec4(vWorldPos, 1.0);\n    \n    // If the fragment is in front of the projector, show the projection\n    if (projectorViewPosition.z > uMinZDistance) {\n      // Calculate UV coordinates for projection\n      //float distance = length(vWorldPos - uProjectorPosition);\n      //float attenuation = 1.0 / (1.0 + 0.1 * distance + 0.0 * distance);\n      \n      // Convert view position to NDC space, then to UV coordinates\n      vec2 projUV = projectorViewPosition.xy / projectorViewPosition.z;\n      projUV = projUV * 0.5 + 0.5;\n      \n      // Check if within projection bounds (0 to 1)\n      if (projUV.x >= 0.0 && projUV.x <= 1.0 && projUV.y >= 0.0 && projUV.y <= 1.0) {\n        // Sample video texture with projected coordinates\n        vec4 projectedColor = texture2D(uVideoTexture, projUV);\n        \n        // Add vignette effect for old-school projector look\n        float vignetteAmount = 1.0 - uVignette * length(projUV - 0.5) * 2.0;\n        vignetteAmount = clamp(vignetteAmount, 0.0, 1.0);\n        \n        // Add subtle noise for film grain effect\n        float noise = fract(sin(dot(projUV, vec2(12.9898, 78.233))) * 43758.5453) * 0.04;\n        \n        // Calculate projection color with effects\n        vec3 projColor = projectedColor.rgb * vignetteAmount * uProjectionIntensity;\n        projColor += noise;\n        \n        // Screen blend mode (brightens the image)\n        vec3 blendedColor = 1.0 - (1.0 - diffuseC.rgb) * (1.0 - projColor);\n        \n        // Final color is a blend between the diffuse and the blended projection\n        finalColor = mix(diffuseC.rgb , blendedColor, uBlendFactor);\n        finalColor *= 3.0;\n      }\n    }\n  }\n  \n  // Always output the final color, whether it's been projected on or not\n  csm_DiffuseColor = vec4(finalColor, 1.0);\n}";
+module.exports = "#define GLSLIFY 1\n      uniform sampler2D uVideoTexture;\n      uniform sampler2D uDiffuseMap;\n      uniform vec3 uProjectorPosition;\n      uniform vec3 uProjectorDirection;\n      uniform mat4 uProjectorMatrix;\n      uniform float uProjectorFOV;\n      uniform float uProjectorAspect;\n      uniform vec3 uBaseColor;\n      uniform float uProjectionIntensity;\n      uniform float uVignette;\n      uniform float uBlendFactor;\n      uniform float uMinZDistance;\n      \n      varying vec3 vWorldPos;\n      varying vec2 vUv;\n      varying vec3 vNormalVector;\n      varying float vIsFrontFacing;\n      \nvoid main() {\n  // Sample the diffuse texture\n  vec4 diffuseC = texture2D(uDiffuseMap, vUv);\n  vec3 finalColor = diffuseC.rgb; // Initialize with diffuse color by default\n\n  // We explicitly designate the positive normal direction as the side for projection\n  // For a standard plane, this is the side with normal (0,0,1)\n  bool isProjectionSide = vIsFrontFacing > 0.0; // Only project on front side\n  \n  if (isProjectionSide) {\n    // Direction from projector to this fragment\n    vec3 projToFrag = normalize(vWorldPos - uProjectorPosition);\n    \n    // Project the point onto the projector's viewing plane\n    vec4 projectorViewPosition = uProjectorMatrix * vec4(vWorldPos, 1.0);\n    \n    // If the fragment is in front of the projector, show the projection\n    if (projectorViewPosition.z > uMinZDistance) {\n      // Calculate UV coordinates for projection\n      //float distance = length(vWorldPos - uProjectorPosition);\n      //float attenuation = 1.0 / (1.0 + 0.1 * distance + 0.0 * distance);\n      \n      // Convert view position to NDC space, then to UV coordinates\n      vec2 projUV = projectorViewPosition.xy / projectorViewPosition.z;\n      projUV = projUV * 0.5 + 0.5;\n      \n      // Check if within projection bounds (0 to 1)\n      if (projUV.x >= 0.0 && projUV.x <= 1.0 && projUV.y >= 0.0 && projUV.y <= 1.0) {\n        // Sample video texture with projected coordinates\n        vec4 projectedColor = texture2D(uVideoTexture, projUV);\n        \n        // Add vignette effect for old-school projector look\n        //float vignetteAmount = 1.0 - uVignette * length(projUV - 0.5) * 2.0;\n        //vignetteAmount = clamp(vignetteAmount, 0.0, 1.0);\n        \n        // Add subtle noise for film grain effect\n        //float noise = fract(sin(dot(projUV, vec2(12.9898, 78.233))) * 43758.5453) * 0.09;\n        \n        // Calculate projection color with effects\n        vec3 projColor = projectedColor.rgb * uProjectionIntensity;\n        //projColor += noise;\n        \n        // Screen blend mode (brightens the image)\n        vec3 blendedColor = 1.0 - (1.0 - diffuseC.rgb) * (1.0 - projColor);\n        \n        // Final color is a blend between the diffuse and the blended projection\n        finalColor = mix(diffuseC.rgb , blendedColor, uBlendFactor);\n        finalColor *= 2.5;\n      }\n    }\n  }\n  \n  // Always output the final color, whether it's been projected on or not\n  csm_DiffuseColor = vec4(finalColor, 1.0);\n}";
 
 },{}],"5ZsGE":[function(require,module,exports,__globalThis) {
 module.exports = require("8776c593459528ab").getBundleURL('g05j8') + "videoFallback.3530558f.webp" + "?" + Date.now();
@@ -223328,7 +223418,7 @@ class WorldScene {
     }
     init() {
         this.scene = new _three.Scene();
-        this.camera = new _three.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 1.0, 2500);
+        this.camera = new _three.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 1.0, 2200);
         this.renderer = new _three.WebGLRenderer({
             powerPreference: "high-performance",
             antialias: false,
@@ -223694,6 +223784,289 @@ module.exports = function(workerUrl, origin, isESM) {
     }
 };
 
-},{}]},["8G2QE","ebWYT"], "ebWYT", "parcelRequire94c2")
+},{}],"70lfs":[function(require,module,exports,__globalThis) {
+/**
+ * SoundManager - A comprehensive audio management class for Three.js
+ * Handles both sound effects and background ambience
+ */ var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _three = require("three");
+class SoundManager {
+    constructor(camera, listener = null){
+        this.sounds = {};
+        this.ambientSounds = {};
+        this.masterVolume = 1.0;
+        this.effectsVolume = 1.0;
+        this.ambienceVolume = 0.5;
+        // Set up audio listener if not provided
+        if (!listener) {
+            this.listener = new _three.AudioListener();
+            if (camera) camera.add(this.listener);
+        } else this.listener = listener;
+        // Create audio loader
+        this.audioLoader = new _three.AudioLoader();
+        // Track loaded resources
+        this.loadingManager = new _three.LoadingManager();
+        this.isLoading = false;
+    }
+    /**
+     * Set the master volume for all sounds
+     * @param {number} value - Volume level from 0.0 to 1.0
+     */ setMasterVolume(value) {
+        this.masterVolume = Math.max(0, Math.min(1, value));
+        // Update all sounds with new master volume
+        Object.values(this.sounds).forEach((sound)=>{
+            sound.setVolume(this.effectsVolume * this.masterVolume);
+        });
+        Object.values(this.ambientSounds).forEach((sound)=>{
+            sound.setVolume(this.ambienceVolume * this.masterVolume);
+        });
+    }
+    /**
+     * Set the effects volume level
+     * @param {number} value - Volume level from 0.0 to 1.0
+     */ setEffectsVolume(value) {
+        this.effectsVolume = Math.max(0, Math.min(1, value));
+        // Update all effect sounds
+        Object.values(this.sounds).forEach((sound)=>{
+            sound.setVolume(this.effectsVolume * this.masterVolume);
+        });
+    }
+    /**
+     * Set the ambience volume level
+     * @param {number} value - Volume level from 0.0 to 1.0
+     */ setAmbienceVolume(value) {
+        this.ambienceVolume = Math.max(0, Math.min(1, value));
+        // Update all ambient sounds
+        Object.values(this.ambientSounds).forEach((sound)=>{
+            sound.setVolume(this.ambienceVolume * this.masterVolume);
+        });
+    }
+    /**
+     * Preload sound effect
+     * @param {string} name - Unique identifier for this sound
+     * @param {string} path - File path to the sound
+     * @param {Function} callback - Optional callback when loading completes
+     */ loadSound(name, path, callback = null) {
+        this.isLoading = true;
+        this.audioLoader.load(path, (buffer)=>{
+            // Create a non-positional audio source
+            const sound = new _three.Audio(this.listener);
+            sound.setBuffer(buffer);
+            sound.setVolume(this.effectsVolume * this.masterVolume);
+            this.sounds[name] = sound;
+            if (callback) callback();
+            this.isLoading = false;
+        }, // onProgress callback
+        (xhr)=>{
+            console.log(`${name} sound: ${xhr.loaded / xhr.total * 100}% loaded`);
+        }, // onError callback
+        (err)=>{
+            console.error(`Error loading sound ${name}:`, err);
+            this.isLoading = false;
+        });
+    }
+    /**
+     * Preload ambient sound
+     * @param {string} name - Unique identifier for this ambient sound
+     * @param {string} path - File path to the sound
+     * @param {boolean} loop - Whether the sound should loop
+     * @param {Function} callback - Optional callback when loading completes
+     */ loadAmbientSound(name, path, loop = true, callback = null) {
+        this.isLoading = true;
+        this.audioLoader.load(path, (buffer)=>{
+            // Create a non-positional audio source
+            const sound = new _three.Audio(this.listener);
+            sound.setBuffer(buffer);
+            sound.setVolume(this.ambienceVolume * this.masterVolume);
+            sound.setLoop(loop);
+            this.ambientSounds[name] = sound;
+            if (callback) callback();
+            this.isLoading = false;
+        }, // onProgress callback
+        (xhr)=>{
+            console.log(`${name} ambient sound: ${xhr.loaded / xhr.total * 100}% loaded`);
+        }, // onError callback
+        (err)=>{
+            console.error(`Error loading ambient sound ${name}:`, err);
+            this.isLoading = false;
+        });
+    }
+    /**
+     * Load a positional sound (3D sound effect)
+     * @param {string} name - Unique identifier for this sound
+     * @param {string} path - File path to the sound
+     * @param {THREE.Object3D} object - The object to attach the sound to
+     * @param {number} refDistance - Distance model reference distance 
+     * @param {Function} callback - Optional callback when loading completes
+     */ loadPositionalSound(name, path, object, refDistance = 1, callback = null) {
+        this.isLoading = true;
+        this.audioLoader.load(path, (buffer)=>{
+            // Create a positional audio source
+            const sound = new _three.PositionalAudio(this.listener);
+            sound.setBuffer(buffer);
+            sound.setRefDistance(refDistance);
+            sound.setVolume(this.effectsVolume * this.masterVolume);
+            // Attach the sound to the object
+            object.add(sound);
+            // Store reference
+            this.sounds[name] = sound;
+            if (callback) callback();
+            this.isLoading = false;
+        }, // onProgress callback
+        (xhr)=>{
+            console.log(`${name} positional sound: ${xhr.loaded / xhr.total * 100}% loaded`);
+        }, // onError callback
+        (err)=>{
+            console.error(`Error loading positional sound ${name}:`, err);
+            this.isLoading = false;
+        });
+    }
+    /**
+     * Play a sound effect
+     * @param {string} name - Name of the sound to play
+     * @param {boolean} interrupt - Whether to restart if already playing
+     * @return {boolean} - Whether the sound was successfully played
+     */ play(name, interrupt = true) {
+        const sound = this.sounds[name];
+        if (!sound) {
+            console.warn(`Sound "${name}" not found`);
+            return false;
+        }
+        if (sound.isPlaying && !interrupt) return false;
+        if (sound.isPlaying) sound.stop();
+        sound.play();
+        return true;
+    }
+    /**
+     * Play an ambient sound
+     * @param {string} name - Name of the ambient sound to play
+     * @param {boolean} fadeIn - Whether to fade in the sound
+     * @param {number} fadeTime - Time in seconds for fade in
+     */ playAmbience(name, fadeIn = false, fadeTime = 2.0) {
+        const sound = this.ambientSounds[name];
+        if (!sound) {
+            console.warn(`Ambient sound "${name}" not found`);
+            return false;
+        }
+        if (sound.isPlaying) return false;
+        if (fadeIn) {
+            // Store the target volume and start at 0
+            const targetVolume = sound.getVolume();
+            sound.setVolume(0);
+            sound.play();
+            // Fade in
+            const startTime = performance.now();
+            const updateVolume = ()=>{
+                const elapsedTime = (performance.now() - startTime) / 1000;
+                const progress = Math.min(elapsedTime / fadeTime, 1);
+                sound.setVolume(targetVolume * progress);
+                if (progress < 1) requestAnimationFrame(updateVolume);
+            };
+            requestAnimationFrame(updateVolume);
+        } else sound.play();
+        return true;
+    }
+    /**
+     * Stop a specific sound
+     * @param {string} name - Name of the sound to stop
+     * @param {boolean} fadeOut - Whether to fade out before stopping
+     * @param {number} fadeTime - Time in seconds for fade out
+     */ stop(name, fadeOut = false, fadeTime = 1.0) {
+        const sound = this.sounds[name] || this.ambientSounds[name];
+        if (!sound) {
+            console.warn(`Sound "${name}" not found`);
+            return;
+        }
+        if (!sound.isPlaying) return;
+        if (fadeOut) {
+            // Store initial volume
+            const initialVolume = sound.getVolume();
+            const startTime = performance.now();
+            // Fade out
+            const updateVolume = ()=>{
+                const elapsedTime = (performance.now() - startTime) / 1000;
+                const progress = Math.min(elapsedTime / fadeTime, 1);
+                sound.setVolume(initialVolume * (1 - progress));
+                if (progress < 1) requestAnimationFrame(updateVolume);
+                else {
+                    sound.stop();
+                    // Restore original volume
+                    sound.setVolume(initialVolume);
+                }
+            };
+            requestAnimationFrame(updateVolume);
+        } else sound.stop();
+    }
+    /**
+     * Stop all sounds including ambience
+     * @param {boolean} fadeOut - Whether to fade out
+     * @param {number} fadeTime - Time in seconds for fade out
+     */ stopAll(fadeOut = false, fadeTime = 1.0) {
+        // Stop regular sounds
+        Object.keys(this.sounds).forEach((name)=>{
+            this.stop(name, fadeOut, fadeTime);
+        });
+        // Stop ambient sounds
+        Object.keys(this.ambientSounds).forEach((name)=>{
+            this.stop(name, fadeOut, fadeTime);
+        });
+    }
+    /**
+     * Pause all currently playing sounds
+     */ pauseAll() {
+        this.listener.context.suspend();
+    }
+    /**
+     * Resume all paused sounds
+     */ resumeAll() {
+        this.listener.context.resume();
+    }
+    /**
+     * Crossfade between two ambient sounds
+     * @param {string} from - Name of the ambient sound to fade out
+     * @param {string} to - Name of the ambient sound to fade in
+     * @param {number} duration - Duration of crossfade in seconds
+     */ crossfadeAmbience(from, to, duration = 3.0) {
+        const fromSound = this.ambientSounds[from];
+        const toSound = this.ambientSounds[to];
+        if (!fromSound || !toSound) {
+            console.warn(`One or both ambient sounds not found for crossfade`);
+            return;
+        }
+        // Store original volumes
+        const fromVolume = fromSound.getVolume();
+        const toVolume = toSound.getVolume();
+        // Start playing the target sound at zero volume
+        toSound.setVolume(0);
+        if (!toSound.isPlaying) toSound.play();
+        // Perform crossfade
+        const startTime = performance.now();
+        const updateVolumes = ()=>{
+            const elapsedTime = (performance.now() - startTime) / 1000;
+            const progress = Math.min(elapsedTime / duration, 1);
+            // Fade out source sound
+            fromSound.setVolume(fromVolume * (1 - progress));
+            // Fade in target sound
+            toSound.setVolume(toVolume * progress);
+            if (progress < 1) requestAnimationFrame(updateVolumes);
+            else {
+                fromSound.stop();
+                fromSound.setVolume(fromVolume); // Restore original volume
+            }
+        };
+        requestAnimationFrame(updateVolumes);
+    }
+    /**
+     * Update method to call in animation loop for any ongoing processes
+     * @param {number} delta - Time delta between frames
+     */ update(delta) {
+    // Can be extended for time-based effects or analyzers
+    }
+}
+// Export the class
+exports.default = SoundManager;
+
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","three":"ktPTu"}]},["8G2QE","ebWYT"], "ebWYT", "parcelRequire94c2")
 
 //# sourceMappingURL=index.739bf03c.js.map
