@@ -697,16 +697,24 @@ observerContactScene.observe(grassContainer);
 /********************************************************************
 // Handle Button Navigation
 ********************************************************************/ const nav = document.querySelector('nav');
-if (!visitedFromMobileDevice) nav.classList.remove('hide');
+const secondaryNav = document.querySelector('.secondary-menu');
+//sound button
+const soundToggleBtn = document.getElementById('btn-sound-toggle');
+if (!visitedFromMobileDevice) {
+    nav.classList.remove('hide');
+    secondaryNav.classList.remove('hide');
+}
 //nav bar fade/hover logic
 let timeoutId;
 // Function to hide the navbar
 function fnHideNavBar() {
     nav.classList.add("hidden");
+//secondaryNav.classList.add("hidden");
 }
 // Function to reset the fade-out timer
 function fnResetTimer() {
     nav.classList.remove("hidden");
+    //secondaryNav.classList.remove("hidden");
     // Clear the existing timeout
     clearTimeout(timeoutId);
     // Set a new timeout to hide the navbar after X seconds (e.g., 5 seconds)
@@ -719,6 +727,7 @@ fnResetTimer();
 // Select all nav items and lines
 const navItems = document.querySelectorAll('.nav-item');
 const lines = document.querySelectorAll('.line');
+let overlayIsOpen = false;
 // Set initial active state (top logo)
 let activeIndex = 0;
 let currentSectionIndex = 0;
@@ -797,7 +806,6 @@ requestAnimationFrame(raf);
 const sectionScene = document.getElementById('container-opening-scene');
 // Get all sections
 const sections = document.querySelectorAll('section');
-//let currentSectionIndex = 0;
 let isScrolling = false;
 // Function to scroll to a specific section
 function scrollToSection(index) {
@@ -815,7 +823,7 @@ function scrollToSection(index) {
 window.addEventListener('wheel', (event)=>{
     if (isScrolling) return; // Prevent multiple scrolls while one is in progress
     // scrolling down
-    if (event.deltaY > 0) {
+    if (event.deltaY > 0 && !overlayIsOpen) {
         isScrolling = true;
         currentSectionIndex = Math.min(currentSectionIndex + 1, sections.length - 1);
         lines[currentSectionIndex - 1].classList.add('highlight-down');
@@ -827,7 +835,7 @@ window.addEventListener('wheel', (event)=>{
             lines[currentSectionIndex - 1].classList.remove('highlight-up', 'highlight-down');
         }, 600);
         if (controls !== undefined) controls.unlock();
-    } else if (event.deltaY < 0) {
+    } else if (event.deltaY < 0 && !overlayIsOpen) {
         // Scrolling up, move to previous section
         isScrolling = true;
         currentSectionIndex = Math.max(currentSectionIndex - 1, 0);
@@ -848,24 +856,32 @@ const closeBtn = document.getElementById('closeBtn');
 let overlayTouchStart = 0;
 imageContainers.forEach((container)=>{
     container.addEventListener('click', ()=>{
+        isScrolling = false;
         overlay.classList.add('show');
         lenisSite.stop();
         closeBtn.classList.add('show');
+        overlayIsOpen = !overlayIsOpen;
+        nav.classList.add("hide");
     });
 });
-closeBtn.addEventListener('click', ()=>{
-    overlay.classList.remove('show');
-    lenisSite.start();
-    closeBtn.classList.remove('show');
-});
-// Optional: Hide overlay when clicking outside of it
-overlay.addEventListener('click', (e)=>{
+function fnHandleCloseOverlay() {
+    isScrolling = false;
+    overlayIsOpen = !overlayIsOpen;
     overlay.classList.remove('show');
     closeBtn.classList.remove('show');
     setTimeout(()=>{
         lenisOverlay.scrollTo(0);
     }, 1000);
+    nav.classList.remove("hide");
     lenisSite.start();
+}
+closeBtn.addEventListener('click', ()=>{
+    fnHandleCloseOverlay();
+});
+// Optional: Hide overlay when clicking outside of it
+overlay.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    fnHandleCloseOverlay();
 });
 overlay.addEventListener('touchstart', function(event) {
     overlayTouchStart = event.touches[0].clientX; // Get the initial x position of the touch
@@ -968,14 +984,14 @@ function fnLoadContent(id) {
 ********************************************************************/ let velocity = new _three.Vector3();
 let SPEED = 750.0; //750
 const PERSON_HEIGHT = 22.0; //21
-const DISTANCE_TEXTURE_SWAP = 400.0;
+const DISTANCE_TEXTURE_SWAP = 300.0;
 const DISTANCE_TEXTURE_DISPOSE = 650.0;
 //LOD
 const DISTANCE_LOD0 = 100;
 const DISTANCE_LOD1 = 200;
 const DISTANCE_LOD2 = 300;
 //Environment Map intensities
-const GRASS_MESH_ENVMAP_INTENSITY = 0.5;
+const GRASS_MESH_ENVMAP_INTENSITY = 0.65;
 /********************************************************************
 // Scene Setup
 ********************************************************************/ const canvasContainer = document.querySelector('#container-opening-scene');
@@ -992,32 +1008,110 @@ document.body.appendChild(stats.dom);
 */ /********************************************************************
 // Sounds
 ********************************************************************/ const soundManager = new (0, _soundManagerJsDefault.default)(camera);
-/*
-// Load ambient sound and play it when loaded
-soundManager.loadAmbientSound('outdoors', './assets/sounds/ambience.mp3', true, () => {
-    // This callback is called when loading is complete
-    soundManager.setAmbienceVolume(0.1);
-    window.addEventListener('click', () => {
+soundManager.setMasterVolume(1.00);
+soundManager.setAmbienceVolume(0.75);
+soundManager.setEffectsVolume(0.90);
+let soundOn, soundsAreloaded = false;
+soundToggleBtn.addEventListener('click', ()=>{
+    // Toggle sound state
+    soundOn = !soundOn;
+    // Update the icon based on state
+    if (soundOn) {
+        soundToggleBtn.innerHTML = '<i class="fas fa-volume-high"></i>';
+        soundToggleBtn.classList.add('active');
+        // Code to turn sound on
+        //soundManager.resumeAll();
+        if (!soundsAreloaded) {
+            soundsAreloaded = true;
+            fnLoadSoundFiles();
+        } else soundManager.resumeAll();
+    } else {
+        soundToggleBtn.innerHTML = '<i class="fas fa-volume-xmark"></i>';
+        soundToggleBtn.classList.remove('active');
+        // Code to turn sound off
+        soundManager.pauseAll();
+    }
+});
+const soundConfigs = {
+    'projector': {
+        path: './assets/sounds/projector2.mp3',
+        refDistance: 60,
+        audibleRange: 200
+    }
+};
+const soundSources = new Map();
+function fnCheckIfSoundSourcesShouldPlay(playerPosition) {
+    // Check each sound source
+    //if (soundSources) {
+    soundSources.forEach((data, id)=>{
+        //console.log(data)
+        const distance = playerPosition.distanceTo(data.audioSource.position);
+        const type = data.type;
+        // If within audible range but not playing
+        if (distance < soundConfigs[type].audibleRange && !data.isPlaying) {
+            soundManager.play(type);
+            data.isPlaying = true;
+            soundSources.set(id, data);
+        } else if (distance > soundConfigs[type].audibleRange && data.isPlaying) {
+            soundManager.stop(type);
+            data.isPlaying = false;
+            soundSources.set(id, data);
+        }
+    });
+}
+function fnLoadSoundFiles() {
+    //load positional sound files
+    soundSources.forEach((data, id)=>{
+        soundManager.loadPositionalSound(data.name, data.path, data.audioSource, soundConfigs[data.type].refDistance, ()=>{
+            soundManager.play(data.name);
+            soundManager.stop(data.name);
+        });
+    });
+    // Load ambient sound and play it when loaded
+    soundManager.loadAmbientSound('outdoors', './assets/sounds/ambience.mp3', true, ()=>{
         soundManager.playAmbience('outdoors', true, 3.0);
+    });
+    /*
+    soundManager.loadAmbientSound('wind', './assets/sounds/wind.mp3', true, () => {
+        soundManager.ambientSounds['wind'].setVolume(0.3 * soundManager.masterVolume);
+        soundManager.playAmbience('wind', true, 1.0);
 
     });
-
-});
-*/ /********************************************************************
+    */ const windSound = new _three.Audio(soundManager.listener);
+    soundManager.audioLoader.load('./assets/sounds/wind.mp3', (buffer)=>{
+        windSound.setBuffer(buffer);
+        windSound.setLoop(true);
+        windSound.setVolume(0.3 * soundManager.masterVolume);
+        windSound.play();
+        soundManager.sounds['wind'] = windSound;
+    });
+}
+/********************************************************************
  // Check for Tab visibility
 ********************************************************************/ let gameIsActive = true;
 function fnStartRendering() {
     renderer.setAnimationLoop(animate);
     gameIsActive = true;
+    soundToggleBtn.classList.remove('hide');
+    if (soundOn) {
+        soundManager.resumeAll();
+        soundToggleBtn.innerHTML = '<i class="fas fa-volume-high"></i>';
+        soundToggleBtn.classList.add('active');
+    }
 }
 function fnStopRendering() {
     renderer.setAnimationLoop(null);
     gameIsActive = false;
+    soundManager.pauseAll();
+    //soundOn = false;
+    soundToggleBtn.innerHTML = '<i class="fas fa-volume-xmark"></i>';
+    soundToggleBtn.classList.remove('active');
+    soundToggleBtn.classList.add('hide');
 }
 // Detect when the user switches to a different tab or window
 document.addEventListener('visibilitychange', ()=>{
     if (document.hidden) fnStopRendering(); // Pause when the tab is inactive
-    else if (window.scrollY === 0) fnStartRendering(); // Resume when the tab is active again
+    else if (window.scrollY === 0 || window.pageYOffset === 0) fnStartRendering(); // Resume when the tab is active again
 });
 /********************************************************************
 // Texture Loading
@@ -1218,11 +1312,14 @@ worldScene.scene.add(triggerMesh);
     if (isPlayerInTrigger) {
         playerIsInsideFactory = true;
         activeComposer = composerFactoryInterior;
-    // Optional: Add transition effect here
+        // Optional: Add transition effect here
+        //soundManager.setAmbienceVolume(0.1);
+        soundManager.sounds['wind'].setVolume(0.1 * soundManager.masterVolume);
     } else if (!isPlayerInTrigger) {
         playerIsInsideFactory = false;
         activeComposer = composerDefault;
-    // Optional: Add transition effect here
+        // Optional: Add transition effect here
+        if (soundManager.sounds['wind']) soundManager.sounds['wind'].setVolume(0.3 * soundManager.masterVolume);
     }
     // Use the active composer for rendering
     activeComposer.render(deltaTime);
@@ -1280,7 +1377,8 @@ function fnCreateVideoMaterial() {
         },
         vertexShader: (0, _videoFadeJsDefault.default).vert,
         fragmentShader: (0, _videoFadeJsDefault.default).frag,
-        side: _three.DoubleSide
+        side: _three.DoubleSide,
+        fog: true
     });
 }
 /********************************************************************
@@ -1864,7 +1962,7 @@ async function fnLoadFactoryInteriorModel(url) {
     mesh.receiveShadow = true;
     mesh.rotateY(-Math.PI / 2);
     mesh.position.set(position.x, position.y, position.z);
-    mesh.scale.set(9.997, 9.997, 9.997);
+    mesh.scale.set(9.993, 9.993, 9.993);
     //mesh.scale.set(10, 10, 10);
     diffuseMap = mesh.material.map;
     //colliderMesh = model.children[1];
@@ -1904,6 +2002,19 @@ async function fnLoadFactoryInteriorModel(url) {
     //projector.rotation.set(0, -Math.PI / 2, 0);  // -90 degrees on X axis
     projector.lookAt(projectionParams.offsetX * surfaceWidth + 50, projectionParams.offsetY * surfaceHeight, 0); // Point at the center of the desired projection area
     worldScene.scene.add(projector);
+    //projector.position.set(0, 0, 0);
+    //soundManager.play('projector');
+    const projectorAudioSource = new _three.Object3D();
+    projectorAudioSource.position.set(1250, getHeight(1250, 1200) + PERSON_HEIGHT, 1200);
+    worldScene.scene.add(projectorAudioSource);
+    //soundManager.loadPositionalSound('projector', './assets/sounds/projector2.mp3', projectorAudioSource, 60.0);
+    soundSources.set(projectorAudioSource.id, {
+        audioSource: projectorAudioSource,
+        type: 'projector',
+        name: 'projector',
+        path: './assets/sounds/projector2.mp3',
+        isPlaying: false
+    });
     // Get the static projector position and direction
     const projectorPosition = new _three.Vector3();
     projector.getWorldPosition(projectorPosition);
@@ -1937,19 +2048,7 @@ async function fnLoadFactoryInteriorModel(url) {
     material.envMapIntensity = 2.10;
     (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, position, diffuseMap, true, true, 700, false, colliderBVH, collisionRadius);
     worldScene.scene.add(mesh);
-/*
-        // Force compilation specifically for the window materials
-        renderer.compile(windowMeshLOD0, camera, worldScene.scene);
-        renderer.compile(windowMeshLOD1, camera, worldScene.scene);
-        renderer.compile(mesh, camera, worldScene.scene)
-        renderer.compile(LOD1.children[0], camera, worldScene.scene)
-    
-        lod.levels.forEach(level => {
-            if (level.object) {
-                renderer.compile(level.object, camera, worldScene.scene);
-            }
-        });
-        */ }
+}
 async function fnLoadHQTexture(data) {
     if (!data) return;
     const material = data.mesh.material;
@@ -2032,7 +2131,7 @@ async function fnLoadRockModels() {
     //model.scale.set(100, 100, 100);
     //console.log(model.children[0])
     } catch (error) {
-        console.error('Error loading models:', error);
+    //console.error('Error loading models:', error);
     }
 }
 function createStoneFigureMaterial() {
@@ -2254,7 +2353,6 @@ const videoShaderMaterial = new _three.ShaderMaterial({
     transparent: true,
     wireframe: false
 });
-// First, create the texture outside the conditional
 // Then handle both paused and low-power conditions
 if (video.paused || video.autoplay && !video.playing) {
     //if (video.paused) {
@@ -2373,7 +2471,7 @@ if (!visitedFromMobileDevice) {
         }
     });
 }
-let startX = 0, startY = 0; // Starting touch coordinates
+let startX = 0; // Starting touch coordinates
 let isTouching = false;
 sectionScene.addEventListener('touchstart', function(event) {
     isTouching = true;
@@ -2470,7 +2568,7 @@ function fnUpdateControls(deltaTime) {
     newPosition.addScaledVector(direction, -velocity.z * deltaTime);
     newPosition.addScaledVector(right, -velocity.x * deltaTime);
     // --- COLLISION CHECK START ---
-    const playerRadius = 5.5;
+    const playerRadius = 6.5;
     const playerSphere = new _three.Sphere(newPosition, playerRadius);
     const closestPoint = new _three.Vector3();
     modelRegistry.forEach((data, id)=>{
@@ -2483,7 +2581,6 @@ function fnUpdateControls(deltaTime) {
                 intersectsTriangle: (tri)=>{
                     tri.closestPointToPoint(newPosition, closestPoint);
                     const distance = newPosition.distanceTo(closestPoint);
-                    //console.log(distance)
                     if (distance < playerRadius) {
                         const penetrationDepth = playerRadius - distance;
                         const displacement = newPosition.clone().sub(closestPoint).normalize().multiplyScalar(penetrationDepth);
@@ -2569,7 +2666,7 @@ const grassMaterial = new (0, _vanillaDefault.default)({
 const viewRadius = 6; // Number of chunks to load around the player (5)
 const unloadRadius = 7; // Number of chunks to unload outside this radius (6)
 const chunkVertexCount = 5; // 4
-const instanceCount = 3600; //(4000) (19500)
+const instanceCount = 3500; //(4000) (19500)
 const loadedChunks = new Map(); // Store references to loaded chunks
 // Define special chunk configurations by their X, Z values
 const specialChunks = {
@@ -2865,7 +2962,8 @@ function animate() {
     //animateParticles();
     //composerDefault.render(deltaTime);
     fnCheckIfPlayerIsInFactoryTrigger(playerPosition, deltaTime);
-    soundManager.update(deltaTime);
+    fnCheckIfSoundSourcesShouldPlay(playerPosition);
+//soundManager.update(deltaTime);
 //stats.update();
 //console.log(renderer.info);
 }
@@ -223058,10 +223156,10 @@ exports.default = {
 };
 
 },{"./glsl/videotexture.vert.glsl":"41TsU","./glsl/videotexture.frag.glsl":"riKA5","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"41TsU":[function(require,module,exports,__globalThis) {
-module.exports = "#define GLSLIFY 1\n        //precision highp float;\n\n        varying vec2 vUv;\n        uniform float uTime;\n\n        //\n        // Description : Array and textureless GLSL 2D/3D/4D simplex\n        //               noise functions.\n        //      Author : Ian McEwan, Ashima Arts.\n        //  Maintainer : ijm\n        //     Lastmod : 20110822 (ijm)\n        //     License : Copyright (C) 2011 Ashima Arts. All rights reserved.\n        //               Distributed under the MIT License. See LICENSE file.\n        //               https://github.com/ashima/webgl-noise\n        //\n\n        vec3 mod289(vec3 x) {\n        return x - floor(x * (1.0 / 289.0)) * 289.0;\n        }\n\n        vec4 mod289(vec4 x) {\n        return x - floor(x * (1.0 / 289.0)) * 289.0;\n        }\n\n        vec4 permute(vec4 x) {\n            return mod289(((x*34.0)+1.0)*x);\n        }\n\n        vec4 taylorInvSqrt(vec4 r)\n        {\n        return 1.79284291400159 - 0.85373472095314 * r;\n        }\n\n        float snoise(vec3 v) {\n        const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;\n        const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);\n\n        // First corner\n        vec3 i  = floor(v + dot(v, C.yyy) );\n        vec3 x0 =   v - i + dot(i, C.xxx) ;\n\n        // Other corners\n        vec3 g = step(x0.yzx, x0.xyz);\n        vec3 l = 1.0 - g;\n        vec3 i1 = min( g.xyz, l.zxy );\n        vec3 i2 = max( g.xyz, l.zxy );\n\n        //   x0 = x0 - 0.0 + 0.0 * C.xxx;\n        //   x1 = x0 - i1  + 1.0 * C.xxx;\n        //   x2 = x0 - i2  + 2.0 * C.xxx;\n        //   x3 = x0 - 1.0 + 3.0 * C.xxx;\n        vec3 x1 = x0 - i1 + C.xxx;\n        vec3 x2 = x0 - i2 + C.yyy; // 2.0*C.x = 1/3 = C.y\n        vec3 x3 = x0 - D.yyy;      // -1.0+3.0*C.x = -0.5 = -D.y\n\n        // Permutations\n        i = mod289(i);\n        vec4 p = permute( permute( permute(\n                    i.z + vec4(0.0, i1.z, i2.z, 1.0 ))\n                + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))\n                + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));\n\n        // Gradients: 7x7 points over a square, mapped onto an octahedron.\n        // The ring size 17*17 = 289 is close to a multiple of 49 (49*6 = 294)\n        float n_ = 0.142857142857; // 1.0/7.0\n        vec3  ns = n_ * D.wyz - D.xzx;\n\n        vec4 j = p - 49.0 * floor(p * ns.z * ns.z);  //  mod(p,7*7)\n\n        vec4 x_ = floor(j * ns.z);\n        vec4 y_ = floor(j - 7.0 * x_ );    // mod(j,N)\n\n        vec4 x = x_ *ns.x + ns.yyyy;\n        vec4 y = y_ *ns.x + ns.yyyy;\n        vec4 h = 1.0 - abs(x) - abs(y);\n\n        vec4 b0 = vec4( x.xy, y.xy );\n        vec4 b1 = vec4( x.zw, y.zw );\n\n        //vec4 s0 = vec4(lessThan(b0,0.0))*2.0 - 1.0;\n        //vec4 s1 = vec4(lessThan(b1,0.0))*2.0 - 1.0;\n        vec4 s0 = floor(b0)*2.0 + 1.0;\n        vec4 s1 = floor(b1)*2.0 + 1.0;\n        vec4 sh = -step(h, vec4(0.0));\n\n        vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;\n        vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;\n\n        vec3 p0 = vec3(a0.xy,h.x);\n        vec3 p1 = vec3(a0.zw,h.y);\n        vec3 p2 = vec3(a1.xy,h.z);\n        vec3 p3 = vec3(a1.zw,h.w);\n\n        // Normalise gradients\n        vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));\n        p0 *= norm.x;\n        p1 *= norm.y;\n        p2 *= norm.z;\n        p3 *= norm.w;\n\n        // Mix final noise value\n        vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);\n        m = m * m;\n        return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1),\n                                        dot(p2,x2), dot(p3,x3) ) );\n        }\n\n        void main() {\n            vUv = uv;\n\n            vec3 pos = position;\n            float noiseFreq = 0.008;\n            float noiseAmp = 4.0;\n            vec3 noisePos = vec3(pos.x * noiseFreq + uTime, pos.y, pos.z);\n            pos.z += snoise(noisePos) * noiseAmp;\n\n            gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.);\n        }";
+module.exports = "#define GLSLIFY 1\n        //precision highp float;\n\n        varying vec2 vUv;\n        varying float vCameraDistance;\n        uniform float uTime;\n\n        //\n        // Description : Array and textureless GLSL 2D/3D/4D simplex\n        //               noise functions.\n        //      Author : Ian McEwan, Ashima Arts.\n        //  Maintainer : ijm\n        //     Lastmod : 20110822 (ijm)\n        //     License : Copyright (C) 2011 Ashima Arts. All rights reserved.\n        //               Distributed under the MIT License. See LICENSE file.\n        //               https://github.com/ashima/webgl-noise\n        //\n\n        vec3 mod289(vec3 x) {\n        return x - floor(x * (1.0 / 289.0)) * 289.0;\n        }\n\n        vec4 mod289(vec4 x) {\n        return x - floor(x * (1.0 / 289.0)) * 289.0;\n        }\n\n        vec4 permute(vec4 x) {\n            return mod289(((x*34.0)+1.0)*x);\n        }\n\n        vec4 taylorInvSqrt(vec4 r)\n        {\n        return 1.79284291400159 - 0.85373472095314 * r;\n        }\n\n        float snoise(vec3 v) {\n        const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;\n        const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);\n\n        // First corner\n        vec3 i  = floor(v + dot(v, C.yyy) );\n        vec3 x0 =   v - i + dot(i, C.xxx) ;\n\n        // Other corners\n        vec3 g = step(x0.yzx, x0.xyz);\n        vec3 l = 1.0 - g;\n        vec3 i1 = min( g.xyz, l.zxy );\n        vec3 i2 = max( g.xyz, l.zxy );\n\n        //   x0 = x0 - 0.0 + 0.0 * C.xxx;\n        //   x1 = x0 - i1  + 1.0 * C.xxx;\n        //   x2 = x0 - i2  + 2.0 * C.xxx;\n        //   x3 = x0 - 1.0 + 3.0 * C.xxx;\n        vec3 x1 = x0 - i1 + C.xxx;\n        vec3 x2 = x0 - i2 + C.yyy; // 2.0*C.x = 1/3 = C.y\n        vec3 x3 = x0 - D.yyy;      // -1.0+3.0*C.x = -0.5 = -D.y\n\n        // Permutations\n        i = mod289(i);\n        vec4 p = permute( permute( permute(\n                    i.z + vec4(0.0, i1.z, i2.z, 1.0 ))\n                + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))\n                + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));\n\n        // Gradients: 7x7 points over a square, mapped onto an octahedron.\n        // The ring size 17*17 = 289 is close to a multiple of 49 (49*6 = 294)\n        float n_ = 0.142857142857; // 1.0/7.0\n        vec3  ns = n_ * D.wyz - D.xzx;\n\n        vec4 j = p - 49.0 * floor(p * ns.z * ns.z);  //  mod(p,7*7)\n\n        vec4 x_ = floor(j * ns.z);\n        vec4 y_ = floor(j - 7.0 * x_ );    // mod(j,N)\n\n        vec4 x = x_ *ns.x + ns.yyyy;\n        vec4 y = y_ *ns.x + ns.yyyy;\n        vec4 h = 1.0 - abs(x) - abs(y);\n\n        vec4 b0 = vec4( x.xy, y.xy );\n        vec4 b1 = vec4( x.zw, y.zw );\n\n        //vec4 s0 = vec4(lessThan(b0,0.0))*2.0 - 1.0;\n        //vec4 s1 = vec4(lessThan(b1,0.0))*2.0 - 1.0;\n        vec4 s0 = floor(b0)*2.0 + 1.0;\n        vec4 s1 = floor(b1)*2.0 + 1.0;\n        vec4 sh = -step(h, vec4(0.0));\n\n        vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;\n        vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;\n\n        vec3 p0 = vec3(a0.xy,h.x);\n        vec3 p1 = vec3(a0.zw,h.y);\n        vec3 p2 = vec3(a1.xy,h.z);\n        vec3 p3 = vec3(a1.zw,h.w);\n\n        // Normalise gradients\n        vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));\n        p0 *= norm.x;\n        p1 *= norm.y;\n        p2 *= norm.z;\n        p3 *= norm.w;\n\n        // Mix final noise value\n        vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);\n        m = m * m;\n        return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1),\n                                        dot(p2,x2), dot(p3,x3) ) );\n        }\n\n        void main() {\n            vUv = uv;\n\n            vec3 pos = position;\n            float noiseFreq = 0.008;\n            float noiseAmp = 4.0;\n            vec3 noisePos = vec3(pos.x * noiseFreq + uTime, pos.y, pos.z);\n            pos.z += snoise(noisePos) * noiseAmp;\n\n            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);\n            gl_Position = projectionMatrix * mvPosition;\n\n            // Calculate distance from camera (in view space, z is negative in front of camera)\n            vCameraDistance = -mvPosition.z;\n\n            //gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.);\n        }";
 
 },{}],"riKA5":[function(require,module,exports,__globalThis) {
-module.exports = "#define GLSLIFY 1\n//precision highp float;\n\nuniform sampler2D videoTexture;\nuniform float edgeTransparency;\nuniform float globalOpacity; // Add this new uniform - value between 0.0 and 1.0\n\nvarying vec2 vUv;\n\n// Function to calculate alpha based on distance from edges\nfloat getAlpha(vec2 uv) {\n    float distFromEdge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));\n    return 1.0 - smoothstep(0.1, 0.0, distFromEdge / edgeTransparency);\n}\n\nvoid main() {\n    vec4 color = texture2D(videoTexture, vUv);\n\n     // For gamma correction from linear to gamma space (if your video is in linear space)\n    //float gamma = 2.2;\n    //color.rgb = pow(color.rgb, vec3(1.0/gamma));\n\n    //color *= 0.75;\n    float edgeAlpha = getAlpha(vUv);\n    \n    // Multiply by the global opacity factor\n    float finalAlpha = edgeAlpha * globalOpacity;\n\n       // Apply contrast adjustment\n    // First convert to luminance-centered space (-0.5 to 0.5)\n    //vec3 contrastColor = (color.rgb - 0.5) * 1.5 + 0.5;\n    \n    // Clamp results to valid range\n    //contrastColor = clamp(contrastColor, 0.0, 1.0);\n    \n    // Ensure alpha doesn't go below 0.0 (technically unnecessary as multiplication won't go below 0)\n    //finalAlpha = max(0.0, finalAlpha);\n    \n    gl_FragColor = vec4(color.rgb, finalAlpha);\n}";
+module.exports = "#define GLSLIFY 1\n//precision highp float;\n\nuniform sampler2D videoTexture;\nuniform float edgeTransparency;\nuniform float globalOpacity; // Add this new uniform - value between 0.0 and 1.0\n\nvarying vec2 vUv;\nvarying float vCameraDistance;\nfloat attenuationStrength = 3.0;\nfloat minDistance = 800.0;\nfloat maxDistance = 2000.0;\n\n// Function to calculate alpha based on distance from edges\nfloat getAlpha(vec2 uv) {\n    float distFromEdge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));\n    return 1.0 - smoothstep(0.1, 0.0, distFromEdge / edgeTransparency);\n}\n\n// Function to calculate attenuation based on camera distance\nfloat getCameraDistanceAttenuation() {\n    // Linear interpolation between min and max distance\n    return 1.0 - clamp((vCameraDistance - minDistance) / (maxDistance - minDistance), 0.0, 1.0);\n}\n\nvoid main() {\n    vec4 color = texture2D(videoTexture, vUv);\n    float edgeAlpha = getAlpha(vUv);\n    float distanceAttenuation = getCameraDistanceAttenuation();\n    \n    // Multiply by the global opacity factor\n    float finalAlpha = edgeAlpha * globalOpacity * distanceAttenuation;\n\n    // Fade the colors as distance increases\n    vec3 fadedColor = mix(color.rgb, vec3(1.0, 1.0, 1.0), 1.0 - distanceAttenuation);\n    \n    gl_FragColor = vec4(fadedColor, finalAlpha);\n}";
 
 },{}],"e77je":[function(require,module,exports,__globalThis) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
@@ -223906,6 +224004,7 @@ class SoundManager {
             const sound = new _three.PositionalAudio(this.listener);
             sound.setBuffer(buffer);
             sound.setRefDistance(refDistance);
+            sound.loop = true;
             sound.setVolume(this.effectsVolume * this.masterVolume);
             // Attach the sound to the object
             object.add(sound);
@@ -223943,7 +224042,7 @@ class SoundManager {
      * @param {string} name - Name of the ambient sound to play
      * @param {boolean} fadeIn - Whether to fade in the sound
      * @param {number} fadeTime - Time in seconds for fade in
-     */ playAmbience(name, fadeIn = false, fadeTime = 2.0) {
+     */ playAmbience(name, fadeIn = true, fadeTime = 2.0) {
         const sound = this.ambientSounds[name];
         if (!sound) {
             console.warn(`Ambient sound "${name}" not found`);
