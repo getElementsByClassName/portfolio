@@ -978,6 +978,28 @@ function fnLoadContent(id) {
     }
 }
 /********************************************************************
+// Hide WASD Icon
+********************************************************************/ function hideElementOnce(selector) {
+    // Get the element
+    const element = document.querySelector(selector);
+    // Check if element exists
+    if (element) {
+        // Add the hide class
+        element.classList.add('hide');
+        // Make the function do nothing if called again
+        hideElementOnce = function() {};
+    }
+}
+const hideWasdIcon = function() {
+    let executed = false;
+    return function() {
+        if (!executed) {
+            executed = true;
+            document.querySelector('.wasd-icon').classList.add('hide');
+        }
+    };
+}();
+/********************************************************************
 // THREEJS STUFF
 ********************************************************************/ /********************************************************************
 // Scene Constants
@@ -1743,11 +1765,16 @@ function createVideoFadeMaterial() {
 let allModelsLoaded = false;
 let allModelsAddedToScene = false;
 const loadingManager = new _three.LoadingManager();
+const loadingElement = document.querySelector('#text-loading');
 loadingManager.onStart = function(url, itemsLoaded, itemsTotal) {
 //console.log(`Started loading: ${url} (${itemsLoaded}/${itemsTotal})`);
 };
 loadingManager.onProgress = function(url, itemsLoaded, itemsTotal) {
-//console.log('Loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
+    //console.log('Loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
+    const progress = Math.floor(itemsLoaded / itemsTotal * 100);
+    //console.log(`Loading file: ${url}. Loaded ${itemsLoaded}/${itemsTotal} files.`);
+    console.log(`Loading: ${progress}%`);
+    loadingElement.textContent = `${progress}%`;
 };
 loadingManager.onLoad = function() {
     //console.log("All models loaded!");
@@ -2435,6 +2462,7 @@ function fnAnimateCamera() {
         if (progress >= 1) {
             cameraAnimationState.isAnimating = false;
             cameraAnimationState.fnCheckOrientationCanRun = true;
+            if (!visitedFromMobileDevice) document.querySelector('.wasd-icon').classList.remove('hide');
         }
     }
 }
@@ -2465,6 +2493,7 @@ if (!visitedFromMobileDevice) {
         if (!controlsIsLocked && gameIsActive) {
             controls.lock();
             controlsIsLocked = true;
+            hideWasdIcon(); //hide wasd icon
         } else {
             controls.unlock();
             controlsIsLocked = false;
@@ -2665,8 +2694,8 @@ const grassMaterial = new (0, _vanillaDefault.default)({
 ********************************************************************/ /** Terrain Constants */ const chunkSize = 200; // Size of each terrain chunk (200)
 const viewRadius = 6; // Number of chunks to load around the player (5)
 const unloadRadius = 7; // Number of chunks to unload outside this radius (6)
-const chunkVertexCount = 5; // 4
-const instanceCount = 3500; //(4000) (19500)
+const chunkVertexCount = 6; // 4
+const instanceCount = 3450; //(4000) (19500)
 const loadedChunks = new Map(); // Store references to loaded chunks
 // Define special chunk configurations by their X, Z values
 const specialChunks = {
@@ -2783,7 +2812,7 @@ function fnGenerateChunk(x, z) {
         }
     }
 }
-loadInitialTerrain(2);
+loadInitialTerrain(1);
 /********************************************************************
 // Function to run start animation and welcome screen fade, at page load
 ********************************************************************/ function fnCreateOnceFunction() {
@@ -2969,7 +2998,7 @@ function animate() {
 }
 renderer.setAnimationLoop(animate);
 
-},{"postprocessing":"bM81O","three":"ktPTu","three-good-godrays":"j7KiZ","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/Addons.js":"iBAni","three/examples/jsm/math/Octree.js":"iwBOl","three/examples/jsm/helpers/OctreeHelper.js":"70dYF","three-mesh-bvh":"6y2ur","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"8TdPQ","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./Utils.js":"c7A1Q","./shaders/grass.js":"cNzyR","./shaders/powerlines.js":"gJXUV","./shaders/videotexture.js":"5S7oy","./shaders/stonefigure.js":"e77je","./shaders/videoFade.js":"2lLRY","../img/videoFallback.webp":"5ZsGE","./content.json":"24cue","./GrassScene.js":"a5jmZ","./WorldScene.js":"5ZFD0","./ModelLoader.js":"5o86C","./LODManager.js":"3L9vB","cdb16b6f1235a7ac":"9rntO","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","./SoundManager.js":"70lfs"}],"bM81O":[function(require,module,exports,__globalThis) {
+},{"postprocessing":"bM81O","three":"ktPTu","three-good-godrays":"j7KiZ","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/Addons.js":"iBAni","three/examples/jsm/math/Octree.js":"iwBOl","three/examples/jsm/helpers/OctreeHelper.js":"70dYF","three-mesh-bvh":"6y2ur","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"8TdPQ","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./Utils.js":"c7A1Q","./shaders/grass.js":"cNzyR","./shaders/powerlines.js":"gJXUV","./shaders/videotexture.js":"5S7oy","./shaders/stonefigure.js":"e77je","./shaders/videoFade.js":"2lLRY","../img/videoFallback.webp":"5ZsGE","./content.json":"24cue","./GrassScene.js":"a5jmZ","./WorldScene.js":"5ZFD0","./ModelLoader.js":"5o86C","./LODManager.js":"3L9vB","./SoundManager.js":"70lfs","cdb16b6f1235a7ac":"9rntO","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"bM81O":[function(require,module,exports,__globalThis) {
 /**
  * postprocessing v6.37.1 build Thu Mar 06 2025
  * https://github.com/pmndrs/postprocessing
@@ -223859,30 +223888,7 @@ class LODManager {
 }
 exports.default = LODManager;
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"9rntO":[function(require,module,exports,__globalThis) {
-let workerURL = require("6a83a7f32f957bdd");
-let bundleURL = require("d9355504f81e2227");
-let url = bundleURL.getBundleURL('g05j8') + "grassWorker.a627e1b8.js" + "?" + Date.now();
-module.exports = workerURL(url, bundleURL.getOrigin(url), false);
-
-},{"6a83a7f32f957bdd":"cn2gM","d9355504f81e2227":"lgJ39"}],"cn2gM":[function(require,module,exports,__globalThis) {
-"use strict";
-module.exports = function(workerUrl, origin, isESM) {
-    if (origin === self.location.origin) // If the worker bundle's url is on the same origin as the document,
-    // use the worker bundle's own url.
-    return workerUrl;
-    else {
-        // Otherwise, create a blob URL which loads the worker bundle with `importScripts`.
-        var source = isESM ? 'import ' + JSON.stringify(workerUrl) + ';' : 'importScripts(' + JSON.stringify(workerUrl) + ');';
-        return URL.createObjectURL(new Blob([
-            source
-        ], {
-            type: 'application/javascript'
-        }));
-    }
-};
-
-},{}],"70lfs":[function(require,module,exports,__globalThis) {
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"70lfs":[function(require,module,exports,__globalThis) {
 /**
  * SoundManager - A comprehensive audio management class for Three.js
  * Handles both sound effects and background ambience
@@ -224158,6 +224164,29 @@ class SoundManager {
 // Export the class
 exports.default = SoundManager;
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","three":"ktPTu"}]},["8G2QE","ebWYT"], "ebWYT", "parcelRequire94c2")
+},{"three":"ktPTu","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"9rntO":[function(require,module,exports,__globalThis) {
+let workerURL = require("6a83a7f32f957bdd");
+let bundleURL = require("d9355504f81e2227");
+let url = bundleURL.getBundleURL('g05j8') + "grassWorker.a627e1b8.js" + "?" + Date.now();
+module.exports = workerURL(url, bundleURL.getOrigin(url), false);
+
+},{"6a83a7f32f957bdd":"cn2gM","d9355504f81e2227":"lgJ39"}],"cn2gM":[function(require,module,exports,__globalThis) {
+"use strict";
+module.exports = function(workerUrl, origin, isESM) {
+    if (origin === self.location.origin) // If the worker bundle's url is on the same origin as the document,
+    // use the worker bundle's own url.
+    return workerUrl;
+    else {
+        // Otherwise, create a blob URL which loads the worker bundle with `importScripts`.
+        var source = isESM ? 'import ' + JSON.stringify(workerUrl) + ';' : 'importScripts(' + JSON.stringify(workerUrl) + ');';
+        return URL.createObjectURL(new Blob([
+            source
+        ], {
+            type: 'application/javascript'
+        }));
+    }
+};
+
+},{}]},["8G2QE","ebWYT"], "ebWYT", "parcelRequire94c2")
 
 //# sourceMappingURL=index.739bf03c.js.map

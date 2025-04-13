@@ -30,6 +30,7 @@
 }
 
 #welcome-screen {
+  text-align: center;
   z-index: 4500;
   background-color: var(--color-overlay-main);
   opacity: 1;
@@ -37,7 +38,7 @@
   align-items: center;
   width: 100svw;
   height: 100svh;
-  transition: opacity 2s;
+  transition: opacity 1.8s;
   display: flex;
   position: absolute;
 }
@@ -194,6 +195,36 @@ footer {
   position: fixed;
   bottom: 0;
   left: 0;
+}
+
+.wasd-icon {
+  z-index: 9999;
+  pointer-events: none;
+  width: 150px;
+  animation: 4s ease-in-out infinite breathe;
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.wasd-icon img {
+  width: 100%;
+  height: auto;
+}
+
+@keyframes breathe {
+  0% {
+    opacity: .3;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: .3;
+  }
 }
 
 nav, .secondary-menu {
