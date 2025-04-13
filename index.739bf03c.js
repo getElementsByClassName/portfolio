@@ -1349,7 +1349,7 @@ worldScene.scene.add(triggerMesh);
 /********************************************************************
 // Video Projections Test
 ********************************************************************/ const videoProject = document.createElement('video');
-videoProject.src = './assets/glass/video.webm';
+videoProject.src = './assets/nature/video.webm';
 videoProject.loop = true;
 videoProject.muted = true;
 videoProject.play();
@@ -1773,7 +1773,7 @@ loadingManager.onProgress = function(url, itemsLoaded, itemsTotal) {
     //console.log('Loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
     const progress = Math.floor(itemsLoaded / itemsTotal * 100);
     //console.log(`Loading file: ${url}. Loaded ${itemsLoaded}/${itemsTotal} files.`);
-    console.log(`Loading: ${progress}%`);
+    //console.log(`Loading: ${progress}%`)
     loadingElement.textContent = `${progress}%`;
 };
 loadingManager.onLoad = function() {
@@ -1795,10 +1795,9 @@ let rockPosition = {
 const rockLOD = new _three.LOD();
 const rockCount = 8;
 async function fnLoadRockVideoProjectionModel(url, scaleFactor) {
-    const position = {
-        x: -300,
-        z: 400
-    };
+    //const position = { x: -300, z: 400 };
+    //const position = new THREE.Vector3(-300, 0, 400);
+    const position = new _three.Vector3((0, _utilsJsDefault.default).randomFloat(-300, -1200), 0, (0, _utilsJsDefault.default).randomFloat(500, 1300));
     const name = 'video_rock';
     let mesh, diffuseMap, collider, colliderBVH;
     const model = await modelLoader.loadModel(url);
@@ -1809,8 +1808,9 @@ async function fnLoadRockVideoProjectionModel(url, scaleFactor) {
     diffuseMap = mesh.material.map;
     const normalMap = mesh.material.normalMap;
     videoFadeShaderMaterial.uniforms.uDiffuseMap.value = diffuseMap;
-    videoFadeShaderMaterial.uniforms.uMeshPosition.value = new _three.Vector3(position.x - 7.5, getHeight(position.x, position.z) + 7.5, position.z + 4);
+    videoFadeShaderMaterial.uniforms.uMeshPosition.value = new _three.Vector3(position.x - 7.5, getHeight(position.x, position.z) + 9.5, position.z + 3);
     videoFadeShaderMaterial.uniforms.uTerrainHeight.value = getHeight(position.x, position.z);
+    videoFadeShaderMaterial.uniforms.uFadeHeight.value = 10.0;
     mesh.material = videoFadeShaderMaterial;
     videoFadeShaderMaterial.envMap = envMap;
     videoFadeShaderMaterial.envMapIntensity = 0.20;
@@ -1828,7 +1828,7 @@ async function fnLoadRockVideoProjectionModel(url, scaleFactor) {
     const collisionRadius = colliderBVH.geometry.boundingSphere.radius;
     worldScene.scene.add(model);
     renderer.compile(model, camera, worldScene.scene);
-    (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, diffuseMap, true, true, false, colliderBVH, collisionRadius);
+    (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, position, diffuseMap, true, true, DISTANCE_TEXTURE_SWAP, false, colliderBVH, collisionRadius);
 }
 async function fnLoadPowerlinesModel(url) {
     const position = {
@@ -2321,7 +2321,7 @@ if (!visitedFromMobileDevice) {
     stoneFigureParams.forEach((params)=>{
         fnLoadStoneFigureModel(params.url, params.name, params.position, params.scale, params.rotation, params.material, params.color);
     });
-    //fnLoadRockVideoProjectionModel('./assets/models/video_rock/videoRockPreload.glb', 10);
+    fnLoadRockVideoProjectionModel('./assets/models/video_rock/videoRockPreload.glb', 12);
     fnLoadFactoryModel('./assets/models/factory_new/factory.glb');
     fnLoadFactoryInteriorModel('./assets/models/factory_interior/factory_interior.glb');
 }
@@ -2494,6 +2494,9 @@ if (!visitedFromMobileDevice) {
             controls.lock();
             controlsIsLocked = true;
             hideWasdIcon(); //hide wasd icon
+            setTimeout(()=>{
+                document.querySelector('.wasd-icon').classList.add('hide');
+            }, 10000);
         } else {
             controls.unlock();
             controlsIsLocked = false;
@@ -2876,38 +2879,9 @@ const fnOnTerrainComplete = fnCreateOnceFunction();
             const centerX = chunkX * chunkSize + chunkSize / 2;
             const centerZ = chunkZ * chunkSize + chunkSize / 2;
             const distance = new _three.Vector3(playerPosition.x, 0, playerPosition.z).distanceTo(new _three.Vector3(centerX, 0, centerZ));
-            /*
-                        const distance = Math.sqrt(
-                            Math.pow(playerPosition.x - centerX, 2) +
-                            Math.pow(playerPosition.z - centerZ, 2)
-                        );
-            */ //const maxDistance = viewRadius * chunkSize;
-            //const maxDistance = viewRadius * chunkSize;
-            //const normalizedDistance = Math.min(distance / maxDistance, 1);
-            //console.log(maxDistance + " " + normalizedDistance)
-            //let newInstanceCount = Math.floor((1 - normalizedDistance) * 2000);
-            //chunk.grassMesh.count = newInstanceCount;
-            //console.log(normalizedDistance + " " + instanceCount)
-            //console.log(maxDistance + " " + instanceCount)
-            /*
-            if (distance > 1000) {
-                chunk.grassMesh.count = instanceCount * 0.0;
-            } else if (distance > 500) {
-                chunk.grassMesh.count = instanceCount * 0.5;
-            } else {
-                chunk.grassMesh.count = instanceCount;
-            }
-            */ /*
-            if (distance > 1000) {
-                chunk.grassMesh.count = instanceCount * 0.3;
-            } else if (distance > 500) {
-                chunk.grassMesh.count = instanceCount * 0.60;
-            } else {
-                chunk.grassMesh.count = instanceCount;
-            }
-            */ if (distance > 1200) chunk.grassMesh.count = instanceCount * 0.2;
+            if (distance > 1200) chunk.grassMesh.count = instanceCount * 0.15;
             else if (distance > 900) chunk.grassMesh.count = instanceCount * 0.3;
-            else if (distance > 800) chunk.grassMesh.count = instanceCount * 0.35;
+            else if (distance > 800) chunk.grassMesh.count = instanceCount * 0.4;
             else if (distance > 500) chunk.grassMesh.count = instanceCount * 0.5;
             else if (distance > 400) chunk.grassMesh.count = instanceCount * 0.75;
             else if (distance > 200) chunk.grassMesh.count = instanceCount * 0.90;
@@ -223545,7 +223519,7 @@ class WorldScene {
     }
     init() {
         this.scene = new _three.Scene();
-        this.camera = new _three.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 1.0, 2200);
+        this.camera = new _three.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 1.0, 2000);
         this.renderer = new _three.WebGLRenderer({
             powerPreference: "high-performance",
             antialias: false,
@@ -223602,7 +223576,8 @@ class WorldScene {
         this.scene.add(rectLight);
     }
     addFog() {
-        this.scene.fog = new _three.FogExp2(0x56515f, 0.0026); // 0.0017 is the density of the fog
+        this.scene.fog = new _three.FogExp2(0x44424d, 0.0026); // 0.0017 is the density of the fog
+    //56515f
     //45414d
     //44424d
     //4b4856
