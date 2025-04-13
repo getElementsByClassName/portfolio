@@ -1314,7 +1314,7 @@ worldScene.scene.add(triggerMesh);
         activeComposer = composerFactoryInterior;
         // Optional: Add transition effect here
         //soundManager.setAmbienceVolume(0.1);
-        soundManager.sounds['wind'].setVolume(0.1 * soundManager.masterVolume);
+        if (soundManager.sounds['wind']) soundManager.sounds['wind'].setVolume(0.1 * soundManager.masterVolume);
     } else if (!isPlayerInTrigger) {
         playerIsInsideFactory = false;
         activeComposer = composerDefault;
@@ -2568,7 +2568,7 @@ function fnUpdateControls(deltaTime) {
     newPosition.addScaledVector(direction, -velocity.z * deltaTime);
     newPosition.addScaledVector(right, -velocity.x * deltaTime);
     // --- COLLISION CHECK START ---
-    const playerRadius = 6.5;
+    const playerRadius = 6.0;
     const playerSphere = new _three.Sphere(newPosition, playerRadius);
     const closestPoint = new _three.Vector3();
     modelRegistry.forEach((data, id)=>{
@@ -223957,10 +223957,10 @@ class SoundManager {
             this.isLoading = false;
         }, // onProgress callback
         (xhr)=>{
-            console.log(`${name} sound: ${xhr.loaded / xhr.total * 100}% loaded`);
+        //console.log(`${name} sound: ${(xhr.loaded / xhr.total * 100)}% loaded`);
         }, // onError callback
         (err)=>{
-            console.error(`Error loading sound ${name}:`, err);
+            //console.error(`Error loading sound ${name}:`, err);
             this.isLoading = false;
         });
     }
@@ -223983,10 +223983,10 @@ class SoundManager {
             this.isLoading = false;
         }, // onProgress callback
         (xhr)=>{
-            console.log(`${name} ambient sound: ${xhr.loaded / xhr.total * 100}% loaded`);
+        //console.log(`${name} ambient sound: ${(xhr.loaded / xhr.total * 100)}% loaded`);
         }, // onError callback
         (err)=>{
-            console.error(`Error loading ambient sound ${name}:`, err);
+            //console.error(`Error loading ambient sound ${name}:`, err);
             this.isLoading = false;
         });
     }
@@ -224014,10 +224014,10 @@ class SoundManager {
             this.isLoading = false;
         }, // onProgress callback
         (xhr)=>{
-            console.log(`${name} positional sound: ${xhr.loaded / xhr.total * 100}% loaded`);
+        //console.log(`${name} positional sound: ${(xhr.loaded / xhr.total * 100)}% loaded`);
         }, // onError callback
         (err)=>{
-            console.error(`Error loading positional sound ${name}:`, err);
+            //console.error(`Error loading positional sound ${name}:`, err);
             this.isLoading = false;
         });
     }
@@ -224028,10 +224028,8 @@ class SoundManager {
      * @return {boolean} - Whether the sound was successfully played
      */ play(name, interrupt = true) {
         const sound = this.sounds[name];
-        if (!sound) {
-            console.warn(`Sound "${name}" not found`);
-            return false;
-        }
+        if (!sound) //console.warn(`Sound "${name}" not found`);
+        return false;
         if (sound.isPlaying && !interrupt) return false;
         if (sound.isPlaying) sound.stop();
         sound.play();
@@ -224044,10 +224042,8 @@ class SoundManager {
      * @param {number} fadeTime - Time in seconds for fade in
      */ playAmbience(name, fadeIn = true, fadeTime = 2.0) {
         const sound = this.ambientSounds[name];
-        if (!sound) {
-            console.warn(`Ambient sound "${name}" not found`);
-            return false;
-        }
+        if (!sound) //console.warn(`Ambient sound "${name}" not found`);
+        return false;
         if (sound.isPlaying) return false;
         if (fadeIn) {
             // Store the target volume and start at 0
@@ -224073,10 +224069,8 @@ class SoundManager {
      * @param {number} fadeTime - Time in seconds for fade out
      */ stop(name, fadeOut = false, fadeTime = 1.0) {
         const sound = this.sounds[name] || this.ambientSounds[name];
-        if (!sound) {
-            console.warn(`Sound "${name}" not found`);
-            return;
-        }
+        if (!sound) //console.warn(`Sound "${name}" not found`);
+        return;
         if (!sound.isPlaying) return;
         if (fadeOut) {
             // Store initial volume
@@ -224129,10 +224123,8 @@ class SoundManager {
      */ crossfadeAmbience(from, to, duration = 3.0) {
         const fromSound = this.ambientSounds[from];
         const toSound = this.ambientSounds[to];
-        if (!fromSound || !toSound) {
-            console.warn(`One or both ambient sounds not found for crossfade`);
-            return;
-        }
+        if (!fromSound || !toSound) //console.warn(`One or both ambient sounds not found for crossfade`);
+        return;
         // Store original volumes
         const fromVolume = fromSound.getVolume();
         const toVolume = toSound.getVolume();
