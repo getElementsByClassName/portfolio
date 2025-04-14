@@ -223284,7 +223284,7 @@ class GrassScene {
         this.renderer.outputEncoding = _three.SRGBColorSpace;
         this.renderer.toneMapping = _three.ACESFilmicToneMapping;
         //this.renderer.toneMapping = THREE.ReinhardToneMapping;
-        this.renderer.toneMappingExposure = 0.9;
+        this.renderer.toneMappingExposure = 0.45;
         //this.stats = Stats();
         //this.stats.showPanel(0);
         this.setupHDR();
@@ -223299,7 +223299,7 @@ class GrassScene {
         rectLight.position.set(-5, 5, 0);
         rectLight.lookAt(0, 0, 0);
         //this.scene.add(rectLight)
-        this.pointLight = new _three.PointLight(0xfcb43a, 2.5, 2);
+        this.pointLight = new _three.PointLight(0xfcb43a, 2.0, 2);
         //fcb43a
         this.pointLight.position.set(0.0, 0.0, 5.0);
         this.scene.add(this.pointLight);
@@ -223348,9 +223348,7 @@ class GrassScene {
     }
     setupHDR() {
         const loader = new (0, _rgbeloaderJs.RGBELoader)();
-        let skyboxToLoad;
-        if (!this.visitedFromMobileDevice) skyboxToLoad = 'belfast_sunset_puresky_2k';
-        else skyboxToLoad = 'belfast_sunset_puresky_2k';
+        let skyboxToLoad = this.visitedFromMobileDevice ? 'belfast_sunset_puresky_1k' : 'belfast_sunset_puresky_2k';
         loader.load(`./assets/${skyboxToLoad}.hdr`, (texture)=>{
             texture.mapping = _three.EquirectangularReflectionMapping; // Set mapping for environment
             this.envMap = texture;
