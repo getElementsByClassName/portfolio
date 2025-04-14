@@ -700,9 +700,12 @@ observerContactScene.observe(grassContainer);
 const secondaryNav = document.querySelector('.secondary-menu');
 //sound button
 const soundToggleBtn = document.getElementById('btn-sound-toggle');
+const footer = document.querySelector('footer');
+document.getElementById('currentYear').textContent = new Date().getFullYear(); //footer
 if (!visitedFromMobileDevice) {
     nav.classList.remove('hide');
     secondaryNav.classList.remove('hide');
+    footer.classList.remove('hide');
 }
 //nav bar fade/hover logic
 let timeoutId;
