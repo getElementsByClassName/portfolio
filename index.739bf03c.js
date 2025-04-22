@@ -634,8 +634,6 @@ var _stonefigureJs = require("./shaders/stonefigure.js");
 var _stonefigureJsDefault = parcelHelpers.interopDefault(_stonefigureJs);
 var _videoFadeJs = require("./shaders/videoFade.js");
 var _videoFadeJsDefault = parcelHelpers.interopDefault(_videoFadeJs);
-var _videoFallbackWebp = require("../img/videoFallback.webp");
-var _videoFallbackWebpDefault = parcelHelpers.interopDefault(_videoFallbackWebp);
 var _contentJson = require("./content.json");
 var _contentJsonDefault = parcelHelpers.interopDefault(_contentJson);
 var _grassSceneJs = require("./GrassScene.js");
@@ -2384,8 +2382,8 @@ const videoShaderMaterial = new _three.ShaderMaterial({
     wireframe: false
 });
 // Then handle both paused and low-power conditions
-if (video.paused || video.autoplay && !video.playing) {
-    //if (video.paused) {
+//if (video.paused || video.autoplay && !video.playing) {
+if (video.paused) {
     const fallbackTexture = textureLoader.load('../img/videoFallback.webp');
     videoShaderMaterial.uniforms.videoTexture.value = fallbackTexture;
 }
@@ -2818,7 +2816,7 @@ function fnGenerateChunk(x, z) {
         }
     }
 }
-loadInitialTerrain(1);
+loadInitialTerrain(2);
 /********************************************************************
 // Function to run start animation and welcome screen fade, at page load
 ********************************************************************/ function fnCreateOnceFunction() {
@@ -2975,7 +2973,7 @@ function animate() {
 }
 renderer.setAnimationLoop(animate);
 
-},{"postprocessing":"bM81O","three":"ktPTu","three-good-godrays":"j7KiZ","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/Addons.js":"iBAni","three/examples/jsm/math/Octree.js":"iwBOl","three/examples/jsm/helpers/OctreeHelper.js":"70dYF","three-mesh-bvh":"6y2ur","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"8TdPQ","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./Utils.js":"c7A1Q","./shaders/grass.js":"cNzyR","./shaders/powerlines.js":"gJXUV","./shaders/videotexture.js":"5S7oy","./shaders/stonefigure.js":"e77je","./shaders/videoFade.js":"2lLRY","../img/videoFallback.webp":"5ZsGE","./content.json":"24cue","./GrassScene.js":"a5jmZ","./WorldScene.js":"5ZFD0","./ModelLoader.js":"5o86C","./LODManager.js":"3L9vB","./SoundManager.js":"70lfs","cdb16b6f1235a7ac":"9rntO","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"bM81O":[function(require,module,exports,__globalThis) {
+},{"postprocessing":"bM81O","three":"ktPTu","three-good-godrays":"j7KiZ","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/Addons.js":"iBAni","three/examples/jsm/math/Octree.js":"iwBOl","three/examples/jsm/helpers/OctreeHelper.js":"70dYF","three-mesh-bvh":"6y2ur","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"8TdPQ","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./Utils.js":"c7A1Q","./shaders/grass.js":"cNzyR","./shaders/powerlines.js":"gJXUV","./shaders/videotexture.js":"5S7oy","./shaders/stonefigure.js":"e77je","./shaders/videoFade.js":"2lLRY","./content.json":"24cue","./GrassScene.js":"a5jmZ","./WorldScene.js":"5ZFD0","./ModelLoader.js":"5o86C","./LODManager.js":"3L9vB","./SoundManager.js":"70lfs","cdb16b6f1235a7ac":"9rntO","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"bM81O":[function(require,module,exports,__globalThis) {
 /**
  * postprocessing v6.37.1 build Thu Mar 06 2025
  * https://github.com/pmndrs/postprocessing
@@ -223203,44 +223201,6 @@ module.exports = "#define GLSLIFY 1\n      varying vec3 vWorldPos;\n      varyin
 },{}],"bbp22":[function(require,module,exports,__globalThis) {
 module.exports = "#define GLSLIFY 1\n      uniform sampler2D uVideoTexture;\n      uniform sampler2D uDiffuseMap;\n      uniform vec3 uProjectorPosition;\n      uniform vec3 uProjectorDirection;\n      uniform mat4 uProjectorMatrix;\n      uniform float uProjectorFOV;\n      uniform float uProjectorAspect;\n      uniform vec3 uBaseColor;\n      uniform float uProjectionIntensity;\n      uniform float uVignette;\n      uniform float uBlendFactor;\n      uniform float uMinZDistance;\n      \n      varying vec3 vWorldPos;\n      varying vec2 vUv;\n      varying vec3 vNormalVector;\n      varying float vIsFrontFacing;\n      \nvoid main() {\n  // Sample the diffuse texture\n  vec4 diffuseC = texture2D(uDiffuseMap, vUv);\n  vec3 finalColor = diffuseC.rgb; // Initialize with diffuse color by default\n\n  // We explicitly designate the positive normal direction as the side for projection\n  // For a standard plane, this is the side with normal (0,0,1)\n  bool isProjectionSide = vIsFrontFacing > 0.0; // Only project on front side\n  \n  if (isProjectionSide) {\n    // Direction from projector to this fragment\n    vec3 projToFrag = normalize(vWorldPos - uProjectorPosition);\n    \n    // Project the point onto the projector's viewing plane\n    vec4 projectorViewPosition = uProjectorMatrix * vec4(vWorldPos, 1.0);\n    \n    // If the fragment is in front of the projector, show the projection\n    if (projectorViewPosition.z > uMinZDistance) {\n      // Calculate UV coordinates for projection\n      //float distance = length(vWorldPos - uProjectorPosition);\n      //float attenuation = 1.0 / (1.0 + 0.1 * distance + 0.0 * distance);\n      \n      // Convert view position to NDC space, then to UV coordinates\n      vec2 projUV = projectorViewPosition.xy / projectorViewPosition.z;\n      projUV = projUV * 0.5 + 0.5;\n      \n      // Check if within projection bounds (0 to 1)\n      if (projUV.x >= 0.0 && projUV.x <= 1.0 && projUV.y >= 0.0 && projUV.y <= 1.0) {\n        // Sample video texture with projected coordinates\n        vec4 projectedColor = texture2D(uVideoTexture, projUV);\n        \n        // Add vignette effect for old-school projector look\n        //float vignetteAmount = 1.0 - uVignette * length(projUV - 0.5) * 2.0;\n        //vignetteAmount = clamp(vignetteAmount, 0.0, 1.0);\n        \n        // Add subtle noise for film grain effect\n        //float noise = fract(sin(dot(projUV, vec2(12.9898, 78.233))) * 43758.5453) * 0.09;\n        \n        // Calculate projection color with effects\n        vec3 projColor = projectedColor.rgb * uProjectionIntensity;\n        //projColor += noise;\n        \n        // Screen blend mode (brightens the image)\n        vec3 blendedColor = 1.0 - (1.0 - diffuseC.rgb) * (1.0 - projColor);\n        \n        // Final color is a blend between the diffuse and the blended projection\n        finalColor = mix(diffuseC.rgb , blendedColor, uBlendFactor);\n        finalColor *= 2.5;\n      }\n    }\n  }\n  \n  // Always output the final color, whether it's been projected on or not\n  csm_DiffuseColor = vec4(finalColor, 1.0);\n}";
 
-},{}],"5ZsGE":[function(require,module,exports,__globalThis) {
-module.exports = require("8776c593459528ab").getBundleURL('g05j8') + "videoFallback.3530558f.webp" + "?" + Date.now();
-
-},{"8776c593459528ab":"lgJ39"}],"lgJ39":[function(require,module,exports,__globalThis) {
-"use strict";
-var bundleURL = {};
-function getBundleURLCached(id) {
-    var value = bundleURL[id];
-    if (!value) {
-        value = getBundleURL();
-        bundleURL[id] = value;
-    }
-    return value;
-}
-function getBundleURL() {
-    try {
-        throw new Error();
-    } catch (err) {
-        var matches = ('' + err.stack).match(/(https?|file|ftp|(chrome|moz|safari-web)-extension):\/\/[^)\n]+/g);
-        if (matches) // The first two stack frames will be this function and getBundleURLCached.
-        // Use the 3rd one, which will be a runtime in the original bundle.
-        return getBaseURL(matches[2]);
-    }
-    return '/';
-}
-function getBaseURL(url) {
-    return ('' + url).replace(/^((?:https?|file|ftp|(chrome|moz|safari-web)-extension):\/\/.+)\/[^/]+$/, '$1') + '/';
-}
-// TODO: Replace uses with `new URL(url).origin` when ie11 is no longer supported.
-function getOrigin(url) {
-    var matches = ('' + url).match(/(https?|file|ftp|(chrome|moz|safari-web)-extension):\/\/[^/]+/);
-    if (!matches) throw new Error('Origin not found');
-    return matches[0];
-}
-exports.getBundleURL = getBundleURLCached;
-exports.getBaseURL = getBaseURL;
-exports.getOrigin = getOrigin;
-
 },{}],"24cue":[function(require,module,exports,__globalThis) {
 module.exports = JSON.parse('{"glass":{"title":"The Virtual Glass Harmonica","video_ref":"./assets/glass/video.webm","main_txt":"Together with a fellow peer, the design and development of the virtual glass harmonica was a project completed for the <span class=\'color-glass\'>Danish Music Museum</span>. As part of the <i>Music History - Taken out of the Box</i> project, funded by the Augustinus Foundation, it explores the use of <span class=\'color-glass\'>Virtual Reality</span> to resurrect a forgotten instrument and present its history, sound, and interaction through an immersive virtual environment. The installation can be experienced at the Music Museum, where qualitative evaluations have shown that it establishes a good connection between the virtual instrument and the physical 1780-era glass harmonica on display.","client":"Danish Music Museum","tech":"Unity-C# | Blender | Meta Quest 2 Standalone | Handtracking | Shadergraph","publications":"<h4><a href=\'https://link.springer.com/chapter/10.1007/978-3-031-55312-7_16\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>ArtsIT, Interactivity and Game Creation 2023</a></h4> <h4><a href=\'https://doi.org/10.5281/zenodo.6822203\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>Sound and Music Computing Conference 2022</a></h4>","images":["./assets/glass/showcase-img1.webp","./assets/glass/showcase-img2.webp","./assets/glass/showcase-img3.webp"],"images_alt":["The virtual reality experience leverages the handtracking capabilities of the meta quest 2 device. Virtual environment capture.","Virtual environemnt capture showing interactive buttons for initiating tutorial and storytelling by Benjamin Franklin.","Photograph of excited visitor trying the virtual reality experience, at the Danish Music Museum."]},"nature":{"title":"Through the Eyes of Nature","video_ref":"./assets/nature/video.webm","main_txt":"In collaboration with Gehl Architects, this master\u2019s thesis explores the potential impact of integrating Virtual Reality into participatory workshops focused on urban biodiversity. The case study involved the urban greenspace development of Nordhavn in Copenhagen, with an immersive narrative that takes the user on a journey where the story is told through the perspective of nature at the site. The Virtual Reality experience was evaluated through a participatory workshop and expert interviews conducted within Gehl\'s R&D department. The findings showed that immersive storytelling in Virtual Reality can be a powerful tool to elicit empathy and foster emotionally engaged discussions on complex topics. This project serves as a pilot in Gehl Architects\u2019 exploration of integrating XR media into their urban planning processes.","client":"Gehl Architects","tech":"Unity | Blender | Meta Quest 3 Standalone | Handtracking | Shadergraph | Spatial Sounds","images":["./assets/nature/showcase-img1.webp","./assets/nature/showcase-img2.webp","./assets/nature/showcase-img3.webp"],"images_alt":["The three-stages of the virtual experience, showing the colour mood journey.","Exited users testing the experience, at the collaborative workshop held at Gehl Architects offices.","The core project team, at the Nordhavn site."]},"dad":{"title":"Denmark After Dark","video_ref":"./assets/dad/video.webm","main_txt":"As part of the Denmark After Dark exhibition, the Danish National Museum aimed to integrate interactivity into the installation. Together with a fellow student, I was part of the project team and worked on the rehearsal and recording studio for the exhibition. With the band D-A-D as the focus, we aimed to create a social space where visitors could unleash their inner rockstar by playing instruments and mixing a track. The main challenge in the process was to develop solutions that offered the robustness and usability required for a daily visited exhibition. Video credits: Natmus. Cover photo credits: Anders Groos Mikkelsen ","client":"Danish National Museum","link":"<h4><a href=\'https://www.dad.natmus.dk/\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>DAD - Natmus</a></h4>","tech":"Touch Designer | Ableton Live | Max4Live | Blender","images":["./assets/dad/showcase-img1.webp","./assets/dad/showcase-img2.webp"],"images_alt":["Excited user trying the interactive studio installation, where a DAD song can be mixed in real time. The backend was created using Max4Live and TouchDesigner. Photo credit: NatMus","An early project render of a studio installation suggestion, created in Blender 3D"]},"fragments":{"title":"Fragments of Fungi","video_ref":"./assets/fragments/video.webm","main_txt":"In this project, our group of four explored the relationship between art, nature, and technology to design and develop an interactive, immersive Virtual Reality experience centered around the phenomenon of Mycelium networks. The experience was conceptualized and designed through participatory workshops involving creative activities. The final evaluation aimed to create a shared experience in a physical forest setting that would enhance the immersive aspect. This evaluation highlighted the potential of Virtual Reality to elicit feelings of awe and emphasized the benefits of collective spaces for reflection and dialogue when presenting self-contained, emotional experiences inherent in Virtual Reality.","client":"Multisensory Experience Lab","publications":"<h4><a href=\'https://link.springer.com/chapter/10.1007/978-3-031-55312-7_6\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>Springer Link</a></h4>","tech":"Unity | Blender | Meta Quest 2 Standalone | AppSW | Handtracking | Shadergraph | Spatial Sounds","images":["./assets/fragments/showcase-img1.webp","./assets/fragments/showcase-img2.webp","./assets/fragments/showcase-img3.webp"],"images_alt":["Excited user immersed in the Hareskov forest, at the collective experiences VR workshop.","The Fragments of Fungi virtual experience.","Designing the virtual experience narrative journey."]},"mizwak":{"title":"Mizwak","video_ref":"./assets/mizwak/video.webm","main_txt":"As part of the EU-funded cooperation project Taking Care: Ethnographic and World Cultures Museums as Spaces of Care, the aim was to explore new and experimental ways of exhibiting in the context of ethnographic and world cultures. In collaboration with the Danish National Museum and the Multisensory Experience Lab, the story behind the world\u2019s oldest toothbrush, the Miswak, was designed and implemented over the course of a semester. The final installation was developed through co-creation workshops with museum staff and leveraged sensor technology alongside a 3D-printed tangible user interface that unlocked the stories behind the Miswak through physical interactions. The design, implementation, and user testing were conducted at the PlayLab at the Danish National Museum. The installation was on display throughout 2023.","client":"Danish National Museum","link":"<h4><a href=\'https://takingcareproject.eu/article/miswak-exhibition-at-the-nationalmuseet\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>Taking Care EU Project</a></h4> <h4><a href=\'https://natmus.dk/nyhed/verdens-aeldste-tandboerste-vokser-paa-et-trae/\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>National Museet - Mizwak</a></h4>","tech":"Blender | QLab | Ultimaker Cura","images":["./assets/mizwak/showcase-img1.webp","./assets/mizwak/showcase-img2.webp","./assets/mizwak/showcase-img3.webp"],"images_alt":["Mizwak installation at Nationalmuseet. The exhibited mizwaks.","Mizwak installation, at Nationalmuseet, with the 3D printed interactive objects.","Mizwak installation work in progress, at Nationalmuseet."]},"spaceshooter":{"title":"Embodied Spaceshooter","video_ref":"./assets/spaceshooter/video.webm","main_txt":"Work in progress.. A browser based mini game that explores the use of embodied interaction in gaming. Allowing the user to control a player through head- and body movement tracked by the webcam utilizing the Google MediaPipe framework. ","client":"AAU Exam Project","link":"<h4><a href=\'https://getelementsbyclassname.github.io/embodied_interaction_course/\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>Demo</a></h4>","tech":"ThreeJS | Google MediaPipe | Blender","images":[],"images_alt":[]}}');
 
@@ -224162,6 +224122,41 @@ module.exports = function(workerUrl, origin, isESM) {
         }));
     }
 };
+
+},{}],"lgJ39":[function(require,module,exports,__globalThis) {
+"use strict";
+var bundleURL = {};
+function getBundleURLCached(id) {
+    var value = bundleURL[id];
+    if (!value) {
+        value = getBundleURL();
+        bundleURL[id] = value;
+    }
+    return value;
+}
+function getBundleURL() {
+    try {
+        throw new Error();
+    } catch (err) {
+        var matches = ('' + err.stack).match(/(https?|file|ftp|(chrome|moz|safari-web)-extension):\/\/[^)\n]+/g);
+        if (matches) // The first two stack frames will be this function and getBundleURLCached.
+        // Use the 3rd one, which will be a runtime in the original bundle.
+        return getBaseURL(matches[2]);
+    }
+    return '/';
+}
+function getBaseURL(url) {
+    return ('' + url).replace(/^((?:https?|file|ftp|(chrome|moz|safari-web)-extension):\/\/.+)\/[^/]+$/, '$1') + '/';
+}
+// TODO: Replace uses with `new URL(url).origin` when ie11 is no longer supported.
+function getOrigin(url) {
+    var matches = ('' + url).match(/(https?|file|ftp|(chrome|moz|safari-web)-extension):\/\/[^/]+/);
+    if (!matches) throw new Error('Origin not found');
+    return matches[0];
+}
+exports.getBundleURL = getBundleURLCached;
+exports.getBaseURL = getBaseURL;
+exports.getOrigin = getOrigin;
 
 },{}]},["8G2QE","ebWYT"], "ebWYT", "parcelRequire94c2")
 
