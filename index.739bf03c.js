@@ -1005,7 +1005,7 @@ const hideWasdIcon = function() {
 ********************************************************************/ /********************************************************************
 // Scene Constants
 ********************************************************************/ let velocity = new _three.Vector3();
-let SPEED = 750.0; //750
+let SPEED = 550.0; //750
 const PERSON_HEIGHT = 22.0; //21
 const DISTANCE_TEXTURE_SWAP = 300.0;
 const DISTANCE_TEXTURE_DISPOSE = 650.0;
@@ -1044,10 +1044,8 @@ soundToggleBtn.addEventListener('click', ()=>{
         soundToggleBtn.classList.add('active');
         // Code to turn sound on
         //soundManager.resumeAll();
-        if (!soundsAreloaded) {
-            soundsAreloaded = true;
-            fnLoadSoundFiles();
-        } else soundManager.resumeAll();
+        if (!soundsAreloaded) fnLoadSoundFiles();
+        else soundManager.resumeAll();
     } else {
         soundToggleBtn.innerHTML = '<i class="fas fa-volume-xmark"></i>';
         soundToggleBtn.classList.remove('active');
@@ -1059,7 +1057,7 @@ const soundConfigs = {
     'projector': {
         path: './assets/sounds/projector2.mp3',
         refDistance: 60,
-        audibleRange: 200
+        audibleRange: 170
     }
 };
 const soundSources = new Map();
@@ -1107,6 +1105,7 @@ function fnLoadSoundFiles() {
         windSound.setVolume(0.3 * soundManager.masterVolume);
         windSound.play();
         soundManager.sounds['wind'] = windSound;
+        soundsAreloaded = true;
     });
 }
 /********************************************************************
@@ -2383,10 +2382,8 @@ const videoShaderMaterial = new _three.ShaderMaterial({
 });
 // Then handle both paused and low-power conditions
 //if (video.paused || video.autoplay && !video.playing) {
-if (video.paused) {
-    const fallbackTexture = textureLoader.load('../img/videoFallback.webp');
-    videoShaderMaterial.uniforms.videoTexture.value = fallbackTexture;
-}
+const fallbackTexture = textureLoader.load('../img/videoFallback.webp');
+if (video.paused) videoShaderMaterial.uniforms.videoTexture.value = fallbackTexture;
 /*
 video.play().then(() => {
     // Video is playing, use video texture
@@ -2489,7 +2486,7 @@ let controls;
 // Create the FPS controller
 if (!visitedFromMobileDevice) {
     controls = new (0, _pointerLockControlsJs.PointerLockControls)(camera, renderer.domElement);
-    controls.pointerSpeed = 0.9;
+    controls.pointerSpeed = 0.8;
     sectionScene.addEventListener('click', function() {
         if (!controlsIsLocked && gameIsActive) {
             controls.lock();
