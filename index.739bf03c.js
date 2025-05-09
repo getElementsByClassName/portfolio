@@ -2382,8 +2382,11 @@ const videoShaderMaterial = new _three.ShaderMaterial({
 });
 // Then handle both paused and low-power conditions
 //if (video.paused || video.autoplay && !video.playing) {
-const fallbackTexture = textureLoader.load('../img/videoFallback.webp');
-if (video.paused) videoShaderMaterial.uniforms.videoTexture.value = fallbackTexture;
+if (video.paused) {
+    const fallbackTexture = textureLoader.load('./assets/videoFallback.webp', ()=>{
+        videoShaderMaterial.uniforms.videoTexture.value = fallbackTexture;
+    });
+}
 /*
 video.play().then(() => {
     // Video is playing, use video texture
