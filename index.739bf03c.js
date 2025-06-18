@@ -1034,7 +1034,7 @@ document.body.appendChild(stats.dom);
 soundManager.setMasterVolume(1.00);
 soundManager.setAmbienceVolume(0.75);
 soundManager.setEffectsVolume(0.90);
-let soundOn, soundsAreloaded = false;
+let soundOn, soundsAreloaded, windSoundIsLoaded = false;
 soundToggleBtn.addEventListener('click', ()=>{
     // Toggle sound state
     soundOn = !soundOn;
@@ -1044,7 +1044,7 @@ soundToggleBtn.addEventListener('click', ()=>{
         soundToggleBtn.classList.add('active');
         // Code to turn sound on
         //soundManager.resumeAll();
-        if (!soundsAreloaded) fnLoadSoundFiles();
+        if (!(soundsAreloaded && windSoundIsLoaded)) fnLoadSoundFiles();
         else soundManager.resumeAll();
     } else {
         soundToggleBtn.innerHTML = '<i class="fas fa-volume-xmark"></i>';
@@ -1091,6 +1091,7 @@ function fnLoadSoundFiles() {
     // Load ambient sound and play it when loaded
     soundManager.loadAmbientSound('outdoors', './assets/sounds/ambience.mp3', true, ()=>{
         soundManager.playAmbience('outdoors', true, 3.0);
+        soundsAreloaded = true;
     });
     /*
     soundManager.loadAmbientSound('wind', './assets/sounds/wind.mp3', true, () => {
@@ -1105,7 +1106,7 @@ function fnLoadSoundFiles() {
         windSound.setVolume(0.3 * soundManager.masterVolume);
         windSound.play();
         soundManager.sounds['wind'] = windSound;
-        soundsAreloaded = true;
+        windSoundIsLoaded = true;
     });
 }
 /********************************************************************
