@@ -1044,7 +1044,7 @@ soundToggleBtn.addEventListener('click', ()=>{
         soundToggleBtn.classList.add('active');
         // Code to turn sound on
         //soundManager.resumeAll();
-        if (!(soundsAreloaded && windSoundIsLoaded)) fnLoadSoundFiles();
+        if (!soundsAreloaded) fnLoadSoundFiles();
         else soundManager.resumeAll();
     } else {
         soundToggleBtn.innerHTML = '<i class="fas fa-volume-xmark"></i>';
@@ -1081,32 +1081,34 @@ function fnCheckIfSoundSourcesShouldPlay(playerPosition) {
     });
 }
 function fnLoadSoundFiles() {
+    console.log(soundSources.size);
+    let loadingcount = 0;
+    let totalSounds = soundSources.size + 2; // wind and ambient
+    function checkAllSoundsAreLoaded() {
+        loadingcount++;
+        if (loadingcount >= totalSounds) soundsAreloaded = true;
+    }
     //load positional sound files
     soundSources.forEach((data, id)=>{
         soundManager.loadPositionalSound(data.name, data.path, data.audioSource, soundConfigs[data.type].refDistance, ()=>{
             soundManager.play(data.name);
             soundManager.stop(data.name);
+            checkAllSoundsAreLoaded();
         });
     });
     // Load ambient sound and play it when loaded
     soundManager.loadAmbientSound('outdoors', './assets/sounds/ambience.mp3', true, ()=>{
         soundManager.playAmbience('outdoors', true, 3.0);
-        soundsAreloaded = true;
+        checkAllSoundsAreLoaded();
     });
-    /*
-    soundManager.loadAmbientSound('wind', './assets/sounds/wind.mp3', true, () => {
-        soundManager.ambientSounds['wind'].setVolume(0.3 * soundManager.masterVolume);
-        soundManager.playAmbience('wind', true, 1.0);
-
-    });
-    */ const windSound = new _three.Audio(soundManager.listener);
+    const windSound = new _three.Audio(soundManager.listener);
     soundManager.audioLoader.load('./assets/sounds/wind.mp3', (buffer)=>{
         windSound.setBuffer(buffer);
         windSound.setLoop(true);
         windSound.setVolume(0.3 * soundManager.masterVolume);
         windSound.play();
         soundManager.sounds['wind'] = windSound;
-        windSoundIsLoaded = true;
+        checkAllSoundsAreLoaded();
     });
 }
 /********************************************************************
