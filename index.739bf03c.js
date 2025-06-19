@@ -1081,7 +1081,6 @@ function fnCheckIfSoundSourcesShouldPlay(playerPosition) {
     });
 }
 function fnLoadSoundFiles() {
-    console.log(soundSources.size);
     let loadingcount = 0;
     let totalSounds = soundSources.size + 2; // wind and ambient
     function checkAllSoundsAreLoaded() {
@@ -223568,7 +223567,6 @@ class WorldScene {
             precision: "mediump"
         });
         let pixelRatio = window.devicePixelRatio;
-        console.log(pixelRatio);
         this.renderer.setPixelRatio(pixelRatio > 2 ? 1.5 : pixelRatio);
         this.renderer.outputEncoding = _three.SRGBColorSpace;
         this.renderer.shadowMap.enabled = true;
