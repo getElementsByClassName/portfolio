@@ -1024,11 +1024,10 @@ const camera = worldScene.getCamera();
 //const axesHelper = new THREE.AxesHelper(1000);
 //worldScene.scene.add(axesHelper);
 //show stats, updated in animation loop
-/*
-const stats = Stats();
+const stats = (0, _statsModuleDefault.default)();
 stats.showPanel(0);
 document.body.appendChild(stats.dom);
-*/ /********************************************************************
+/********************************************************************
 // Sounds
 ********************************************************************/ const soundManager = new (0, _soundManagerJsDefault.default)(camera);
 soundManager.setMasterVolume(1.00);
@@ -1217,30 +1216,34 @@ const composerFactoryInterior = new (0, _postprocessing.EffectComposer)(renderer
     frameBufferType: (0, _three.HalfFloatType)
 });
 const composerDefault = new (0, _postprocessing.EffectComposer)(renderer, {
-    multisampling: 4,
-    frameBufferType: (0, _three.HalfFloatType)
+    frameBufferType: (0, _three.HalfFloatType),
+    multisampling: 4
 });
 const effectTonemapping = new (0, _postprocessing.ToneMappingEffect)({
-    blendFunction: (0, _postprocessing.BlendFunction).SET,
+    blendFunction: (0, _postprocessing.BlendFunction).SRC,
     mode: (0, _postprocessing.ToneMappingMode).ACES_FILMIC
 });
-const depthOfFieldEffect = new (0, _postprocessing.DepthOfFieldEffect)(camera, {
-    focusDistance: 0.0,
-    focalLength: 0.85,
-    bokehScale: 5.0,
-    height: 480,
-    mode: (0, _postprocessing.BlendFunction).DARKEN
-});
-const brightnessContrastEffect = new (0, _postprocessing.BrightnessContrastEffect)({
-    blendFunction: (0, _postprocessing.BlendFunction).SCR,
-    contrast: 0.175,
-    brightness: -0.05
-});
-const hueSaturationEffect = new (0, _postprocessing.HueSaturationEffect)({
+const effectTonemappingInterior = new (0, _postprocessing.ToneMappingEffect)({
     blendFunction: (0, _postprocessing.BlendFunction).SRC,
-    saturation: -0.5,
-    hue: 0.0
+    mode: (0, _postprocessing.ToneMappingMode).ACES_FILMIC
 });
+// const depthOfFieldEffect = new DepthOfFieldEffect(camera, {
+//     focusDistance: 0.0,
+//     focalLength: 0.85,
+//     bokehScale: 5.0,
+//     height: 480,
+//     mode: BlendFunction.DARKEN
+// });
+// const brightnessContrastEffect = new BrightnessContrastEffect({
+//     blendFunction: BlendFunction.SCR,
+//     contrast: 0.175,
+//     brightness: -0.05
+// });
+// const hueSaturationEffect = new HueSaturationEffect({
+//     blendFunction: BlendFunction.SRC,
+//     saturation: -0.5,
+//     hue: 0.0
+// });
 const godraysParams = {
     density: 0.002,
     maxDensity: 0.01,
@@ -1274,79 +1277,59 @@ dirLight.target.position.set(1200, 5, 600);
 dirLight.target.updateMatrixWorld();
 worldScene.scene.add(dirLight.target);
 worldScene.scene.add(dirLight);
-const dirLightHelper = new _three.DirectionalLightHelper(dirLight, 5);
+//const dirLightHelper = new THREE.DirectionalLightHelper(dirLight, 5);
 //worldScene.scene.add(dirLightHelper);
-const dirLightCameraHelper = new _three.CameraHelper(dirLight.shadow.camera);
+//const dirLightCameraHelper = new THREE.CameraHelper(dirLight.shadow.camera);
 //worldScene.scene.add(dirLightCameraHelper);
 const godraysPass = new (0, _threeGoodGodrays.GodraysPass)(dirLight, camera, godraysParams);
 // If this is the last pass in your pipeline, set `renderToScreen` to `true`
 godraysPass.renderToScreen = false;
 const effectPassTonemapping = new (0, _postprocessing.EffectPass)(camera, effectTonemapping);
 effectPassTonemapping.renderToScreen = false;
-const effectPassTonemappingInterior = new (0, _postprocessing.EffectPass)(camera, effectTonemapping);
+const effectPassTonemappingInterior = new (0, _postprocessing.EffectPass)(camera, effectTonemappingInterior);
 effectPassTonemappingInterior.renderToScreen = false;
-const effectDOF = new (0, _postprocessing.EffectPass)(camera, depthOfFieldEffect);
-effectDOF.renderToScreen = false;
-const brightnessContrast = new (0, _postprocessing.EffectPass)(camera, brightnessContrastEffect);
-brightnessContrast.renderToScreen = false;
-const hueSaturation = new (0, _postprocessing.EffectPass)(camera, hueSaturationEffect);
-hueSaturation.renderToScreen = false;
+// const effectDOF = new EffectPass(camera, depthOfFieldEffect);
+// effectDOF.renderToScreen = false;
+// const brightnessContrast = new EffectPass(camera, brightnessContrastEffect);
+// brightnessContrast.renderToScreen = false;
+// const hueSaturation = new EffectPass(camera, hueSaturationEffect);
+// hueSaturation.renderToScreen = false;
 composerFactoryInterior.addPass(new (0, _postprocessing.RenderPass)(worldScene.scene, camera));
-composerFactoryInterior.addPass(brightnessContrast);
-composerFactoryInterior.addPass(effectPassTonemapping);
+//composerFactoryInterior.addPass(brightnessContrast);
+composerFactoryInterior.addPass(effectPassTonemappingInterior);
 composerFactoryInterior.addPass(godraysPass);
 composerDefault.addPass(new (0, _postprocessing.RenderPass)(worldScene.scene, camera));
-composerDefault.addPass(brightnessContrast);
+//composerDefault.addPass(brightnessContrast);
 //composerDefault.addPass(hueSaturation);
-composerDefault.addPass(effectPassTonemappingInterior);
+composerDefault.addPass(effectPassTonemapping);
 //composerDefault.addPass(godraysPass);
 let playerIsInsideFactory = false;
 let activeComposer = composerDefault;
 const factoryEntranceTrigger = new _three.Box3(new _three.Vector3(-190, -50, -350), new _three.Vector3(200, 50, 90));
 factoryEntranceTrigger.translate(new _three.Vector3(1200, getHeight(1200, 1200), 1200));
-/*
-// Calculate dimensions of the box
-const size = new THREE.Vector3();
-factoryEntranceTrigger.getSize(size);
-
-// Create a BoxGeometry with those dimensions
-const triggerGeometry = new THREE.BoxGeometry(size.x, size.y, size.z);
-
-// Create material
-const materialTrigger = new THREE.MeshBasicMaterial({
-    color: 0x00ff00,
-    wireframe: true,
-    transparent: true,
-    opacity: 0.5
-});
-
-// Create mesh
-const triggerMesh = new THREE.Mesh(triggerGeometry, materialTrigger);
-
-// Position the mesh at the center of the Box3
-const center = new THREE.Vector3();
-factoryEntranceTrigger.getCenter(center);
-triggerMesh.position.copy(center);
-
-// Add to scene
-worldScene.scene.add(triggerMesh);
-*/ function fnCheckIfPlayerIsInFactoryTrigger(playerPosition, deltaTime) {
-    const isPlayerInTrigger = factoryEntranceTrigger.containsPoint(playerPosition);
-    // Only update composer when state changes (entering/exiting)
-    if (isPlayerInTrigger) {
-        playerIsInsideFactory = true;
-        activeComposer = composerFactoryInterior;
-        // Optional: Add transition effect here
-        //soundManager.setAmbienceVolume(0.1);
-        if (soundManager.sounds['wind']) soundManager.sounds['wind'].setVolume(0.1 * soundManager.masterVolume);
-    } else if (!isPlayerInTrigger) {
-        playerIsInsideFactory = false;
-        activeComposer = composerDefault;
-        // Optional: Add transition effect here
-        if (soundManager.sounds['wind']) soundManager.sounds['wind'].setVolume(0.3 * soundManager.masterVolume);
+let previousPlayerInsideFactory = false;
+let factoryCheckCooldown = 0;
+const FACTORY_CHECK_INTERVAL = 100;
+function fnCheckIfPlayerIsInFactoryTrigger(playerPosition, deltaTime) {
+    factoryCheckCooldown -= deltaTime * 1000;
+    if (factoryCheckCooldown <= 0) {
+        factoryCheckCooldown = FACTORY_CHECK_INTERVAL;
+        const isPlayerInTrigger = factoryEntranceTrigger.containsPoint(playerPosition);
+        if (isPlayerInTrigger !== previousPlayerInsideFactory) {
+            previousPlayerInsideFactory = isPlayerInTrigger;
+            if (isPlayerInTrigger) {
+                playerIsInsideFactory = true;
+                activeComposer = composerFactoryInterior;
+                const windSound = soundManager.sounds['wind'];
+                if (windSound) windSound.setVolume(0.1 * soundManager.masterVolume);
+            } else {
+                playerIsInsideFactory = false;
+                activeComposer = composerDefault;
+                const windSound = soundManager.sounds['wind'];
+                if (windSound) windSound.setVolume(0.3 * soundManager.masterVolume);
+            }
+        }
     }
-    // Use the active composer for rendering
-    activeComposer.render(deltaTime);
 }
 /********************************************************************
 // Video Projections Test
@@ -2603,7 +2586,7 @@ function fnUpdateControls(deltaTime) {
     newPosition.addScaledVector(direction, -velocity.z * deltaTime);
     newPosition.addScaledVector(right, -velocity.x * deltaTime);
     // --- COLLISION CHECK START ---
-    const playerRadius = 6.0;
+    const playerRadius = 5.5;
     const playerSphere = new _three.Sphere(newPosition, playerRadius);
     const closestPoint = new _three.Vector3();
     modelRegistry.forEach((data, id)=>{
@@ -2987,8 +2970,7 @@ function adjustGrassInstanceCount(playerPosition) {
 }
 /********************************************************************
 // Animate Function
-********************************************************************/ //renderer.compile(worldScene.scene, camera);
-function animate() {
+********************************************************************/ function animate() {
     const deltaTime = clock.getDelta();
     const playerPosition = camera.position;
     updateTerrainChunks(playerPosition); // Dynamically update chunks
@@ -3041,14 +3023,18 @@ function animate() {
     //renderer.render(worldScene.scene, camera);
     //composer.render(deltaTime);
     //animateParticles();
-    //composerDefault.render(deltaTime);
-    fnCheckIfPlayerIsInFactoryTrigger(playerPosition, deltaTime);
+    //fnCheckIfPlayerIsInFactoryTrigger(playerPosition, deltaTime)
     fnCheckIfSoundSourcesShouldPlay(playerPosition);
-//soundManager.update(deltaTime);
-//stats.update();
+    //soundManager.update(deltaTime);
+    fnCheckIfPlayerIsInFactoryTrigger(playerPosition, deltaTime);
+    // Render once at the end of your animate function
+    activeComposer.render(deltaTime);
+    stats.update();
 //console.log(renderer.info);
-}
-renderer.setAnimationLoop(animate);
+//renderer.render(worldScene, camera);
+//renderer.setAnimationLoop(animate);
+//composerDefault.render(deltaTime);
+} //renderer.setAnimationLoop(animate);
 
 },{"postprocessing":"bM81O","three":"ktPTu","three-good-godrays":"j7KiZ","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/Addons.js":"iBAni","three/examples/jsm/math/Octree.js":"iwBOl","three/examples/jsm/helpers/OctreeHelper.js":"70dYF","three-mesh-bvh":"6y2ur","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"8TdPQ","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./Utils.js":"c7A1Q","./shaders/grass.js":"cNzyR","./shaders/powerlines.js":"gJXUV","./shaders/videotexture.js":"5S7oy","./shaders/stonefigure.js":"e77je","./shaders/videoFade.js":"2lLRY","./content.json":"24cue","./GrassScene.js":"a5jmZ","./WorldScene.js":"5ZFD0","./ModelLoader.js":"5o86C","./LODManager.js":"3L9vB","./SoundManager.js":"70lfs","cdb16b6f1235a7ac":"9rntO","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"bM81O":[function(require,module,exports,__globalThis) {
 /**
@@ -223563,6 +223549,7 @@ class WorldScene {
             antialias: false,
             stencil: false,
             depth: false,
+            depthTexture: false,
             logarithmicDepthBuffer: false,
             precision: "mediump"
         });
