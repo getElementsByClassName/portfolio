@@ -1005,7 +1005,7 @@ const hideWasdIcon = function() {
 ********************************************************************/ /********************************************************************
 // Scene Constants
 ********************************************************************/ let velocity = new _three.Vector3();
-let SPEED = 460.0; //750
+let SPEED = 560.0; //750
 const PERSON_HEIGHT = 22.0; //21
 const DISTANCE_TEXTURE_SWAP = 300.0;
 const DISTANCE_TEXTURE_DISPOSE = 650.0;
@@ -1014,7 +1014,7 @@ const DISTANCE_LOD0 = 100;
 const DISTANCE_LOD1 = 200;
 const DISTANCE_LOD2 = 300;
 //Environment Map intensities
-const GRASS_MESH_ENVMAP_INTENSITY = 0.65;
+const GRASS_MESH_ENVMAP_INTENSITY = 0.4;
 /********************************************************************
 // Scene Setup
 ********************************************************************/ const canvasContainer = document.querySelector('#container-opening-scene');
@@ -1024,9 +1024,9 @@ const camera = worldScene.getCamera();
 //const axesHelper = new THREE.AxesHelper(1000);
 //worldScene.scene.add(axesHelper);
 //show stats, updated in animation loop
-const stats = (0, _statsModuleDefault.default)();
-stats.showPanel(0);
-document.body.appendChild(stats.dom);
+// const stats = Stats();
+// stats.showPanel(0);
+// document.body.appendChild(stats.dom);
 /********************************************************************
 // Sounds
 ********************************************************************/ const soundManager = new (0, _soundManagerJsDefault.default)(camera);
@@ -2586,12 +2586,13 @@ function fnUpdateControls(deltaTime) {
     newPosition.addScaledVector(direction, -velocity.z * deltaTime);
     newPosition.addScaledVector(right, -velocity.x * deltaTime);
     // --- COLLISION CHECK START ---
-    const playerRadius = 5.5;
+    const playerRadius = 6.0;
     const playerSphere = new _three.Sphere(newPosition, playerRadius);
     const closestPoint = new _three.Vector3();
     modelRegistry.forEach((data, id)=>{
         //is object in frustrum and within distance
-        if (!(0, _utilsJsDefault.default).fnIsInFrustum(data.mesh, camera) || !(0, _utilsJsDefault.default).fnIsWithinDistance(data.position, newPosition, data.collisionRadius)) return;
+        //if (!Utils.fnIsInFrustum(data.mesh, camera) || !Utils.fnIsWithinDistance(data.position, newPosition, data.collisionRadius)) return;
+        if (!(0, _utilsJsDefault.default).fnIsWithinDistance(data.position, newPosition, data.collisionRadius)) return;
         if (data.bvh) {
             if (data.name.includes('figure')) fnToggleFigureAnimation(stoneFigureParams, data.name);
             data.bvh.shapecast({
@@ -2684,10 +2685,10 @@ const grassMaterial = new (0, _vanillaDefault.default)({
 /********************************************************************
 // Terrain Logic
 ********************************************************************/ /** Terrain Constants */ const chunkSize = 200; // Size of each terrain chunk (200)
-const viewRadius = 9; // Number of chunks to load around the player (5)
-const unloadRadius = 10; // Number of chunks to unload outside this radius (6)
+const viewRadius = 8; // Number of chunks to load around the player (5)
+const unloadRadius = 9; // Number of chunks to unload outside this radius (6)
 const chunkVertexCount = 6; // 4
-const instanceCount = 3300; //(4000) (19500)
+const instanceCount = 3150; //(4000) (19500)
 const loadedChunks = new Map(); // Store references to loaded chunks
 // Define special chunk configurations by their X, Z values
 const specialChunks = {
@@ -2970,33 +2971,42 @@ function adjustGrassInstanceCount(playerPosition) {
 }
 /********************************************************************
 // Animate Function
-********************************************************************/ function animate() {
+********************************************************************/ let textureswapCheckCooldown = 0;
+const TEXTURE_SWAP_CHECK_INTERVAL = 100;
+function animate() {
     const deltaTime = clock.getDelta();
     const playerPosition = camera.position;
+    textureswapCheckCooldown -= deltaTime * 1000;
     updateTerrainChunks(playerPosition); // Dynamically update chunks
-    modelRegistry.forEach((data, id)=>{
-        if (!(0, _utilsJsDefault.default).fnIsInFrustum(data.mesh, camera)) return;
-        //distance from mesh to player
-        const distance = camera.position.distanceTo(data.position);
-        if (data.needsTextureSwapToHQ && distance < data.distanceTextureSwap) {
-            if (!data.textureIsLoaded) {
-                data.textureIsLoaded = true;
-                data.needsTextureSwapToHQ = false;
-                //update model registry
-                modelRegistry.set(id, data);
-                //load texture
-                fnLoadHQTexture(data);
+    if (visitedFromMobileDevice) fnCheckOrientation();
+    else if (!cameraAnimationState.isAnimating) fnUpdateControls(deltaTime);
+    if (textureswapCheckCooldown <= 0) {
+        textureswapCheckCooldown = TEXTURE_SWAP_CHECK_INTERVAL;
+        modelRegistry.forEach((data, id)=>{
+            //if (!Utils.fnIsInFrustum(data.mesh, camera)) return;
+            //distance from mesh to player
+            const distance = camera.position.distanceToSquared(data.position);
+            const distanceTextureSwap = data.distanceTextureSwap * data.distanceTextureSwap;
+            if (data.needsTextureSwapToHQ && distance < distanceTextureSwap) {
+                if (!data.textureIsLoaded) {
+                    data.textureIsLoaded = true;
+                    data.needsTextureSwapToHQ = false;
+                    //update model registry
+                    modelRegistry.set(id, data);
+                    //load texture
+                    fnLoadHQTexture(data);
+                }
             }
-        }
-    /*
-        if (!data.needsTextureSwapToHQ && distance > DISTANCE_TEXTURE_DISPOSE) {
-
-            data.needsTextureSwapToHQ = true;
-            data.textureIsLoaded = false;
-            modelRegistry.set(id, data);
-            fnUnloadHQTexture(data);
-        }
-        */ });
+        /*
+            if (!data.needsTextureSwapToHQ && distance > DISTANCE_TEXTURE_DISPOSE) {
+    
+                data.needsTextureSwapToHQ = true;
+                data.textureIsLoaded = false;
+                modelRegistry.set(id, data);
+                fnUnloadHQTexture(data);
+            }
+            */ });
+    }
     if (allModelsLoaded && !allModelsAddedToScene && allGrassComputed) {
         const allAdded = [
             ...modelRegistry.values()
@@ -3008,8 +3018,6 @@ function adjustGrassInstanceCount(playerPosition) {
         }
     }
     fnAnimateCamera();
-    if (visitedFromMobileDevice) fnCheckOrientation();
-    else if (!cameraAnimationState.isAnimating) fnUpdateControls(deltaTime);
     //shader uniform updates
     powerlinesShaderMaterial.uniforms.uTime.value += deltaTime * 3.0;
     grassMaterial.uniforms.time.value += deltaTime * 1.0; // Update time for wind animation
@@ -3029,7 +3037,7 @@ function adjustGrassInstanceCount(playerPosition) {
     fnCheckIfPlayerIsInFactoryTrigger(playerPosition, deltaTime);
     // Render once at the end of your animate function
     activeComposer.render(deltaTime);
-    stats.update();
+//stats.update();
 //console.log(renderer.info);
 //renderer.render(worldScene, camera);
 //renderer.setAnimationLoop(animate);
