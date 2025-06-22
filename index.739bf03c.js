@@ -1005,7 +1005,7 @@ const hideWasdIcon = function() {
 ********************************************************************/ /********************************************************************
 // Scene Constants
 ********************************************************************/ let velocity = new _three.Vector3();
-let SPEED = 560.0; //750
+let SPEED = 560.0; //560
 const PERSON_HEIGHT = 22.0; //21
 const DISTANCE_TEXTURE_SWAP = 300.0;
 const DISTANCE_TEXTURE_DISPOSE = 650.0;
@@ -1207,104 +1207,9 @@ function getHeight(x, z) {
     return roughTerrain * blendFactor + smoothTerrain * (1 - blendFactor);
 }
 /********************************************************************
-// Post-processing Stuff
-********************************************************************/ // Post Processing
-//console.log(renderer.capabilities.maxSamples)
-const composerFactoryInterior = new (0, _postprocessing.EffectComposer)(renderer, {
-    //multisampling: Math.min(4, renderer.capabilities.maxSamples),
-    multisampling: 4,
-    frameBufferType: (0, _three.HalfFloatType)
-});
-const composerDefault = new (0, _postprocessing.EffectComposer)(renderer, {
-    frameBufferType: (0, _three.HalfFloatType),
-    multisampling: 4
-});
-const effectTonemapping = new (0, _postprocessing.ToneMappingEffect)({
-    blendFunction: (0, _postprocessing.BlendFunction).SRC,
-    mode: (0, _postprocessing.ToneMappingMode).ACES_FILMIC
-});
-const effectTonemappingInterior = new (0, _postprocessing.ToneMappingEffect)({
-    blendFunction: (0, _postprocessing.BlendFunction).SRC,
-    mode: (0, _postprocessing.ToneMappingMode).ACES_FILMIC
-});
-// const depthOfFieldEffect = new DepthOfFieldEffect(camera, {
-//     focusDistance: 0.0,
-//     focalLength: 0.85,
-//     bokehScale: 5.0,
-//     height: 480,
-//     mode: BlendFunction.DARKEN
-// });
-// const brightnessContrastEffect = new BrightnessContrastEffect({
-//     blendFunction: BlendFunction.SCR,
-//     contrast: 0.175,
-//     brightness: -0.05
-// });
-// const hueSaturationEffect = new HueSaturationEffect({
-//     blendFunction: BlendFunction.SRC,
-//     saturation: -0.5,
-//     hue: 0.0
-// });
-const godraysParams = {
-    density: 0.002,
-    maxDensity: 0.01,
-    edgeStrength: 5.0,
-    edgeRadius: 2.0,
-    distanceAttenuation: 2.0,
-    color: new _three.Color(0xFFB55C),
-    raymarchSteps: 42,
-    blur: true,
-    blurVariance: 0.1,
-    //blurKernelSize: SMALL,
-    gammaCorrection: true
-};
-// godrays can be cast from either `PointLight`s or `DirectionalLight`s
-const lightPos = new _three.Vector3(1420, 140, 1300);
-const dirLight = new _three.DirectionalLight(0xffffff, 0.0);
-dirLight.castShadow = true;
-dirLight.shadow.mapSize.width = 1024;
-dirLight.shadow.mapSize.height = 1024;
-dirLight.shadow.camera.near = 10;
-dirLight.shadow.camera.far = 500;
-dirLight.shadow.camera.left = -340;
-dirLight.shadow.camera.right = 150;
-dirLight.shadow.camera.top = 60;
-dirLight.shadow.camera.bottom = -110;
-dirLight.shadow.camera.updateProjectionMatrix();
-dirLight.shadow.autoUpdate = true;
-dirLight.position.copy(lightPos).add(new _three.Vector3(0, 0, 10));
-//dirLight.target.position.set(1200, 50, 800);
-dirLight.target.position.set(1200, 5, 600);
-dirLight.target.updateMatrixWorld();
-worldScene.scene.add(dirLight.target);
-worldScene.scene.add(dirLight);
-//const dirLightHelper = new THREE.DirectionalLightHelper(dirLight, 5);
-//worldScene.scene.add(dirLightHelper);
-//const dirLightCameraHelper = new THREE.CameraHelper(dirLight.shadow.camera);
-//worldScene.scene.add(dirLightCameraHelper);
-const godraysPass = new (0, _threeGoodGodrays.GodraysPass)(dirLight, camera, godraysParams);
-// If this is the last pass in your pipeline, set `renderToScreen` to `true`
-godraysPass.renderToScreen = false;
-const effectPassTonemapping = new (0, _postprocessing.EffectPass)(camera, effectTonemapping);
-effectPassTonemapping.renderToScreen = false;
-const effectPassTonemappingInterior = new (0, _postprocessing.EffectPass)(camera, effectTonemappingInterior);
-effectPassTonemappingInterior.renderToScreen = false;
-// const effectDOF = new EffectPass(camera, depthOfFieldEffect);
-// effectDOF.renderToScreen = false;
-// const brightnessContrast = new EffectPass(camera, brightnessContrastEffect);
-// brightnessContrast.renderToScreen = false;
-// const hueSaturation = new EffectPass(camera, hueSaturationEffect);
-// hueSaturation.renderToScreen = false;
-composerFactoryInterior.addPass(new (0, _postprocessing.RenderPass)(worldScene.scene, camera));
-//composerFactoryInterior.addPass(brightnessContrast);
-composerFactoryInterior.addPass(effectPassTonemappingInterior);
-composerFactoryInterior.addPass(godraysPass);
-composerDefault.addPass(new (0, _postprocessing.RenderPass)(worldScene.scene, camera));
-//composerDefault.addPass(brightnessContrast);
-//composerDefault.addPass(hueSaturation);
-composerDefault.addPass(effectPassTonemapping);
-//composerDefault.addPass(godraysPass);
-let playerIsInsideFactory = false;
-let activeComposer = composerDefault;
+// Factory Entry Check (post processing swap)
+********************************************************************/ let playerIsInsideFactory = false;
+let activeComposer = worldScene.getComposerDefault();
 const factoryEntranceTrigger = new _three.Box3(new _three.Vector3(-190, -50, -350), new _three.Vector3(200, 50, 90));
 factoryEntranceTrigger.translate(new _three.Vector3(1200, getHeight(1200, 1200), 1200));
 let previousPlayerInsideFactory = false;
@@ -1319,12 +1224,13 @@ function fnCheckIfPlayerIsInFactoryTrigger(playerPosition, deltaTime) {
             previousPlayerInsideFactory = isPlayerInTrigger;
             if (isPlayerInTrigger) {
                 playerIsInsideFactory = true;
-                activeComposer = composerFactoryInterior;
+                activeComposer = worldScene.getComposerFactoryInterior();
+                //windowMaterial.transparent = true;
                 const windSound = soundManager.sounds['wind'];
                 if (windSound) windSound.setVolume(0.1 * soundManager.masterVolume);
             } else {
                 playerIsInsideFactory = false;
-                activeComposer = composerDefault;
+                activeComposer = worldScene.getComposerDefault();
                 const windSound = soundManager.sounds['wind'];
                 if (windSound) windSound.setVolume(0.3 * soundManager.masterVolume);
             }
@@ -1622,35 +1528,6 @@ const factoryShader = new (0, _vanillaDefault.default)({
     fragmentShader: fadeShaderMaterial.__csm.fragmentShader,
     side: _three.DoubleSide
 });
-const stoneFigureShader = new (0, _vanillaDefault.default)({
-    baseMaterial: _three.MeshStandardMaterial,
-    uniforms: {
-        uDiffuseMap: {
-            value: null
-        },
-        uHasDiffuseMap: {
-            value: true
-        },
-        uColor: {
-            value: new _three.Color(1, 0, 0)
-        },
-        uTerrainHeight: {
-            value: null
-        },
-        uFadeHeight: {
-            value: 5.5
-        },
-        uMeshPosition: {
-            value: null
-        },
-        uBrightness: {
-            value: 1.0
-        }
-    },
-    vertexShader: fadeShaderMaterial.__csm.vertexShader,
-    fragmentShader: fadeShaderMaterial.__csm.fragmentShader,
-    side: _three.FrontSide
-});
 function createVideoFadeMaterial() {
     return new (0, _vanillaDefault.default)({
         baseMaterial: _three.MeshStandardMaterial,
@@ -1834,7 +1711,7 @@ async function fnLoadPowerlinesModel(url) {
     powerlinesFadeShader.uniforms.uFadeHeight.value = 5.0;
     powerlinesFadeShader.uniforms.uHasDiffuseMap.value = false;
     powerlinesFadeShader.envMap = envMap;
-    powerlinesFadeShader.envMapIntensity = 0.45;
+    powerlinesFadeShader.envMapIntensity = 0.55;
     model.children[1].material = powerlinesShaderMaterial;
     model.children[3].material = powerlinesShaderMaterial;
     model.children[4].material = powerlinesShaderMaterial;
@@ -1861,15 +1738,27 @@ const windowMaterial = new _three.MeshStandardMaterial({
     color: 0xffffff,
     roughness: 0.85,
     metalness: 0.5,
-    opacity: 0.97,
+    opacity: 0.96,
     transparent: true,
     side: _three.DoubleSide,
     fog: true
 });
-windowMaterial.depthWrite = false;
-windowMaterial.depthTest = true;
-//windowMaterial.renderOrder = 1;
-//windowMaterial.forceSinglePass = true;
+// Prewarming function
+function prewarmWindowMaterial(renderer, scene, camera) {
+    // Create invisible prewarming box
+    const prewarmGeometry = new _three.BoxGeometry(200, 200, 200);
+    const prewarmBox = new _three.Mesh(prewarmGeometry, windowMaterial);
+    // Make it invisible
+    prewarmBox.visible = false;
+    // Add to scene temporarily
+    worldScene.scene.add(prewarmBox);
+    // Force render to compile shaders
+    renderer.render(worldScene.scene, camera);
+    // Clean up
+    worldScene.scene.remove(prewarmBox);
+    prewarmGeometry.dispose();
+}
+if (!visitedFromMobileDevice) prewarmWindowMaterial(renderer, worldScene.scene, camera);
 async function fnLoadFactoryModel(url) {
     //const position = { x: 1200, z: 1200 };
     const position = new _three.Vector3(1200, getHeight(1200, 1200), 1200);
@@ -1951,9 +1840,9 @@ async function fnLoadFactoryModel(url) {
         windowMeshLOD1.renderOrder = 2;
     */ (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, position, diffuseMap, true, true, 700, false, colliderBVH, collisionRadius);
     worldScene.scene.add(lod);
-    // Force compilation specifically for the window materials
-    renderer.compile(windowMeshLOD0, camera, worldScene.scene);
-    renderer.compile(windowMeshLOD1, camera, worldScene.scene);
+// Force compilation specifically for the window materials
+//renderer.compile(windowMeshLOD0, camera, worldScene.scene);
+//renderer.compile(windowMeshLOD1, camera, worldScene.scene);
 //renderer.compile(mesh, camera, worldScene.scene)
 //renderer.compile(LOD1.children[0], camera, worldScene.scene)
 /*
@@ -2302,6 +2191,7 @@ async function fnLoadStoneFigureModel(url, name, position, scale, rotation, mate
     //renderer.compile(lod, camera, worldScene.scene);
     (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, new _three.Vector3(position.x, getHeight(position.x, position.z), position.z), diffuseMap, true, true, DISTANCE_TEXTURE_SWAP, false, colliderBVH, collisionRadius);
 }
+//Load models for desktop
 if (!visitedFromMobileDevice) {
     stoneFigureParams.forEach((params)=>{
         fnLoadStoneFigureModel(params.url, params.name, params.position, params.scale, params.rotation, params.material, params.color);
@@ -2310,6 +2200,7 @@ if (!visitedFromMobileDevice) {
     fnLoadFactoryModel('./assets/models/factory_new/factory.glb');
     fnLoadFactoryInteriorModel('./assets/models/factory_interior/factory_interior.glb');
 }
+//load Models for desktop+Mobile
 fnLoadPowerlinesModel('./assets/models/powerlines/powerlines.glb');
 function fnToggleFigureAnimation(stoneFigureParams, figureName) {
     for(let i = 0; i < stoneFigureParams.length; i++)if (stoneFigureParams[i].name === figureName) {
@@ -2338,13 +2229,6 @@ videoTexture.magFilter = _three.LinearFilter;
 videoTexture.format = _three.RGBAFormat;
 videoTexture.generateMipmaps = false;
 videoTexture.colorSpace = _three.SRGBColorSpace;
-//videoTexture.colorSpace = THREE.LinearSRGBColorSpace;
-//videoTexture.format = THREE.RGBAFormat;
-//videoTexture.encoding = THREE.sRGBEncoding;
-//videoTexture.colorSpace = THREE.SRGBColorSpace;
-//videoTexture.encoding = THREE.LinearEncoding;
-//videoTexture.minFilter = THREE.LinearFilter;
-//videoTexture.magFilter = THREE.LinearFilter;
 const videoShaderMaterial = new _three.ShaderMaterial({
     uniforms: {
         videoTexture: {
@@ -2363,7 +2247,8 @@ const videoShaderMaterial = new _three.ShaderMaterial({
     vertexShader: (0, _videotextureJsDefault.default).vert,
     fragmentShader: (0, _videotextureJsDefault.default).frag,
     transparent: true,
-    wireframe: false
+    depthWrite: false,
+    depthTest: false
 });
 // Then handle both paused and low-power conditions
 //if (video.paused || video.autoplay && !video.playing) {
@@ -2372,18 +2257,7 @@ if (video.paused) {
         videoShaderMaterial.uniforms.videoTexture.value = fallbackTexture;
     });
 }
-/*
-video.play().then(() => {
-    // Video is playing, use video texture
-    videoShaderMaterial.uniforms.videoTexture.value = videoTexture;
-}).catch(error => {
-    // Video failed to play, only now load the fallback
-    videoShaderMaterial.uniforms.videoTexture.value = textureLoader.load('../img/videoFallback.webp');
-});
-*/ /*
-if (video.paused) {
-    videoShaderMaterial.uniforms.videoTexture.value = textureLoader.load(videoFallbackImage); 
-}*/ document.body.addEventListener("touchstart", function() {
+document.body.addEventListener("touchstart", function() {
     //set texture to video
     videoShaderMaterial.uniforms.videoTexture.value = videoTexture;
     video.play();
@@ -2688,7 +2562,7 @@ const grassMaterial = new (0, _vanillaDefault.default)({
 const viewRadius = 8; // Number of chunks to load around the player (5)
 const unloadRadius = 9; // Number of chunks to unload outside this radius (6)
 const chunkVertexCount = 6; // 4
-const instanceCount = 3150; //(4000) (19500)
+const instanceCount = 3050; //(4000) (19500)
 const loadedChunks = new Map(); // Store references to loaded chunks
 // Define special chunk configurations by their X, Z values
 const specialChunks = {
@@ -3031,12 +2905,14 @@ function animate() {
     //renderer.render(worldScene.scene, camera);
     //composer.render(deltaTime);
     //animateParticles();
-    //fnCheckIfPlayerIsInFactoryTrigger(playerPosition, deltaTime)
+    //function to change post-processing composer for indoor env
+    fnCheckIfPlayerIsInFactoryTrigger(playerPosition, deltaTime);
     fnCheckIfSoundSourcesShouldPlay(playerPosition);
     //soundManager.update(deltaTime);
-    fnCheckIfPlayerIsInFactoryTrigger(playerPosition, deltaTime);
+    //fnCheckIfPlayerIsInFactoryTrigger(playerPosition, deltaTime);
     // Render once at the end of your animate function
     activeComposer.render(deltaTime);
+//worldScene.composerDefault.render(deltaTime);
 //stats.update();
 //console.log(renderer.info);
 //renderer.render(worldScene, camera);
@@ -223540,12 +223416,18 @@ var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 var _three = require("three");
 var _rgbeloader = require("three/examples/jsm/loaders/RGBELoader"); //loader for RGBE format (Radiance HDR)
+var _postprocessing = require("postprocessing");
+var _threeGoodGodrays = require("three-good-godrays");
+var _redScreenEffect = require("./RedScreenEffect");
+var _fogEffect = require("./FogEffect");
 class WorldScene {
     constructor(container, visitedFromMobileDevice){
         this.container = container;
         this.init();
         this.addLights();
         this.addFog();
+        this.addDefaultPostProcessing();
+        this.addInteriorFactoryPostProcessing();
         this.envMap = null;
     //this.addSkybox(visitedFromMobileDevice);
     }
@@ -223567,17 +223449,25 @@ class WorldScene {
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = _three.PCFSoftShadowMap;
         this.renderer.shadowMap.autoUpdate = true;
-        //this.renderer.outputEncoding = THREE.sRGBEncoding;
-        //this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        //this.renderer.toneMapping = THREE.NoToneMapping;
         this.renderer.toneMappingExposure = 0.175;
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.container.appendChild(this.renderer.domElement);
+        this.composerDefault = new (0, _postprocessing.EffectComposer)(this.renderer, {
+            frameBufferType: (0, _three.HalfFloatType),
+            multisampling: 4
+        });
+        this.composerFactoryInterior = new (0, _postprocessing.EffectComposer)(this.renderer, {
+            //multisampling: Math.min(4, renderer.capabilities.maxSamples),
+            multisampling: 4,
+            frameBufferType: (0, _three.HalfFloatType)
+        });
         // Resize Observer
         this.resizeObserver = new ResizeObserver((entries)=>{
             for (let entry of entries){
                 const { width, height } = entry.contentRect;
                 this.renderer.setSize(width, height);
+                this.composerDefault.setSize(width, height);
+                this.composerFactoryInterior.setSize(width, height);
                 this.camera.aspect = width / height;
                 this.camera.updateProjectionMatrix();
             }
@@ -223622,6 +223512,81 @@ class WorldScene {
     //9998ab
     //f2dfa0
     }
+    addDefaultPostProcessing() {
+        const effectTonemapping = new (0, _postprocessing.ToneMappingEffect)({
+            blendFunction: (0, _postprocessing.BlendFunction).SRC,
+            mode: (0, _postprocessing.ToneMappingMode).ACES_FILMIC
+        });
+        const redScreenEffect = new (0, _redScreenEffect.RedScreenEffect)(0.3); // 30% red overlay
+        const effectPassRedScreen = new (0, _postprocessing.EffectPass)(this.camera, redScreenEffect);
+        const fogEffect = new (0, _fogEffect.FogEffect)(this.camera);
+        const effectPassFog = new (0, _postprocessing.EffectPass)(this.camera, fogEffect);
+        const effectPassTonemapping = new (0, _postprocessing.EffectPass)(this.camera, effectTonemapping);
+        effectPassTonemapping.renderToScreen = false;
+        this.composerDefault.addPass(new (0, _postprocessing.RenderPass)(this.scene, this.camera));
+        //this.composerDefault.addPass(effectPassFog);
+        this.composerDefault.addPass(effectPassTonemapping);
+    }
+    addInteriorFactoryPostProcessing() {
+        const effectTonemapping = new (0, _postprocessing.ToneMappingEffect)({
+            blendFunction: (0, _postprocessing.BlendFunction).SRC,
+            mode: (0, _postprocessing.ToneMappingMode).ACES_FILMIC
+        });
+        const godraysParams = {
+            density: 0.002,
+            maxDensity: 0.01,
+            edgeStrength: 5.0,
+            edgeRadius: 2.0,
+            distanceAttenuation: 2.0,
+            color: new _three.Color(0xFFB55C),
+            raymarchSteps: 42,
+            blur: true,
+            blurVariance: 0.1,
+            //blurKernelSize: SMALL,
+            gammaCorrection: true
+        };
+        // godrays can be cast from either `PointLight`s or `DirectionalLight`s
+        const lightPos = new _three.Vector3(1420, 140, 1300);
+        const dirLight = new _three.DirectionalLight(0xffffff, 0.0);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 1024;
+        dirLight.shadow.mapSize.height = 1024;
+        dirLight.shadow.camera.near = 10;
+        dirLight.shadow.camera.far = 500;
+        dirLight.shadow.camera.left = -340;
+        dirLight.shadow.camera.right = 150;
+        dirLight.shadow.camera.top = 60;
+        dirLight.shadow.camera.bottom = -110;
+        dirLight.shadow.camera.updateProjectionMatrix();
+        dirLight.shadow.autoUpdate = true;
+        dirLight.position.copy(lightPos).add(new _three.Vector3(0, 0, 10));
+        //dirLight.target.position.set(1200, 50, 800);
+        dirLight.target.position.set(1200, 5, 600);
+        dirLight.target.updateMatrixWorld();
+        this.scene.add(dirLight.target);
+        this.scene.add(dirLight);
+        //const dirLightHelper = new THREE.DirectionalLightHelper(dirLight, 5);
+        //worldScene.scene.add(dirLightHelper);
+        //const dirLightCameraHelper = new THREE.CameraHelper(dirLight.shadow.camera);
+        //worldScene.scene.add(dirLightCameraHelper);
+        const godraysPass = new (0, _threeGoodGodrays.GodraysPass)(dirLight, this.camera, godraysParams);
+        // If this is the last pass in your pipeline, set `renderToScreen` to `true`
+        godraysPass.renderToScreen = false;
+        // const effectPassTonemapping = new EffectPass(camera, effectTonemapping);
+        // effectPassTonemapping.renderToScreen = false;
+        const effectPassTonemapping = new (0, _postprocessing.EffectPass)(this.camera, effectTonemapping);
+        effectPassTonemapping.renderToScreen = false;
+        // const effectDOF = new EffectPass(camera, depthOfFieldEffect);
+        // effectDOF.renderToScreen = false;
+        // const brightnessContrast = new EffectPass(camera, brightnessContrastEffect);
+        // brightnessContrast.renderToScreen = false;
+        // const hueSaturation = new EffectPass(camera, hueSaturationEffect);
+        // hueSaturation.renderToScreen = false;
+        this.composerFactoryInterior.addPass(new (0, _postprocessing.RenderPass)(this.scene, this.camera));
+        //composerFactoryInterior.addPass(brightnessContrast);
+        this.composerFactoryInterior.addPass(effectPassTonemapping);
+        this.composerFactoryInterior.addPass(godraysPass);
+    }
     addSkybox(visitedFromMobileDevice) {
         // Create a PMREMGenerator
         const pmremGenerator = new _three.PMREMGenerator(this.renderer);
@@ -223653,10 +223618,124 @@ class WorldScene {
     getCamera() {
         return this.camera;
     }
+    getComposerDefault() {
+        return this.composerDefault;
+    }
+    getComposerFactoryInterior() {
+        return this.composerFactoryInterior;
+    }
 }
 exports.default = WorldScene;
 
-},{"three":"ktPTu","three/examples/jsm/loaders/RGBELoader":"cfP3d","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"5o86C":[function(require,module,exports,__globalThis) {
+},{"three":"ktPTu","three/examples/jsm/loaders/RGBELoader":"cfP3d","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","postprocessing":"bM81O","three-good-godrays":"j7KiZ","./RedScreenEffect":"1QX1A","./FogEffect":"d8om8"}],"1QX1A":[function(require,module,exports,__globalThis) {
+// RedScreenEffect.js
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "RedScreenEffect", ()=>RedScreenEffect);
+var _postprocessing = require("postprocessing");
+var _three = require("three");
+// Fragment shader as a string (since we can't import .frag files in this environment)
+const fragmentShader = `
+uniform float opacity;
+
+void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
+    // Mix original color with red
+    vec3 redColor = vec3(1.0, 0.0, 0.0);
+    vec3 mixedColor = mix(inputColor.rgb, redColor, opacity);
+    
+    outputColor = vec4(mixedColor, inputColor.a);
+}
+`;
+class RedScreenEffect extends (0, _postprocessing.Effect) {
+    constructor(opacity = 0.5){
+        super("RedScreenEffect", fragmentShader, {
+            blendFunction: (0, _postprocessing.BlendFunction).NORMAL,
+            uniforms: new Map([
+                [
+                    "opacity",
+                    new (0, _three.Uniform)(opacity)
+                ]
+            ])
+        });
+    }
+    // Helper method to update red intensity
+    setOpacity(value) {
+        this.uniforms.get("opacity").value = value;
+    }
+}
+
+},{"postprocessing":"bM81O","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","three":"ktPTu"}],"d8om8":[function(require,module,exports,__globalThis) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "FogEffect", ()=>FogEffect);
+var _postprocessing = require("postprocessing");
+var _three = require("three");
+// Fragment shader that reads and displays depth
+const fragmentShader = `
+uniform float cameraNear;
+uniform float cameraFar;
+uniform float fogStart;
+uniform float fogEnd;
+
+float readDepth(sampler2D depthSampler, vec2 coord) {
+    float fragCoordZ = texture2D(depthSampler, coord).x;
+    float viewZ = perspectiveDepthToViewZ(fragCoordZ, cameraNear, cameraFar);
+    return viewZToOrthographicDepth(viewZ, cameraNear, cameraFar);
+}
+
+void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
+
+    float fogEnd = 500.0;
+    float fogStart = 150.0;
+    float fogPower = 0.9;
+    float fogIntensity = 1.0;
+    vec3 fogColor = vec3(1.0, 1.0, 1.0);
+
+
+    // Read linearized depth value (0.0 = near plane, 1.0 = far plane)
+    float depth = readDepth(depthBuffer, uv);
+
+    // Convert normalized depth back to world space distance
+    float worldDistance = mix(cameraNear, cameraFar, depth);
+
+    // Remap world distance to fog range
+    //float fogFactor = smoothstep(fogStart, fogEnd, worldDistance);
+
+    // Alternative: use linear interpolation instead of smoothstep
+    float fogFactorLinear = clamp((worldDistance - fogStart) / (fogEnd - fogStart), 0.0, 1.0);
+
+    // Apply power curve for smooth falloff
+    float fogFactor = pow(fogFactorLinear, fogPower);
+
+    // Mix original color with fog color based on fog factor
+    // fogFactor = 0.0 -> show original color (no fog)
+    // fogFactor = 1.0 -> show fog color (full fog)
+    vec3 mixedColor = mix(inputColor.rgb, fogColor, fogFactor * fogIntensity);
+
+    outputColor = vec4(mixedColor, 1.0);
+}
+`;
+class FogEffect extends (0, _postprocessing.Effect) {
+    constructor(camera){
+        super("DepthVisualizationEffect", fragmentShader, {
+            blendFunction: (0, _postprocessing.BlendFunction).NORMAL,
+            attributes: (0, _postprocessing.EffectAttribute).DEPTH,
+            uniforms: new Map([
+                [
+                    "cameraNear",
+                    new (0, _three.Uniform)(camera.near)
+                ],
+                [
+                    "cameraFar",
+                    new (0, _three.Uniform)(camera.far)
+                ]
+            ])
+        });
+        this.camera = camera;
+    }
+}
+
+},{"postprocessing":"bM81O","three":"ktPTu","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"5o86C":[function(require,module,exports,__globalThis) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 var _three = require("three");
@@ -223737,7 +223816,7 @@ class ModelLoader {
         const now = Date.now();
         Object.keys(this.lastAccessTime).forEach((url)=>{
             if (now - this.lastAccessTime[url] > this.cacheTimeout) {
-                console.log(`Clearing cache for model: ${url}`);
+                //console.log(`Clearing cache for model: ${url}`);
                 delete this.modelCache[url];
                 delete this.lastAccessTime[url];
             }
