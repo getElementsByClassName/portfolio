@@ -1024,9 +1024,9 @@ const camera = worldScene.getCamera();
 //const axesHelper = new THREE.AxesHelper(1000);
 //worldScene.scene.add(axesHelper);
 //show stats, updated in animation loop
-const stats = (0, _statsModuleDefault.default)();
-stats.showPanel(0);
-document.body.appendChild(stats.dom);
+// const stats = Stats();
+// stats.showPanel(0);
+// document.body.appendChild(stats.dom);
 /********************************************************************
 // Sounds
 ********************************************************************/ const soundManager = new (0, _soundManagerJsDefault.default)(camera);
@@ -1222,13 +1222,13 @@ function fnCheckIfPlayerIsInFactoryTrigger(playerPosition, deltaTime) {
         if (isPlayerInTrigger !== previousPlayerInsideFactory) {
             previousPlayerInsideFactory = isPlayerInTrigger;
             if (isPlayerInTrigger) {
-                playerIsInsideFactory = true;
+                //playerIsInsideFactory = true;
                 activeComposer = worldScene.getComposerFactoryInterior();
                 //windowMaterial.transparent = true;
                 const windSound = soundManager.sounds['wind'];
                 if (windSound) windSound.setVolume(0.1 * soundManager.masterVolume);
             } else {
-                playerIsInsideFactory = false;
+                //playerIsInsideFactory = false;
                 activeComposer = worldScene.getComposerDefault();
                 const windSound = soundManager.sounds['wind'];
                 if (windSound) windSound.setVolume(0.3 * soundManager.masterVolume);
@@ -2935,8 +2935,8 @@ function animate() {
     //fnCheckIfPlayerIsInFactoryTrigger(playerPosition, deltaTime);
     // Render once at the end of your animate function
     activeComposer.render(deltaTime);
-    //worldScene.composerDefault.render(deltaTime);
-    stats.update();
+//worldScene.composerDefault.render(deltaTime);
+//stats.update();
 // Check total materials created
 //console.log('Total Materials:', renderer.info.memory.geometries, renderer.info.memory.textures);
 // More detailed memory info
