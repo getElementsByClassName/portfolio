@@ -52,7 +52,7 @@
 }
 
 #container-contact {
-  background-image: linear-gradient(130deg, #c37d04 0%, #b57308 0%, #a86c0b -1%, #9b650d -1%, #8f5c0f -1%, #845510 -1%, #744b11 -1%, #6a4511 -1%, #5f3f11 0%, #513510 0%, #472f10 2%, #3d290f 4%, #30210d 7%, #281b0b 12%, #1d1407 20%, #110b03 35%, #000 99%);
+  background-image: linear-gradient(130deg, #c27d05 0%, #b57308 0%, #a86c0b -1%, #9b650d -1%, #8f5c0f -1%, #845510 -1%, #744b11 -1%, #6a4511 -1%, #5f3f11 0%, #513510 0%, #472f10 2%, #3d290f 4%, #30210d 7%, #281b0b 12%, #1d1407 20%, #110b03 35%, #000 99%);
   justify-content: center;
   align-items: flex-start;
   width: 100svw;
@@ -62,6 +62,7 @@
 }
 
 .card-container {
+  -webkit-user-select: none;
   user-select: none;
   flex-wrap: wrap;
   justify-content: flex-start;
@@ -237,6 +238,7 @@ footer > p, #currentYear {
 
 nav, .secondary-menu {
   z-index: 5000;
+  -webkit-user-select: none;
   user-select: none;
   opacity: 1;
   flex-direction: column;
@@ -344,14 +346,7 @@ nav:hover, .secondary-menu:hover {
 #container-projects {
   color: #fff;
   text-align: center;
-  background-color: #0000;
-  background-image: linear-gradient(#000c, #5cb0b980), url("bg.d8243788.webp");
-  background-position: center;
-  background-repeat: repeat, no-repeat;
-  background-size: cover;
-  background-attachment: scroll, scroll;
-  background-origin: padding-box, padding-box;
-  background-clip: border-box, border-box;
+  background: linear-gradient(#000, 70%, #000000f9) center / cover;
   justify-content: center;
   align-items: center;
   width: 100%;
@@ -360,21 +355,15 @@ nav:hover, .secondary-menu:hover {
   position: relative;
 }
 
-@media (width <= 768px) and (orientation: portrait) {
-  #container-projects {
-    background: linear-gradient(#000000e6, #5cb0b9);
-  }
-}
-
 .content {
   z-index: 1;
-  max-width: 60vw;
-  min-height: 100svh;
+  max-width: 70vw;
   overflow-y: hidden;
 }
 
 .content > h2 {
   letter-spacing: -2px;
+  -webkit-user-select: none;
   user-select: none;
   margin-top: 4svh;
   margin-bottom: 4svh;
@@ -387,20 +376,21 @@ nav:hover, .secondary-menu:hover {
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  gap: 20px;
+  gap: 100px;
   height: auto;
-  margin-bottom: 5svh;
   display: flex;
 }
 
 .image-container {
   cursor: pointer;
-  border-radius: 2.5px;
-  flex: calc(33.33% - 20px);
-  height: 100%;
+  border-radius: 1.5px;
+  flex-direction: column;
+  flex: calc(33.33% - 100px);
+  height: auto;
   margin-bottom: 0;
+  display: flex;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 @media (width <= 1024px) {
@@ -413,11 +403,17 @@ nav:hover, .secondary-menu:hover {
   }
 }
 
+.image-container picture {
+  border-radius: 2.5px;
+  position: relative;
+  overflow: hidden;
+}
+
 .image-container img {
   object-fit: cover;
   filter: grayscale();
   width: 100%;
-  height: 34svh;
+  height: 30.6svh;
   display: block;
 }
 
@@ -459,14 +455,24 @@ nav:hover, .secondary-menu:hover {
   bottom: 0;
 }
 
+.image-container .text-content {
+  color: #fff;
+  text-align: left;
+  z-index: 3;
+  width: 100%;
+  margin-top: .5rem;
+  padding-top: 10px;
+}
+
 .line-1 {
-  font-size: 1.25rem;
-  font-weight: 100;
+  margin-bottom: 2.5px;
+  font-size: .9rem;
+  font-weight: 600;
 }
 
 .line-2 {
-  font-size: .8rem;
-  font-weight: 100;
+  font-size: .75rem;
+  font-weight: 500;
 }
 
 #content-main-txt {
@@ -477,10 +483,11 @@ nav:hover, .secondary-menu:hover {
   line-height: 1.5;
 }
 
-.image-container:before {
+.image-container .image-overlay {
   content: "";
   opacity: 1;
   z-index: 1;
+  pointer-events: none;
   width: 100%;
   height: 100%;
   transition: opacity .4s;
@@ -489,8 +496,21 @@ nav:hover, .secondary-menu:hover {
   left: 0;
 }
 
+.image-container:before {
+  content: "";
+  opacity: 1;
+  z-index: 1;
+  pointer-events: none;
+  width: 100%;
+  height: 30.6svh;
+  transition: opacity .4s;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
 .color-text-overlay {
-  background-color: var(--color-overlay-main);
+  background-color: none;
 }
 
 .color-glass {
@@ -551,7 +571,7 @@ nav:hover, .secondary-menu:hover {
   color: var(--color-text);
 }
 
-.image-container:hover:before {
+.image-container:hover:before, .image-container:hover .image-overlay {
   opacity: 0;
 }
 
