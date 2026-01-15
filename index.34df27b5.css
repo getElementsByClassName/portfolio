@@ -351,8 +351,8 @@ nav:hover, .secondary-menu:hover {
   align-items: center;
   width: 100%;
   min-height: 100svh;
+  padding-bottom: 5svh;
   display: flex;
-  position: relative;
 }
 
 .content {
@@ -395,7 +395,7 @@ nav:hover, .secondary-menu:hover {
 
 @media (width <= 1024px) {
   .content {
-    max-width: 90vw;
+    max-width: 40vw;
   }
 
   .image-container {
@@ -418,8 +418,8 @@ nav:hover, .secondary-menu:hover {
 }
 
 @media (width <= 1024px) and (orientation: landscape) {
-  .image-container img {
-    height: 65svh;
+  .image-grid {
+    gap: 50px;
   }
 }
 
@@ -439,8 +439,8 @@ nav:hover, .secondary-menu:hover {
     flex: calc(100% - 15px);
   }
 
-  .image-container img {
-    height: 45svh;
+  .image-grid {
+    gap: 40px;
   }
 }
 
@@ -483,20 +483,7 @@ nav:hover, .secondary-menu:hover {
   line-height: 1.5;
 }
 
-.image-container .image-overlay {
-  content: "";
-  opacity: 1;
-  z-index: 1;
-  pointer-events: none;
-  width: 100%;
-  height: 100%;
-  transition: opacity .4s;
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
-.image-container:before {
+.image-container .image-overlay, .image-container:before {
   content: "";
   opacity: 1;
   z-index: 1;
