@@ -79,6 +79,7 @@
   width: 40svw;
   max-height: 75svh;
   margin-top: 5svh;
+  overflow-y: scroll;
 }
 
 .card p {
@@ -146,10 +147,6 @@
 }
 
 @media (orientation: landscape) {
-  #container-contact {
-    height: auto;
-  }
-
   .card {
     width: 70%;
   }
@@ -169,22 +166,16 @@
 @media (orientation: portrait) {
   .card {
     width: 100%;
-    height: auto;
+    height: 68svh;
   }
 
   .card-container {
-    height: auto;
-    margin-bottom: 2svh;
-  }
-
-  .contact-info {
-    margin-top: 5svh;
+    height: 40 svh;
   }
 
   @media (width <= 768px) {
     .card p {
       font-size: 1rem;
-      line-height: 1.55rem;
     }
   }
 }

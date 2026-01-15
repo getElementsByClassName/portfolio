@@ -1843,7 +1843,7 @@ async function fnLoadFactoryInteriorModel(url) {
     mesh.receiveShadow = true;
     mesh.rotateY(-Math.PI / 2);
     mesh.position.set(position.x, position.y, position.z);
-    mesh.scale.set(9.98, 9.98, 9.98);
+    mesh.scale.set(9.97, 9.97, 9.97);
     //mesh.scale.set(10, 10, 10);
     diffuseMap = mesh.material.map;
     //colliderMesh = model.children[1];
@@ -1882,7 +1882,7 @@ async function fnLoadFactoryInteriorModel(url) {
     );
     //projector.rotation.set(0, -Math.PI / 2, 0);  // -90 degrees on X axis
     projector.lookAt(projectionParams.offsetX * surfaceWidth + 50, projectionParams.offsetY * surfaceHeight, 0); // Point at the center of the desired projection area
-    worldScene.scene.add(projector);
+    //worldScene.scene.add(projector);
     //projector.position.set(0, 0, 0);
     //soundManager.play('projector');
     const projectorAudioSource = new _three.Object3D();
@@ -2614,7 +2614,7 @@ const grassMaterial = new (0, _vanillaDefault.default)({
 });
 /********************************************************************
 // Terrain Logic
-********************************************************************/ /** Terrain Constants */ const chunkSize = 250; // Size of each terrain chunk (200)
+********************************************************************/ /** Terrain Constants */ const chunkSize = 270; // Size of each terrain chunk (200)
 const viewRadius = 6; // Number of chunks to load around the player (5)
 const unloadRadius = 7; // Number of chunks to unload outside this radius (6)
 const chunkVertexCount = 8; // 4
@@ -2827,14 +2827,12 @@ const GRASS_LOD_LEVELS = [
     },
     {
         distanceSq: 1000000,
-        multiplier: 0.1
+        multiplier: 0.001
     },
     {
         distanceSq: 1210000,
-        multiplier: 0.1
+        multiplier: 0.001
     },
-    //{ distanceSq: 1200 * 1200, multiplier: 0.001 }, // 1440000
-    //{ distanceSq: 1400 * 1400, multiplier: 0.001 }, // 1440000
     {
         distanceSq: Infinity,
         multiplier: 0.001
@@ -210783,7 +210781,7 @@ class WorldScene {
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = _three.PCFSoftShadowMap;
         this.renderer.shadowMap.autoUpdate = true;
-        this.renderer.toneMappingExposure = 0.165;
+        this.renderer.toneMappingExposure = 0.195;
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.container.appendChild(this.renderer.domElement);
         this.composerDefault = new (0, _postprocessing.EffectComposer)(this.renderer, {
@@ -210863,11 +210861,12 @@ class WorldScene {
         const effectBloom = new (0, _postprocessing.SelectiveBloomEffect)(this.scene, this.camera, {
             blendFunction: (0, _postprocessing.BlendFunction).ADD,
             mipmapBlur: true,
-            //levels: 7,
-            luminanceThreshold: 0.9,
-            luminanceSmoothing: 0.2,
-            intensity: 0.75,
-            opacity: 1.0
+            levels: 7,
+            luminanceThreshold: 1.0,
+            luminanceSmoothing: 0.5,
+            intensity: 0.55,
+            opacity: 1.0,
+            radius: 0.75
         });
         //add skybox here!!
         //effectBloom.selection.add(redCube)
