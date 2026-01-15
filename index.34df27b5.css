@@ -56,7 +56,7 @@
   justify-content: center;
   align-items: flex-start;
   width: 100svw;
-  min-height: 100svh;
+  height: 100svh;
   display: flex;
   position: relative;
 }
@@ -79,7 +79,6 @@
   width: 40svw;
   max-height: 75svh;
   margin-top: 5svh;
-  overflow-y: scroll;
 }
 
 .card p {
@@ -147,6 +146,10 @@
 }
 
 @media (orientation: landscape) {
+  #container-contact {
+    height: auto;
+  }
+
   .card {
     width: 70%;
   }
@@ -167,29 +170,21 @@
   .card {
     width: 100%;
     height: auto;
-    max-height: none;
-    overflow-y: visible;
   }
 
   .card-container {
     height: auto;
-    position: relative;
-  }
-
-  #container-contact {
-    height: auto;
+    margin-bottom: 2svh;
   }
 
   .contact-info {
-    margin-top: 2rem;
-    position: relative;
-    top: auto;
-    left: 0;
+    margin-top: 5svh;
   }
 
   @media (width <= 768px) {
     .card p {
       font-size: 1rem;
+      line-height: 1.55rem;
     }
   }
 }
