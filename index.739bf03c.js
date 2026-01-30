@@ -623,6 +623,8 @@ var _stonefigureJs = require("./shaders/stonefigure.js");
 var _stonefigureJsDefault = parcelHelpers.interopDefault(_stonefigureJs);
 var _videoFadeJs = require("./shaders/videoFade.js");
 var _videoFadeJsDefault = parcelHelpers.interopDefault(_videoFadeJs);
+var _fadeJs = require("./shaders/fade.js");
+var _fadeJsDefault = parcelHelpers.interopDefault(_fadeJs);
 var _patchProjectorMaterialJs = require("./patchProjectorMaterial.js");
 var _patchProjectorMaterialJsDefault = parcelHelpers.interopDefault(_patchProjectorMaterialJs);
 var _contentJson = require("./content.json");
@@ -996,7 +998,7 @@ const hideWasdIcon = function() {
 ********************************************************************/ /********************************************************************
 // Scene Constants
 ********************************************************************/ let velocity = new _three.Vector3();
-let SPEED = 480.0; //560
+let SPEED = 450.0; //560
 const PERSON_HEIGHT = 22.0; //21
 const DISTANCE_TEXTURE_SWAP = 300.0;
 const DISTANCE_TEXTURE_DISPOSE = 650.0;
@@ -1015,9 +1017,9 @@ const camera = worldScene.getCamera();
 //const axesHelper = new THREE.AxesHelper(1000);
 //worldScene.scene.add(axesHelper);
 //show stats, updated in animation loop
-// const stats = Stats();
-// stats.showPanel(0);
-// document.body.appendChild(stats.dom);
+const stats = (0, _statsModuleDefault.default)();
+stats.showPanel(0);
+document.body.appendChild(stats.dom);
 /********************************************************************
 // Sounds
 ********************************************************************/ const soundManager = new (0, _soundManagerJsDefault.default)(camera);
@@ -1410,83 +1412,9 @@ const fadeShaderMaterial = new (0, _vanillaDefault.default)({
             value: 1.0
         }
     },
-    vertexShader: `
-        varying vec3 vWorldPosition;
-        varying vec3 vNormalVector;
-        varying vec2 vUv;
-        void main() {
-            vUv = uv;
-            vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
-            //gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            csm_PositionRaw = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-    `,
-    fragmentShader: `
-        uniform bool uHasDiffuseMap;
-        uniform sampler2D uDiffuseMap;
-        uniform vec3 uColor;
-        uniform float uFadeHeight;
-        uniform float uTerrainHeight;
-        uniform vec3 uMeshPosition;
-        uniform float uBrightness;
-        varying vec3 vWorldPosition;
-        varying vec2 vUv;
-
-        void main() {
-            vec4 colorDiffuse = vec4(uColor, 1.0); // Use solid color if no diffuse map
-
-            if (uHasDiffuseMap) {
-                colorDiffuse = texture2D(uDiffuseMap, vUv);
-            } else {
-                colorDiffuse = vec4(uColor, 1.0);
-            }
-
-
-            // Compute the fade effect
-            float fadeFactor = smoothstep(uTerrainHeight, uTerrainHeight + uFadeHeight, vWorldPosition.y);
-
-            // Ensure the fade effect remains strong even with envMap blending
-            colorDiffuse.rgb *= fadeFactor;
-
-            //add brightness
-            colorDiffuse.rgb *= uBrightness;
-
-            csm_DiffuseColor = colorDiffuse;
-            //csm_DiffuseColor = vec4(1.0, 0.0, 0.0, 1.0);
-        },
-        
-    `,
+    vertexShader: (0, _fadeJsDefault.default).vert,
+    fragmentShader: (0, _fadeJsDefault.default).frag,
     side: _three.FrontSide
-});
-const powerlinesFadeShader = new (0, _vanillaDefault.default)({
-    baseMaterial: _three.MeshStandardMaterial,
-    uniforms: {
-        uDiffuseMap: {
-            value: null
-        },
-        uHasDiffuseMap: {
-            value: false
-        },
-        uColor: {
-            value: new _three.Color(1, 1, 1)
-        },
-        uTerrainHeight: {
-            value: null
-        },
-        uFadeHeight: {
-            value: 5.5
-        },
-        uMeshPosition: {
-            value: null
-        },
-        uBrightness: {
-            value: 1.0
-        }
-    },
-    vertexShader: fadeShaderMaterial.__csm.vertexShader,
-    fragmentShader: fadeShaderMaterial.__csm.fragmentShader,
-    side: _three.FrontSide,
-    fog: false
 });
 const factoryShader = new (0, _vanillaDefault.default)({
     baseMaterial: _three.MeshStandardMaterial,
@@ -1694,27 +1622,26 @@ async function fnLoadPowerlinesModel(url) {
     model.rotateY(-Math.PI / 4);
     model.position.set(position.x, getHeight(position.x, position.z) - 2, position.z);
     mesh = model.children.find((child)=>child.isMesh);
-    powerlinesFadeShader.uniforms.uColor.value = new _three.Vector3(0.175, 0.175, 0.175);
-    powerlinesFadeShader.uniforms.uDiffuseMap.value = null;
-    powerlinesFadeShader.uniforms.uMeshPosition.value = new _three.Vector3(position.x, getHeight(position.x, position.z) - 2, position.z);
-    powerlinesFadeShader.uniforms.uTerrainHeight.value = getHeight(position.x, position.z);
-    powerlinesFadeShader.uniforms.uFadeHeight.value = 5.0;
-    powerlinesFadeShader.uniforms.uHasDiffuseMap.value = false;
-    powerlinesFadeShader.envMap = envMap;
-    powerlinesFadeShader.envMapIntensity = 0.55;
+    // Create powerlines material from fadeShaderMaterial clone
+    const powerlinesMaterial = fadeShaderMaterial.clone();
+    powerlinesMaterial.uniforms.uColor.value = new _three.Vector3(0.175, 0.175, 0.175);
+    powerlinesMaterial.uniforms.uDiffuseMap.value = null;
+    powerlinesMaterial.uniforms.uMeshPosition.value = new _three.Vector3(position.x, getHeight(position.x, position.z) - 2, position.z);
+    powerlinesMaterial.uniforms.uTerrainHeight.value = getHeight(position.x, position.z);
+    powerlinesMaterial.uniforms.uFadeHeight.value = 5.0;
+    powerlinesMaterial.uniforms.uHasDiffuseMap.value = false;
+    powerlinesMaterial.envMap = envMap;
+    powerlinesMaterial.envMapIntensity = 0.4;
+    powerlinesMaterial.fog = false;
+    powerlinesMaterial.metalness = 1.0;
+    powerlinesMaterial.roughness = 0.3;
     model.children[1].material = powerlinesShaderMaterial;
     model.children[3].material = powerlinesShaderMaterial;
     model.children[4].material = powerlinesShaderMaterial;
     model.children[6].material = powerlinesShaderMaterial;
-    model.children[0].children[0].material = powerlinesFadeShader;
-    model.children[0].children[1].material = powerlinesFadeShader;
-    model.children[0].children[2].material = powerlinesFadeShader;
-    model.children[0].children[0].material.metalness = 1.0;
-    model.children[0].children[1].material.metalness = 1.0;
-    model.children[0].children[2].material.metalness = 1.0;
-    //model.children[0].children[0].material.fog = true;
-    //model.children[0].children[1].material.fog = true;
-    //model.children[0].children[2].material.fog = true;
+    model.children[0].children[0].material = powerlinesMaterial;
+    model.children[0].children[1].material = powerlinesMaterial;
+    model.children[0].children[2].material = powerlinesMaterial;
     model.traverse((child)=>{
         if (child.isMesh && child.name.includes("Power_Lines")) {
             child.material.transparent = true;
@@ -1930,6 +1857,89 @@ async function fnLoadFactoryInteriorModel(url) {
     (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, position, diffuseMap, true, true, 700, false, colliderBVH, collisionRadius);
     worldScene.scene.add(mesh);
 }
+/********************************************************************
+// VIDEO PROJECTION TEST
+********************************************************************/ async function fnLoadStoneModelWithProjection({ modelURL = null, name = null, position = new _three.Vector2(0, 0), scale = 1, envMapIntensity = 0.4, isFaded = false, fadeHeight = 15.0 } = {}) {
+    let colliderBVH;
+    const height = getHeight(position.x, position.y);
+    // Example: model loaded with MeshStandardMaterial
+    const model = await modelLoader.loadModel(modelURL);
+    const collider = model.children.find((child)=>child.isMesh && child.name === "collider");
+    const lod1 = model.children.find((child)=>child.isMesh && child.name === "lod1");
+    const lod2 = model.children.find((child)=>child.isMesh && child.name === "lod2");
+    collider.visible = false;
+    //console.log(collider)
+    collider.rotateY(Math.PI * 6 / 4);
+    collider.position.set(position.x, getHeight(position.x, position.y), position.y);
+    collider.scale.set(scale, scale, scale);
+    //const mesh = model.children.find(child => child.isMesh && child.name === name);
+    const diffuseMap = lod1.material.map;
+    model.scale.set(scale);
+    const lod = new _three.LOD();
+    lod.addLevel(lod1, DISTANCE_LOD0);
+    lod.addLevel(lod2, DISTANCE_LOD1);
+    lod.position.set(position.x, getHeight(position.x, position.y), position.y);
+    lod.scale.set(scale, scale, scale);
+    lod.rotateY(Math.PI * 6 / 4);
+    // Ensure world matrix is updated before applying it to geometry
+    collider.updateMatrixWorld(true);
+    const geom = collider.geometry.clone();
+    geom.applyMatrix4(collider.matrixWorld);
+    // Create BVH from the transformed geometry
+    geom.boundsTree = new (0, _threeMeshBvh.MeshBVH)(geom);
+    // Assign the transformed geometry to the mesh
+    collider.geometry = geom;
+    // Add to the scene
+    colliderBVH = collider.geometry.boundsTree;
+    const collisionRadius = colliderBVH.geometry.boundingSphere.radius + 10;
+    const projector = new _three.PerspectiveCamera(30, 16 / 9, 0.01, 2);
+    projector.position.set(position.x, height + scale, position.y + 60);
+    //const helper = new THREE.CameraHelper(projector);
+    //worldScene.scene.add(helper);
+    const videoProjectionMaterial = new (0, _patchProjectorMaterialJsDefault.default)({
+        camera: projector,
+        texture: videoTextureProject,
+        textureScale: 0.9,
+        textureOffset: new _three.Vector2(0.0, -0.1),
+        cover: true,
+        map: diffuseMap,
+        roughness: 0.9,
+        side: _three.FrontSide,
+        envMap: envMap,
+        envMapIntensity: envMapIntensity,
+        fog: true,
+        opacity: 1.0,
+        isFaded: isFaded,
+        fadeHeight: fadeHeight,
+        terrainHeight: height
+    });
+    const LOD2Material = fadeShaderMaterial.clone();
+    LOD2Material.uniforms.uDiffuseMap.value = diffuseMap;
+    LOD2Material.uniforms.uHasDiffuseMap.value = true;
+    LOD2Material.uniforms.uColor.value = new _three.Color(1, 1, 1);
+    LOD2Material.uniforms.uTerrainHeight.value = height;
+    LOD2Material.uniforms.uFadeHeight.value = fadeHeight;
+    LOD2Material.uniforms.uMeshPosition.value = new _three.Vector3(position.x, height, position.y);
+    LOD2Material.envMap = envMap;
+    LOD2Material.envMapIntensity = envMapIntensity;
+    LOD2Material.roughness = 0.9;
+    LOD2Material.fog = true;
+    lod1.material = videoProjectionMaterial;
+    lod2.material = LOD2Material;
+    // and when you're ready project the texture on the box!
+    videoProjectionMaterial.project(lod1);
+    worldScene.scene.add(lod);
+    (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, lod1, new _three.Vector3(position.x, 0, position.y), diffuseMap, true, true, DISTANCE_TEXTURE_SWAP, false, colliderBVH, collisionRadius);
+}
+fnLoadStoneModelWithProjection({
+    modelURL: "./assets/models/video_rock/video_rock.glb",
+    name: "video_rock",
+    position: new _three.Vector2(-400, 200),
+    scale: 10,
+    envMapIntensity: 0.5,
+    isFaded: true,
+    fadeHeight: 18.5
+});
 async function fnLoadHQTexture(data) {
     if (!data) return;
     const material = data.mesh.material;
@@ -2092,16 +2102,7 @@ const stoneFigureParams = [
         isAnimating: false,
         color: new _three.Color(0xf6e3ff)
     },
-    {
-        url: "./assets/models/dog_figure/dog_figure.glb",
-        name: "dog_figure",
-        position: (0, _utilsJsDefault.default).fnGetRandomPosition(600, 800, 850),
-        scale: new _three.Vector3(3.5, 3.5, 3.5),
-        rotation: -Math.PI / 4,
-        material: createStoneFigureMaterial(),
-        isAnimating: false,
-        color: new _three.Color(0xf6e3ff)
-    },
+    //{ url: './assets/models/dog_figure/dog_figure.glb', name: 'dog_figure', position: Utils.fnGetRandomPosition(600, 800, 850), scale: new THREE.Vector3(3.5, 3.5, 3.5), rotation: -Math.PI / 4, material: createStoneFigureMaterial(), isAnimating: false, color: new THREE.Color(0xf6e3ff) },
     {
         url: "./assets/models/mouse_figure/mouse_figure.glb",
         name: "mouse_figure",
@@ -2199,75 +2200,6 @@ function fnToggleFigureAnimation(stoneFigureParams, figureName) {
         break; // Exit loop once found
     }
 }
-/********************************************************************
-// VIDEO PROJECTION TEST
-********************************************************************/ async function fnLoadModelWithProjection({ modelURL = null, name = null, position = new _three.Vector2(0, 0), scale = 1, //envMap = envMap,
-envMapIntensity = 0.4, isFaded = false, fadeHeight = 15.0 } = {}) {
-    let colliderBVH;
-    const height = getHeight(position.x, position.y);
-    // Example: model loaded with MeshStandardMaterial
-    const model = await modelLoader.loadModel(modelURL);
-    const collider = model.children.find((child)=>child.isMesh && child.name === "collider");
-    collider.visible = false;
-    console.log(collider);
-    collider.rotateY(Math.PI * 6 / 4);
-    collider.position.set(position.x, getHeight(position.x, position.y), position.y);
-    collider.scale.set(scale, scale, scale);
-    const mesh = model.children.find((child)=>child.isMesh && child.name === name);
-    const diffuseMap = mesh.material.map;
-    model.scale.set(scale);
-    const lod = new _three.LOD();
-    lod.addLevel(mesh, DISTANCE_LOD0);
-    lod.position.set(position.x, getHeight(position.x, position.y), position.y);
-    lod.scale.set(scale, scale, scale);
-    lod.rotateY(Math.PI * 6 / 4);
-    // Ensure world matrix is updated before applying it to geometry
-    collider.updateMatrixWorld(true);
-    const geom = collider.geometry.clone();
-    geom.applyMatrix4(collider.matrixWorld);
-    // Create BVH from the transformed geometry
-    geom.boundsTree = new (0, _threeMeshBvh.MeshBVH)(geom);
-    // Assign the transformed geometry to the mesh
-    collider.geometry = geom;
-    // Add to the scene
-    colliderBVH = collider.geometry.boundsTree;
-    const collisionRadius = colliderBVH.geometry.boundingSphere.radius;
-    const projector = new _three.PerspectiveCamera(30, 16 / 9, 0.01, 2);
-    projector.position.set(position.x, height + scale, position.y + 60);
-    //const helper = new THREE.CameraHelper(projector);
-    //worldScene.scene.add(helper);
-    const material = new (0, _patchProjectorMaterialJsDefault.default)({
-        camera: projector,
-        texture: videoTextureProject,
-        textureScale: 0.9,
-        textureOffset: new _three.Vector2(0.0, -0.1),
-        cover: true,
-        map: diffuseMap,
-        roughness: 0.9,
-        side: _three.FrontSide,
-        envMap: envMap,
-        envMapIntensity: envMapIntensity,
-        fog: true,
-        opacity: 1.0,
-        isFaded: isFaded,
-        fadeHeight: fadeHeight,
-        terrainHeight: height
-    });
-    mesh.material = material;
-    // and when you're ready project the texture on the box!
-    material.project(mesh);
-    worldScene.scene.add(lod);
-    (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, new _three.Vector3(position.x, 0, position.y), diffuseMap, true, true, DISTANCE_TEXTURE_SWAP, false, colliderBVH, collisionRadius);
-}
-fnLoadModelWithProjection({
-    modelURL: "./assets/models/video_rock/video_rock.glb",
-    name: "video_rock",
-    position: new _three.Vector2(-400, 200),
-    scale: 10,
-    envMapIntensity: 0.5,
-    isFaded: true,
-    fadeHeight: 18.5
-});
 /********************************************************************
 // Video Plane
 ********************************************************************/ // Create a video element
@@ -2539,17 +2471,20 @@ function fnUpdateControls(deltaTime) {
             });
         }
     });
-    if (intersects.length > 0) for (const { tri, closestPoint, distance } of intersects){
-        // Get collision normal
-        const collisionNormal = tri.getNormal(new _three.Vector3());
-        // Push the player out along the collision normal
-        const penetrationDepth = playerRadius - distance;
-        newPosition.addScaledVector(collisionNormal, penetrationDepth);
-        // Slide along the collision plane
-        const velocityDot = velocity.dot(collisionNormal);
-        const slideVector = velocity.clone().sub(collisionNormal.multiplyScalar(velocityDot));
-        velocity.copy(slideVector);
-    }
+    // if (intersects.length > 0) {
+    //     console.log('collision')
+    //     for (const { tri, closestPoint, distance } of intersects) {
+    //         // Get collision normal
+    //         const collisionNormal = tri.getNormal(new THREE.Vector3());
+    //         // Push the player out along the collision normal
+    //         const penetrationDepth = playerRadius - distance;
+    //         newPosition.addScaledVector(collisionNormal, penetrationDepth);
+    //         // Slide along the collision plane
+    //         const velocityDot = velocity.dot(collisionNormal);
+    //         const slideVector = velocity.clone().sub(collisionNormal.multiplyScalar(velocityDot));
+    //         velocity.copy(slideVector);
+    //     }
+    // }
     // --- COLLISION CHECK END ---
     // Apply the new position
     playerCollider.center.copy(newPosition);
@@ -2615,10 +2550,10 @@ const grassMaterial = new (0, _vanillaDefault.default)({
 /********************************************************************
 // Terrain Logic
 ********************************************************************/ /** Terrain Constants */ const chunkSize = 270; // Size of each terrain chunk (200)
-const viewRadius = 6; // Number of chunks to load around the player (5)
-const unloadRadius = 7; // Number of chunks to unload outside this radius (6)
+const viewRadius = 6; // Number of chunks to load around the player (6)
+const unloadRadius = 7; // Number of chunks to unload outside this radius (7)
 const chunkVertexCount = 8; // 4
-const instanceCount = 4000; //(4750) (19500)
+const instanceCount = 3500; //(4750) (19500)
 const loadedChunks = new Map(); // Store references to loaded chunks
 // Define special chunk configurations by their X, Z values
 const specialChunks = {
@@ -2799,19 +2734,19 @@ const GRASS_LOD_LEVELS = [
     },
     {
         distanceSq: 90000,
-        multiplier: 0.95
+        multiplier: 0.9
     },
     {
         distanceSq: 160000,
-        multiplier: 0.90
-    },
-    {
-        distanceSq: 250000,
         multiplier: 0.85
     },
     {
+        distanceSq: 250000,
+        multiplier: 0.8
+    },
+    {
         distanceSq: 360000,
-        multiplier: 0.75
+        multiplier: 0.70
     },
     {
         distanceSq: 490000,
@@ -2823,7 +2758,7 @@ const GRASS_LOD_LEVELS = [
     },
     {
         distanceSq: 810000,
-        multiplier: 0.35
+        multiplier: 0.30
     },
     {
         distanceSq: 1000000,
@@ -2902,7 +2837,7 @@ function adjustGrassInstanceCount(playerPosition) {
     unloadFarChunks(playerPosition);
 }
 /********************************************************************
-// Function to fade out welcome screen
+// Function to fade out welcome screen and add Video Plane to scene
 ********************************************************************/ function fnFadeOutWelcomeScreen() {
     const welcomeScreen = document.getElementById("welcome-screen");
     welcomeScreen.classList.add("hidden");
@@ -2915,7 +2850,9 @@ function adjustGrassInstanceCount(playerPosition) {
 // Animate Function
 ********************************************************************/ let textureswapCheckCooldown = 0;
 const TEXTURE_SWAP_CHECK_INTERVAL = 100;
-function animate() {
+/********************************************************************
+// Animate function
+********************************************************************/ function animate() {
     const deltaTime = clock.getDelta();
     const playerPosition = camera.position;
     textureswapCheckCooldown -= deltaTime * 1000;
@@ -2981,7 +2918,7 @@ function animate() {
     // Render once at the end of your animate function
     activeComposer.render(deltaTime);
     //worldScene.composerDefault.render(deltaTime);
-    //stats.update();
+    stats.update();
     // Check total materials created
     //console.log('Total Materials:', renderer.info.memory.geometries, renderer.info.memory.textures);
     // More detailed memory info
@@ -2991,9 +2928,9 @@ function animate() {
     //renderer.setAnimationLoop(animate);
     //composerDefault.render(deltaTime);
     videoTexture.needsUpdate = true;
-} //renderer.setAnimationLoop(animate);
+}
 
-},{"three":"ktPTu","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./shaders/grass.js":"cNzyR","./shaders/powerlines.js":"gJXUV","./shaders/videotexture.js":"5S7oy","./content.json":"24cue","./GrassScene.js":"a5jmZ","./ModelLoader.js":"5o86C","cdb16b6f1235a7ac":"9rntO","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","three/examples/jsm/helpers/OctreeHelper.js":"70dYF","three/examples/jsm/math/Octree.js":"iwBOl","three-mesh-bvh":"6y2ur","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","three/examples/jsm/Addons.js":"iBAni","./Utils.js":"c7A1Q","./shaders/stonefigure.js":"e77je","./shaders/videoFade.js":"2lLRY","./patchProjectorMaterial.js":"joMhG","./WorldScene.js":"5ZFD0","./LODManager.js":"3L9vB","./SoundManager.js":"70lfs"}],"ktPTu":[function(require,module,exports) {
+},{"three":"ktPTu","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./shaders/grass.js":"cNzyR","./shaders/powerlines.js":"gJXUV","./shaders/videotexture.js":"5S7oy","./content.json":"24cue","./GrassScene.js":"a5jmZ","./ModelLoader.js":"5o86C","cdb16b6f1235a7ac":"9rntO","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","three/examples/jsm/helpers/OctreeHelper.js":"70dYF","three/examples/jsm/math/Octree.js":"iwBOl","three-mesh-bvh":"6y2ur","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","three/examples/jsm/Addons.js":"iBAni","./Utils.js":"c7A1Q","./shaders/stonefigure.js":"e77je","./shaders/videoFade.js":"2lLRY","./patchProjectorMaterial.js":"joMhG","./WorldScene.js":"5ZFD0","./LODManager.js":"3L9vB","./SoundManager.js":"70lfs","./shaders/fade.js":"gb4bA"}],"ktPTu":[function(require,module,exports) {
 /**
  * @license
  * Copyright 2010-2024 Three.js Authors
@@ -39846,7 +39783,7 @@ exports.default = {
 module.exports = "#define GLSLIFY 1\nuniform float time;\nuniform float windStrength;\nuniform float displacementScale;\nuniform vec3 cameraPos;\n\nattribute vec3 offset;\nattribute float scale;\nattribute mat3 instanceRotationMatrix;\nattribute vec2 uvs;\n\nvarying vec2 vUv;\nvarying float vHeight;\n\n// Wind cutoff distance - adjust as needed\nconst float WIND_CUTOFF_DISTANCE = 350.0;\n\n// Simplified hash function using fewer operations\nfloat hash(vec2 p) {\n    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);\n}\n\n// Simplified noise - single sample instead of bilinear interpolation\nfloat fastNoise(vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n    // Use smoother step function\n    vec2 u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);\n    \n    return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x),\n               mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);\n}\n\nvoid main() {\n    vUv = uv;\n    \n    // Transform grass geometry\n    vec3 transformedGrass = position * scale;\n    transformedGrass = instanceRotationMatrix * transformedGrass;\n    transformedGrass += offset;\n    \n    // Pre-calculate commonly used values\n    vHeight = clamp(position.y, 0.0, 1.0);\n    \n    // Calculate distance to camera (only XZ plane for ground-level grass)\n    float distanceToCamera = length(transformedGrass.xz - cameraPos.xz);\n    //float distanceSq = dot(transformedGrass.xz - cameraPos.xz, transformedGrass.xz - cameraPos.xz);\n    \n    // Skip wind calculations if beyond cutoff distance\n    if (distanceToCamera <= WIND_CUTOFF_DISTANCE) {\n        vec2 worldPos = transformedGrass.xz;\n        \n        // Single noise calculation for both axes (reuse result)\n        float baseNoise = fastNoise(worldPos * 0.1);\n        float timeNoise = fastNoise(vec2(time * 0.1, time * 0.05));\n        \n        // Combine noise effects\n        float windVariation = timeNoise * 0.35;\n        float totalWindEffect = 0.13 + windVariation;\n        \n        // Pre-calculate sine wave components\n        float timeOffset = time * 2.0;\n        float noiseOffset = baseNoise;\n        \n        // Calculate displacement power once\n        float displacementPower = 1.0 - cos(vHeight * 7.854); // 3.1416 / 0.4 = 7.854\n        \n        // Apply wind displacement to both axes\n        float sinZ = sin(offset.z * noiseOffset + timeOffset);\n        float sinX = sin(offset.x * noiseOffset + timeOffset);\n        \n        transformedGrass.z += sinZ * totalWindEffect * displacementPower;\n        transformedGrass.x += sinX * totalWindEffect * displacementPower * 1.2; \n    }\n    \n    csm_Position = transformedGrass;\n}\n\n/*\nuniform float time;\nuniform vec2 u_touch; // Touch position\nuniform float u_time; // Time for animating wind\nuniform float u_touchActive; // Indicates if the touch is active\nuniform float u_fadeSpeed;\nuniform float u_touchTime;\nuniform float windStrength;\nuniform sampler2D displacementMap;\nuniform float fieldSize;\nuniform float displacementScale;\n\nattribute vec3 offset;\nattribute float scale;\n//attribute float normalizedHeight;\nattribute mat3 instanceRotationMatrix;\nattribute vec2 uvs; // Incoming UV coordinates\n//varying vec2 sendUV;\n//attribute float rotation;\nvarying vec2 vUv;\n//varying vec2 csm_cloudUV;\n//varying vec3 csm_vWorldPosition;\n//varying vec3 csm_vViewPosition;\nvarying float vHeight;\n//varying vec3 csm_vPosition;\n\n\nfloat hash(vec2 p) {\n    p = 50.0 * fract(p * 0.3183099 + vec2(0.71));\n    return -1.0 + 2.0 * fract(p.x * p.y * (p.x + p.y));\n}\n\nfloat noise(vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n    vec2 u = f * f * (3.0 - 2.0 * f);\n    \n    return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),\n               mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);\n}\n\nvoid main() {\n    precision mediump float;\n\n            vUv = uv;\n       \n            vec3 transformedGrass = position * scale;\n            transformedGrass = instanceRotationMatrix * transformedGrass;\n            transformedGrass += offset;\n\n            vHeight = clamp(position.y, 0.0, 1.0); \n            \n            // Generate noise based on time\n            float n = noise(vec2(time * 0.1, time * 0.05));\n\n            // Scale the noise value to be in the range [0.0, 0.2]\n            float varyingValue = n * 0.35;\n  \n            float noise = noise(offset.xz);\n\n  \n\n            // Displacement power calculation\n            float displacementPower = 1.0 - cos( vHeight * 3.1416 / 0.4 );\n\n            //displacementMultiplier = 1.0 - cos(windEffect * vHeight * 3.1416);\n\n\n            transformedGrass.z += sin(offset.z * noise  + time * 2.0) * (0.13 + varyingValue) * displacementPower;\n            //transformedGrass.z += displacementMultiplier; // Add fading push effect on Z-axis\n\n            transformedGrass.x += sin(offset.x * noise  + time * 2.0) * (0.17 + varyingValue) * displacementPower;\n            //transformedGrass.x += displacementMultiplier; // Add fading push effect on X-axis\n            // + ((windEffect * 1.2) * vHeight) \n\n            csm_Position = transformedGrass;\n  \n}\n*/\n\n";
 
 },{}],"rAUpS":[function(require,module,exports) {
-module.exports = "#define GLSLIFY 1\nuniform sampler2D grassTexture;\nvarying vec2 vUv;\nvarying float vHeight;\n\n// Move constants outside main() - they're compile-time constants\nconst float brightness = 1.25;\nconst vec3 topBladeColor = vec3(0.365, 0.588, 0.369);\nconst float mixFactor = 0.50;\nconst float uvScale = 0.5; // 1.0/100.0 precomputed\n\nvoid main() {\n    // Remove precision declaration from main() - should be at top of shader\n    \n    // Single texture lookup\n    vec3 textureColor = texture2D(grassTexture, vUv * uvScale).rgb;\n    \n    // Combine operations to reduce instructions\n    // Mix with top blade color and apply height-based darkening in one step\n    float heightCubed = vHeight * vHeight * vHeight;\n    textureColor = mix(textureColor, topBladeColor, mixFactor) * heightCubed * brightness;\n    \n    csm_DiffuseColor = vec4(textureColor, 1.0);\n}\n\n/*\nuniform sampler2D grassTexture;\n//uniform sampler2D cloudTexture;\n//uniform vec3 fogColor;\n//uniform float fogDensity;\n//uniform vec3 vCameraPosition;\nvarying vec2 vUv;\n//varying vec2 sendUV;\n//varying vec2 cloudUV;\n//varying vec3 vWorldPosition;\n//varying vec3 csm_vWorldPosition;\nvarying float vHeight;\n//varying vec3 vPosition;\n//varying vec3 vViewPosition;\n//varying vec4 csm_DiffuseColor;\n\n//float contrast = 1.5;\nfloat brightness = 1.25;\n//vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n\nvec3 topBladeColor = vec3(0.365, 0.588, 0.369);\n\n\nvoid main() {\n\n    precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    \n    //float depth = length(csm_vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    //float fogFactor = 1.0 - exp(-fogDensity * depth);\n    //fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv / 100.0).rgb;\n    textureColor = mix(textureColor, topBladeColor, 0.70);\n    //float vHeight = clamp(vHeight, 0.0, 1.0);\n    textureColor *= vHeight * vHeight * vHeight;\n    textureColor *= brightness;\n\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    //vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n    //finalColor = mix(csm_DiffuseColor.rgb, topBladeColor, 1.0);\n    //csm_Emissive = textureColor;\n\n    csm_DiffuseColor = vec4(textureColor, 1.0);\n\n\n\n}\n\n*//*\nuniform sampler2D grassTexture;\n//uniform sampler2D cloudTexture;\n//uniform vec3 fogColor;\n//uniform float fogDensity;\n//uniform vec3 vCameraPosition;\nvarying vec2 vUv;\n//varying vec2 sendUV;\n//varying vec2 cloudUV;\n//varying vec3 vWorldPosition;\n//varying vec3 csm_vWorldPosition;\nvarying float vHeight;\n//varying vec3 vPosition;\n//varying vec3 vViewPosition;\n//varying vec4 csm_DiffuseColor;\n\n//float contrast = 1.5;\nfloat brightness = 1.25;\n//vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n\nvec3 topBladeColor = vec3(0.365, 0.588, 0.369);\n\n\nvoid main() {\n\n    precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    \n    //float depth = length(csm_vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    //float fogFactor = 1.0 - exp(-fogDensity * depth);\n    //fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv / 100.0).rgb;\n    textureColor = mix(textureColor, topBladeColor, 0.70);\n    //float vHeight = clamp(vHeight, 0.0, 1.0);\n    textureColor *= vHeight * vHeight * vHeight;\n    textureColor *= brightness;\n\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    //vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n    //finalColor = mix(csm_DiffuseColor.rgb, topBladeColor, 1.0);\n    //csm_Emissive = textureColor;\n\n    csm_DiffuseColor = vec4(textureColor, 1.0);\n\n\n\n}\n\n*//*\nuniform sampler2D grassTexture;\n//uniform sampler2D cloudTexture;\n//uniform vec3 fogColor;\n//uniform float fogDensity;\n//uniform vec3 vCameraPosition;\nvarying vec2 vUv;\n//varying vec2 sendUV;\n//varying vec2 cloudUV;\n//varying vec3 vWorldPosition;\n//varying vec3 csm_vWorldPosition;\nvarying float vHeight;\n//varying vec3 vPosition;\n//varying vec3 vViewPosition;\n//varying vec4 csm_DiffuseColor;\n\n//float contrast = 1.5;\nfloat brightness = 1.25;\n//vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n\nvec3 topBladeColor = vec3(0.365, 0.588, 0.369);\n\n\nvoid main() {\n\n    precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    \n    //float depth = length(csm_vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    //float fogFactor = 1.0 - exp(-fogDensity * depth);\n    //fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv / 100.0).rgb;\n    textureColor = mix(textureColor, topBladeColor, 0.70);\n    //float vHeight = clamp(vHeight, 0.0, 1.0);\n    textureColor *= vHeight * vHeight * vHeight;\n    textureColor *= brightness;\n\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    //vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n    //finalColor = mix(csm_DiffuseColor.rgb, topBladeColor, 1.0);\n    //csm_Emissive = textureColor;\n\n    csm_DiffuseColor = vec4(textureColor, 1.0);\n\n\n\n}\n\n*//*\nuniform sampler2D grassTexture;\n//uniform sampler2D cloudTexture;\n//uniform vec3 fogColor;\n//uniform float fogDensity;\n//uniform vec3 vCameraPosition;\nvarying vec2 vUv;\n//varying vec2 sendUV;\n//varying vec2 cloudUV;\n//varying vec3 vWorldPosition;\n//varying vec3 csm_vWorldPosition;\nvarying float vHeight;\n//varying vec3 vPosition;\n//varying vec3 vViewPosition;\n//varying vec4 csm_DiffuseColor;\n\n//float contrast = 1.5;\nfloat brightness = 1.25;\n//vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n\nvec3 topBladeColor = vec3(0.365, 0.588, 0.369);\n\n\nvoid main() {\n\n    precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    \n    //float depth = length(csm_vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    //float fogFactor = 1.0 - exp(-fogDensity * depth);\n    //fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv / 100.0).rgb;\n    textureColor = mix(textureColor, topBladeColor, 0.70);\n    //float vHeight = clamp(vHeight, 0.0, 1.0);\n    textureColor *= vHeight * vHeight * vHeight;\n    textureColor *= brightness;\n\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    //vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n    //finalColor = mix(csm_DiffuseColor.rgb, topBladeColor, 1.0);\n    //csm_Emissive = textureColor;\n\n    csm_DiffuseColor = vec4(textureColor, 1.0);\n\n\n\n}\n\n*/";
+module.exports = "#define GLSLIFY 1\nuniform sampler2D grassTexture;\nvarying vec2 vUv;\nvarying float vHeight;\n\n// Move constants outside main() - they're compile-time constants\nconst float brightness = 1.35;\nconst vec3 topBladeColor = vec3(0.365, 0.588, 0.369);\nconst float mixFactor = 0.50;\nconst float uvScale = 0.5; // 1.0/100.0 precomputed\n\nvoid main() {\n    // Remove precision declaration from main() - should be at top of shader\n    \n    // Single texture lookup\n    vec3 textureColor = texture2D(grassTexture, vUv * uvScale).rgb;\n    \n    // Combine operations to reduce instructions\n    // Mix with top blade color and apply height-based darkening in one step\n    float heightCubed = vHeight * vHeight;\n    textureColor = mix(textureColor, topBladeColor, mixFactor) * heightCubed * brightness;\n    \n    csm_DiffuseColor = vec4(textureColor, 1.0);\n}\n\n/*\nuniform sampler2D grassTexture;\n//uniform sampler2D cloudTexture;\n//uniform vec3 fogColor;\n//uniform float fogDensity;\n//uniform vec3 vCameraPosition;\nvarying vec2 vUv;\n//varying vec2 sendUV;\n//varying vec2 cloudUV;\n//varying vec3 vWorldPosition;\n//varying vec3 csm_vWorldPosition;\nvarying float vHeight;\n//varying vec3 vPosition;\n//varying vec3 vViewPosition;\n//varying vec4 csm_DiffuseColor;\n\n//float contrast = 1.5;\nfloat brightness = 1.25;\n//vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n\nvec3 topBladeColor = vec3(0.365, 0.588, 0.369);\n\n\nvoid main() {\n\n    precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    \n    //float depth = length(csm_vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    //float fogFactor = 1.0 - exp(-fogDensity * depth);\n    //fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv / 100.0).rgb;\n    textureColor = mix(textureColor, topBladeColor, 0.70);\n    //float vHeight = clamp(vHeight, 0.0, 1.0);\n    textureColor *= vHeight * vHeight * vHeight;\n    textureColor *= brightness;\n\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    //vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n    //finalColor = mix(csm_DiffuseColor.rgb, topBladeColor, 1.0);\n    //csm_Emissive = textureColor;\n\n    csm_DiffuseColor = vec4(textureColor, 1.0);\n\n\n\n}\n\n*//*\nuniform sampler2D grassTexture;\n//uniform sampler2D cloudTexture;\n//uniform vec3 fogColor;\n//uniform float fogDensity;\n//uniform vec3 vCameraPosition;\nvarying vec2 vUv;\n//varying vec2 sendUV;\n//varying vec2 cloudUV;\n//varying vec3 vWorldPosition;\n//varying vec3 csm_vWorldPosition;\nvarying float vHeight;\n//varying vec3 vPosition;\n//varying vec3 vViewPosition;\n//varying vec4 csm_DiffuseColor;\n\n//float contrast = 1.5;\nfloat brightness = 1.25;\n//vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n\nvec3 topBladeColor = vec3(0.365, 0.588, 0.369);\n\n\nvoid main() {\n\n    precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    \n    //float depth = length(csm_vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    //float fogFactor = 1.0 - exp(-fogDensity * depth);\n    //fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv / 100.0).rgb;\n    textureColor = mix(textureColor, topBladeColor, 0.70);\n    //float vHeight = clamp(vHeight, 0.0, 1.0);\n    textureColor *= vHeight * vHeight * vHeight;\n    textureColor *= brightness;\n\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    //vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n    //finalColor = mix(csm_DiffuseColor.rgb, topBladeColor, 1.0);\n    //csm_Emissive = textureColor;\n\n    csm_DiffuseColor = vec4(textureColor, 1.0);\n\n\n\n}\n\n*//*\nuniform sampler2D grassTexture;\n//uniform sampler2D cloudTexture;\n//uniform vec3 fogColor;\n//uniform float fogDensity;\n//uniform vec3 vCameraPosition;\nvarying vec2 vUv;\n//varying vec2 sendUV;\n//varying vec2 cloudUV;\n//varying vec3 vWorldPosition;\n//varying vec3 csm_vWorldPosition;\nvarying float vHeight;\n//varying vec3 vPosition;\n//varying vec3 vViewPosition;\n//varying vec4 csm_DiffuseColor;\n\n//float contrast = 1.5;\nfloat brightness = 1.25;\n//vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n\nvec3 topBladeColor = vec3(0.365, 0.588, 0.369);\n\n\nvoid main() {\n\n    precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    \n    //float depth = length(csm_vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    //float fogFactor = 1.0 - exp(-fogDensity * depth);\n    //fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv / 100.0).rgb;\n    textureColor = mix(textureColor, topBladeColor, 0.70);\n    //float vHeight = clamp(vHeight, 0.0, 1.0);\n    textureColor *= vHeight * vHeight * vHeight;\n    textureColor *= brightness;\n\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    //vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n    //finalColor = mix(csm_DiffuseColor.rgb, topBladeColor, 1.0);\n    //csm_Emissive = textureColor;\n\n    csm_DiffuseColor = vec4(textureColor, 1.0);\n\n\n\n}\n\n*//*\nuniform sampler2D grassTexture;\n//uniform sampler2D cloudTexture;\n//uniform vec3 fogColor;\n//uniform float fogDensity;\n//uniform vec3 vCameraPosition;\nvarying vec2 vUv;\n//varying vec2 sendUV;\n//varying vec2 cloudUV;\n//varying vec3 vWorldPosition;\n//varying vec3 csm_vWorldPosition;\nvarying float vHeight;\n//varying vec3 vPosition;\n//varying vec3 vViewPosition;\n//varying vec4 csm_DiffuseColor;\n\n//float contrast = 1.5;\nfloat brightness = 1.25;\n//vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n\nvec3 topBladeColor = vec3(0.365, 0.588, 0.369);\n\n\nvoid main() {\n\n    precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    \n    //float depth = length(csm_vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    //float fogFactor = 1.0 - exp(-fogDensity * depth);\n    //fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv / 100.0).rgb;\n    textureColor = mix(textureColor, topBladeColor, 0.70);\n    //float vHeight = clamp(vHeight, 0.0, 1.0);\n    textureColor *= vHeight * vHeight * vHeight;\n    textureColor *= brightness;\n\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    //vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n    //finalColor = mix(csm_DiffuseColor.rgb, topBladeColor, 1.0);\n    //csm_Emissive = textureColor;\n\n    csm_DiffuseColor = vec4(textureColor, 1.0);\n\n\n\n}\n\n*/";
 
 },{}],"gJXUV":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
@@ -210763,25 +210700,26 @@ class WorldScene {
     }
     init() {
         this.scene = new _three.Scene();
-        this.camera = new _three.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1700);
+        this.camera = new _three.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.1, 1700);
         this.renderer = new _three.WebGLRenderer({
             powerPreference: "high-performance",
             antialias: false,
             stencil: false,
-            depth: true,
+            depth: false,
             depthTexture: false,
             logarithmicDepthBuffer: false,
             precision: "mediump",
             alpha: false
         });
         let pixelRatio = window.devicePixelRatio;
-        this.renderer.setPixelRatio(pixelRatio > 1.5 ? 1.40 : pixelRatio);
+        this.renderer.setPixelRatio(pixelRatio > 1.5 ? 1.00 : pixelRatio);
+        //this.renderer.setPixelRatio(1.05);
         this.renderer.outputEncoding = _three.SRGBColorSpace;
         //this.renderer.setClearColor(0x000000, 0);
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = _three.PCFSoftShadowMap;
         this.renderer.shadowMap.autoUpdate = true;
-        this.renderer.toneMappingExposure = 0.195;
+        this.renderer.toneMappingExposure = 0.175;
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.container.appendChild(this.renderer.domElement);
         this.composerDefault = new (0, _postprocessing.EffectComposer)(this.renderer, {
@@ -210789,7 +210727,6 @@ class WorldScene {
             multisampling: 4
         });
         this.composerFactoryInterior = new (0, _postprocessing.EffectComposer)(this.renderer, {
-            //multisampling: Math.min(4, renderer.capabilities.maxSamples),
             multisampling: 4,
             frameBufferType: (0, _three.HalfFloatType)
         });
@@ -210819,11 +210756,11 @@ class WorldScene {
         //worldScene.scene.add(helperDir);
         const widthLight = 200;
         const height = 90;
-        const intensity = 8; //9
+        const intensity = 5; //9
         //const rectLight = new THREE.RectAreaLight(0xf1f3e1, intensity, widthLight, height);
         //0xa9dbfd
         const rectLight = new _three.RectAreaLight(0xF2E6BD, intensity, widthLight, height);
-        const rectLight2 = new _three.RectAreaLight(0xF2E6BD, 7, 320, 80); //8
+        const rectLight2 = new _three.RectAreaLight(0xF2E6BD, intensity, 320, 80); //8
         //82ccff
         rectLight2.position.set(0, 0, 0);
         rectLight2.lookAt(0, 0, 100);
@@ -210833,7 +210770,7 @@ class WorldScene {
         this.scene.add(rectLight);
     }
     addFog() {
-        this.scene.fog = new _three.FogExp2(0x000000, 0.0020); // 0.0017 is the density of the fog
+        this.scene.fog = new _three.FogExp2(0x000000, 0.0019); // 0.0017 is the density of the fog
     //56515f
     //45414d
     //44424d
@@ -210849,38 +210786,21 @@ class WorldScene {
             blendFunction: (0, _postprocessing.BlendFunction).SRC,
             mode: (0, _postprocessing.ToneMappingMode).ACES_FILMIC
         });
-        //const redScreenEffect = new RedScreenEffect(0.3); // 30% red overlay
-        //const effectPassRedScreen = new EffectPass(this.camera, redScreenEffect);
-        //const fogIntensity = 1.0;
-        //const fogAmount = 0.5;
-        const hueSaturationEffect = new (0, _postprocessing.HueSaturationEffect)({
-            blendFunction: (0, _postprocessing.BlendFunction).SRC,
-            saturation: -0.025,
-            hue: 0.0
-        });
         const effectBloom = new (0, _postprocessing.SelectiveBloomEffect)(this.scene, this.camera, {
             blendFunction: (0, _postprocessing.BlendFunction).ADD,
             mipmapBlur: true,
-            levels: 7,
+            levels: 6,
             luminanceThreshold: 1.0,
-            luminanceSmoothing: 0.5,
-            intensity: 0.55,
+            luminanceSmoothing: 0.2,
+            intensity: 0.6,
             opacity: 1.0,
-            radius: 0.75
+            radius: 0.65,
+            kernelSize: (0, _postprocessing.KernelSize).MEDIUM
         });
-        //add skybox here!!
-        //effectBloom.selection.add(redCube)
-        const effectPassBloom = new (0, _postprocessing.EffectPass)(this.camera, effectBloom);
-        //const fogEffect = new FogEffect(this.camera, fogIntensity);
-        //const effectPassFog = new EffectPass(this.camera, fogEffect);
-        const effectPassTonemapping = new (0, _postprocessing.EffectPass)(this.camera, effectTonemapping);
-        const effectPassHueSaturation = new (0, _postprocessing.EffectPass)(this.camera, hueSaturationEffect);
-        //effectPassTonemapping.renderToScreen = false;
+        //const smaaEffect = new SMAAEffect({ preset: SMAAPreset.ULTRA });
         this.composerDefault.addPass(new (0, _postprocessing.RenderPass)(this.scene, this.camera));
-        //this.composerDefault.addPass(effectPassFog);
-        //this.composerDefault.addPass(effectPassHueSaturation);
-        this.composerDefault.addPass(effectPassBloom);
-        this.composerDefault.addPass(effectPassTonemapping);
+        this.composerDefault.addPass(new (0, _postprocessing.EffectPass)(this.camera, effectBloom, effectTonemapping));
+    //this.composerDefault.addPass(new EffectPass(this.camera, smaaEffect)); // separate final pass
     }
     addInteriorFactoryPostProcessing() {
         const effectTonemapping = new (0, _postprocessing.ToneMappingEffect)({
@@ -210894,7 +210814,7 @@ class WorldScene {
             edgeRadius: 2.0,
             distanceAttenuation: 2.0,
             color: new _three.Color(0xFFB55C),
-            raymarchSteps: 42,
+            raymarchSteps: 35,
             blur: true,
             blurVariance: 0.1,
             //blurKernelSize: SMALL,
@@ -210925,22 +210845,11 @@ class WorldScene {
         //const dirLightCameraHelper = new THREE.CameraHelper(dirLight.shadow.camera);
         //worldScene.scene.add(dirLightCameraHelper);
         const godraysPass = new (0, _threeGoodGodrays.GodraysPass)(dirLight, this.camera, godraysParams);
-        // If this is the last pass in your pipeline, set `renderToScreen` to `true`
-        godraysPass.renderToScreen = false;
-        // const effectPassTonemapping = new EffectPass(camera, effectTonemapping);
-        // effectPassTonemapping.renderToScreen = false;
-        const effectPassTonemapping = new (0, _postprocessing.EffectPass)(this.camera, effectTonemapping);
-        effectPassTonemapping.renderToScreen = false;
-        // const effectDOF = new EffectPass(camera, depthOfFieldEffect);
-        // effectDOF.renderToScreen = false;
-        // const brightnessContrast = new EffectPass(camera, brightnessContrastEffect);
-        // brightnessContrast.renderToScreen = false;
-        // const hueSaturation = new EffectPass(camera, hueSaturationEffect);
-        // hueSaturation.renderToScreen = false;
+        //const smaaEffect = new SMAAEffect({ preset: SMAAPreset.ULTRA });
         this.composerFactoryInterior.addPass(new (0, _postprocessing.RenderPass)(this.scene, this.camera));
-        //composerFactoryInterior.addPass(brightnessContrast);
-        this.composerFactoryInterior.addPass(effectPassTonemapping);
+        this.composerFactoryInterior.addPass(new (0, _postprocessing.EffectPass)(this.camera, effectTonemapping));
         this.composerFactoryInterior.addPass(godraysPass);
+    //this.composerFactoryInterior.addPass(new EffectPass(this.camera, smaaEffect));
     }
     addSkybox(visitedFromMobileDevice) {
         // Create a PMREMGenerator
@@ -226423,6 +226332,24 @@ class SoundManager {
 // Export the class
 exports.default = SoundManager;
 
-},{"three":"ktPTu","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}]},["l9Mez","ebWYT"], "ebWYT", "parcelRequire2041")
+},{"three":"ktPTu","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"gb4bA":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _fadeVertGlsl = require("./glsl/fade.vert.glsl");
+var _fadeVertGlslDefault = parcelHelpers.interopDefault(_fadeVertGlsl);
+var _fadeFragGlsl = require("./glsl/fade.frag.glsl");
+var _fadeFragGlslDefault = parcelHelpers.interopDefault(_fadeFragGlsl);
+exports.default = {
+    frag: (0, _fadeFragGlslDefault.default),
+    vert: (0, _fadeVertGlslDefault.default)
+};
+
+},{"./glsl/fade.vert.glsl":"ddl6j","./glsl/fade.frag.glsl":"7eI8B","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"ddl6j":[function(require,module,exports) {
+module.exports = "#define GLSLIFY 1\n        varying vec3 vWorldPosition;\n        varying vec2 vUv;\n        void main() {\n            vUv = uv;\n            vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;\n            csm_PositionRaw = projectionMatrix * modelViewMatrix * vec4(position, 1.0);\n        }";
+
+},{}],"7eI8B":[function(require,module,exports) {
+module.exports = "#define GLSLIFY 1\n        uniform bool uHasDiffuseMap;\n        uniform sampler2D uDiffuseMap;\n        uniform vec3 uColor;\n        uniform float uFadeHeight;\n        uniform float uTerrainHeight;\n        uniform float uBrightness;\n        varying vec3 vWorldPosition;\n        varying vec2 vUv;\n\n        void main() {\n            vec4 colorDiffuse = uHasDiffuseMap ? texture2D(uDiffuseMap, vUv) : vec4(uColor, 1.0);\n\n            float fadeFactor = smoothstep(uTerrainHeight, uTerrainHeight + uFadeHeight, vWorldPosition.y);\n\n            colorDiffuse.rgb *= fadeFactor * uBrightness;\n\n            csm_DiffuseColor = colorDiffuse;\n        }";
+
+},{}]},["l9Mez","ebWYT"], "ebWYT", "parcelRequire2041")
 
 //# sourceMappingURL=index.739bf03c.js.map
