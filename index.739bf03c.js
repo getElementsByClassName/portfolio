@@ -592,7 +592,7 @@ observer objects -> unobserve
 //import { GodraysPass } from 'three-good-godrays';
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 var _three = require("three");
-var _simplexNoise = require("three/examples/jsm/math/SimplexNoise");
+var _terrainConfigJs = require("./terrainConfig.js");
 var _gltfloaderJs = require("three/examples/jsm/loaders/GLTFLoader.js");
 var _dracoloaderJs = require("three/examples/jsm/loaders/DRACOLoader.js");
 var _rgbeloader = require("three/examples/jsm/loaders/RGBELoader"); //loader for RGBE format (Radiance HDR)
@@ -1160,54 +1160,13 @@ rgbeLoader.load(`./assets/${skyboxToLoad}.hdr`, function(texture) {
 });
 /********************************************************************
 // Landscape : Simplex Noise
-********************************************************************/ const simplex = new (0, _simplexNoise.SimplexNoise)();
-// Function to generate height based on simplex noise
-/*
-function getHeight(x, z) {
-
-    //let height = 6 * simplex.noise(x / 400, z / 400)
-    let height = 11.5 * simplex.noise(x / 400, z / 400) //how high should it be
-    //height += 0.2 * simplex.noise(x / 10, z / 10)
-    return height;
-}
- */ // Define multiple flat areas (centerX, centerZ, size)
-const flatAreas = [
-    {
-        x: 1200,
-        z: 950,
-        size: 250
-    },
-    {
-        x: 385,
-        z: -300,
-        size: 120
-    }
-];
-function smoothstep(edge0, edge1, x) {
-    let t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
-    return t * t * (3 - 2 * t); // Smoothstep function
-}
-function getHeight(x, z) {
-    let roughTerrain = 17.5 * simplex.noise(x / 400, z / 400); // Normal terrain
-    let smoothTerrain = 0.0 * simplex.noise(x / 1000, z / 1000); // Smooth flat terrain
-    let blendFactor = 1; // Default = full rough terrain
-    for (let area of flatAreas){
-        let distanceX = Math.abs(x - area.x);
-        let distanceZ = Math.abs(z - area.z);
-        let transitionSize = area.size * 0.25; // Transition zone
-        let factorX = smoothstep(area.size - transitionSize, area.size + transitionSize, distanceX);
-        let factorZ = smoothstep(area.size - transitionSize, area.size + transitionSize, distanceZ);
-        let areaBlend = Math.min(factorX, factorZ);
-        // Blend with the lowest factor to ensure a smooth transition
-        blendFactor = Math.min(blendFactor, areaBlend);
-    }
-    return roughTerrain * blendFactor + smoothTerrain * (1 - blendFactor);
-}
-/********************************************************************
+// Now imported from terrainConfig.js (shared with grassWorker.js)
+// simplex, getHeight, smoothstep, flatAreas
+********************************************************************/ /********************************************************************
 // Factory Entry Check (post processing swap)
 ********************************************************************/ let activeComposer = worldScene.getComposerDefault();
 const factoryEntranceTrigger = new _three.Box3(new _three.Vector3(-190, -50, -350), new _three.Vector3(200, 50, 90));
-factoryEntranceTrigger.translate(new _three.Vector3(1200, getHeight(1200, 1200), 1200));
+factoryEntranceTrigger.translate(new _three.Vector3(1200, (0, _terrainConfigJs.getHeight)(1200, 1200), 1200));
 let previousPlayerInsideFactory = false;
 let factoryCheckCooldown = 0;
 const FACTORY_CHECK_INTERVAL = 100;
@@ -1569,13 +1528,13 @@ async function fnLoadRockVideoProjectionModel(url, scaleFactor) {
     const model = await modelLoader.loadModel(url);
     model.scale.set(scaleFactor, scaleFactor, scaleFactor);
     model.rotateY(Math.PI * 6 / 4);
-    model.position.set(position.x, getHeight(position.x, position.z) - 2, position.z);
+    model.position.set(position.x, (0, _terrainConfigJs.getHeight)(position.x, position.z) - 2, position.z);
     mesh = model.children.find((child)=>child.isMesh);
     diffuseMap = mesh.material.map;
     //const normalMap = mesh.material.normalMap;
     videoFadeShaderMaterial.uniforms.uDiffuseMap.value = diffuseMap;
-    videoFadeShaderMaterial.uniforms.uMeshPosition.value = new _three.Vector3(position.x - 7.5, getHeight(position.x, position.z) + 9.5, position.z + 3);
-    videoFadeShaderMaterial.uniforms.uTerrainHeight.value = getHeight(position.x, position.z);
+    videoFadeShaderMaterial.uniforms.uMeshPosition.value = new _three.Vector3(position.x - 7.5, (0, _terrainConfigJs.getHeight)(position.x, position.z) + 9.5, position.z + 3);
+    videoFadeShaderMaterial.uniforms.uTerrainHeight.value = (0, _terrainConfigJs.getHeight)(position.x, position.z);
     videoFadeShaderMaterial.uniforms.uFadeHeight.value = 10.0;
     mesh.material = videoFadeShaderMaterial;
     videoFadeShaderMaterial.envMap = envMap;
@@ -1606,14 +1565,14 @@ async function fnLoadPowerlinesModel(url) {
     const model = await modelLoader.loadModel(url);
     model.scale.set(11, 13, 11);
     model.rotateY(-Math.PI / 4);
-    model.position.set(position.x, getHeight(position.x, position.z) - 2, position.z);
+    model.position.set(position.x, (0, _terrainConfigJs.getHeight)(position.x, position.z) - 2, position.z);
     mesh = model.children.find((child)=>child.isMesh);
     // Create powerlines material from fadeShaderMaterial clone
     const powerlinesMaterial = fadeShaderMaterial.clone();
     powerlinesMaterial.uniforms.uColor.value = new _three.Vector3(0.175, 0.175, 0.175);
     powerlinesMaterial.uniforms.uDiffuseMap.value = null;
-    powerlinesMaterial.uniforms.uMeshPosition.value = new _three.Vector3(position.x, getHeight(position.x, position.z) - 2, position.z);
-    powerlinesMaterial.uniforms.uTerrainHeight.value = getHeight(position.x, position.z);
+    powerlinesMaterial.uniforms.uMeshPosition.value = new _three.Vector3(position.x, (0, _terrainConfigJs.getHeight)(position.x, position.z) - 2, position.z);
+    powerlinesMaterial.uniforms.uTerrainHeight.value = (0, _terrainConfigJs.getHeight)(position.x, position.z);
     powerlinesMaterial.uniforms.uFadeHeight.value = 5.0;
     powerlinesMaterial.uniforms.uHasDiffuseMap.value = false;
     powerlinesMaterial.envMap = envMap;
@@ -1635,7 +1594,7 @@ async function fnLoadPowerlinesModel(url) {
         }
     });
     worldScene.scene.add(model);
-    (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, new _three.Vector3(position.x, getHeight(position.x, position.z) - 2, position.z), null, true, false, null, false, null, null);
+    (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, new _three.Vector3(position.x, (0, _terrainConfigJs.getHeight)(position.x, position.z) - 2, position.z), null, true, false, null, false, null, null);
 }
 const windowMaterial = new _three.MeshStandardMaterial({
     color: 0xffffff,
@@ -1658,7 +1617,7 @@ async function prewarmWindowMaterial(renderer, camera) {
 }
 if (!visitedFromMobileDevice) prewarmWindowMaterial(renderer, camera);
 async function fnLoadFactoryModel(url) {
-    const position = new _three.Vector3(1200, getHeight(1200, 1200), 1200);
+    const position = new _three.Vector3(1200, (0, _terrainConfigJs.getHeight)(1200, 1200), 1200);
     const name = "factory_new";
     let mesh, material, diffuseMap, model, colliderMesh, colliderBVH, collisionRadius;
     model = await modelLoader.loadModel(url);
@@ -1675,8 +1634,8 @@ async function fnLoadFactoryModel(url) {
     material.uniforms.uHasDiffuseMap.value = true;
     material.uniforms.uDiffuseMap.value = diffuseMap;
     material.uniforms.uFadeHeight.value = 30.0;
-    material.uniforms.uTerrainHeight.value = getHeight(1200, 1200);
-    material.uniforms.uMeshPosition.value = new _three.Vector3(1200, getHeight(1200, 1200), 1200);
+    material.uniforms.uTerrainHeight.value = (0, _terrainConfigJs.getHeight)(1200, 1200);
+    material.uniforms.uMeshPosition.value = new _three.Vector3(1200, (0, _terrainConfigJs.getHeight)(1200, 1200), 1200);
     const LOD1Material = new _three.MeshStandardMaterial({
         color: 0x000000,
         map: diffuseMap
@@ -1742,7 +1701,7 @@ async function fnLoadFactoryModel(url) {
 }
 async function fnLoadFactoryInteriorModel(url) {
     //const position = { x: 1200, z: 1200 };
-    const position = new _three.Vector3(1200, getHeight(1200, 1200), 1200);
+    const position = new _three.Vector3(1200, (0, _terrainConfigJs.getHeight)(1200, 1200), 1200);
     const name = "factory_interior";
     let mesh, material, diffuseMap, model, colliderMesh, colliderBVH, collisionRadius;
     model = await modelLoader.loadModel(url);
@@ -1799,7 +1758,7 @@ async function fnLoadFactoryInteriorModel(url) {
     const targetCenter = new _three.Vector3(projectionParams.offsetX * surfaceWidth, projectionParams.offsetY * surfaceHeight, 0);
     // Create the projector object (this will be the source of projection)
     const projector = new _three.Object3D();
-    projector.position.set(projectionParams.offsetX * surfaceWidth - 650, getHeight(1200, 1200) + 20, 710 // Center Z over target
+    projector.position.set(projectionParams.offsetX * surfaceWidth - 650, (0, _terrainConfigJs.getHeight)(1200, 1200) + 20, 710 // Center Z over target
     );
     //projector.rotation.set(0, -Math.PI / 2, 0);  // -90 degrees on X axis
     projector.lookAt(projectionParams.offsetX * surfaceWidth + 50, projectionParams.offsetY * surfaceHeight, 0); // Point at the center of the desired projection area
@@ -1807,7 +1766,7 @@ async function fnLoadFactoryInteriorModel(url) {
     //projector.position.set(0, 0, 0);
     //soundManager.play('projector');
     const projectorAudioSource = new _three.Object3D();
-    projectorAudioSource.position.set(1250, getHeight(1250, 1200) + PERSON_HEIGHT, 1200);
+    projectorAudioSource.position.set(1250, (0, _terrainConfigJs.getHeight)(1250, 1200) + PERSON_HEIGHT, 1200);
     worldScene.scene.add(projectorAudioSource);
     //soundManager.loadPositionalSound('projector', './assets/sounds/projector2.mp3', projectorAudioSource, 60.0);
     soundSources.set(projectorAudioSource.id, {
@@ -1846,7 +1805,7 @@ async function fnLoadFactoryInteriorModel(url) {
     material.uniforms.uDiffuseMap.value = diffuseMap;
     material.uniforms.uVideoTexture.value = videoTextureTest;
     material.uniforms.uMinZDistance.value = position.z + 500; //500
-    material.uniforms.uTerrainHeight.value = getHeight(1200, 1200);
+    material.uniforms.uTerrainHeight.value = (0, _terrainConfigJs.getHeight)(1200, 1200);
     material.uniforms.uFadeHeight.value = 2.5;
     material.envMap = envMap;
     material.envMapIntensity = 2.10;
@@ -1857,7 +1816,7 @@ async function fnLoadFactoryInteriorModel(url) {
 // VIDEO PROJECTION TEST
 ********************************************************************/ async function fnLoadStoneModelWithProjection({ modelURL = null, name = null, position = new _three.Vector2(0, 0), scale = 1, envMapIntensity = 0.4, isFaded = false, fadeHeight = 15.0 } = {}) {
     let colliderBVH;
-    const height = getHeight(position.x, position.y);
+    const height = (0, _terrainConfigJs.getHeight)(position.x, position.y);
     // Example: model loaded with MeshStandardMaterial
     const model = await modelLoader.loadModel(modelURL);
     const collider = model.children.find((child)=>child.isMesh && child.name === "collider");
@@ -1866,7 +1825,7 @@ async function fnLoadFactoryInteriorModel(url) {
     collider.visible = false;
     //console.log(collider)
     collider.rotateY(Math.PI * 6 / 4);
-    collider.position.set(position.x, getHeight(position.x, position.y), position.y);
+    collider.position.set(position.x, (0, _terrainConfigJs.getHeight)(position.x, position.y), position.y);
     collider.scale.set(scale, scale, scale);
     //const mesh = model.children.find(child => child.isMesh && child.name === name);
     const diffuseMap = lod1.material.map;
@@ -1874,7 +1833,7 @@ async function fnLoadFactoryInteriorModel(url) {
     const lod = new _three.LOD();
     lod.addLevel(lod1, DISTANCE_LOD0);
     lod.addLevel(lod2, DISTANCE_LOD1);
-    lod.position.set(position.x, getHeight(position.x, position.y), position.y);
+    lod.position.set(position.x, (0, _terrainConfigJs.getHeight)(position.x, position.y), position.y);
     lod.scale.set(scale, scale, scale);
     lod.rotateY(Math.PI * 6 / 4);
     // Ensure world matrix is updated before applying it to geometry
@@ -1979,7 +1938,7 @@ async function fnLoadRockModels() {
         // Load the factory model
         const model = await modelLoader.loadModel("./assets/models/rock_model.glb");
         model.scale.set(45, 45, 45);
-        model.position.set(100, getHeight(100, 800) - 15, 800);
+        model.position.set(100, (0, _terrainConfigJs.getHeight)(100, 800) - 15, 800);
         model.children[0].material.color = new _three.Color(0.8, 0.8, 0.8);
         model.children[0].material.envMap = envMap;
         model.children[0].material.envMapIntensity = 0.35;
@@ -1988,7 +1947,7 @@ async function fnLoadRockModels() {
         worldScene.scene.add(model);
         model.children.forEach((child)=>{
             const clonedMesh = child.clone();
-            clonedMesh.position.set(0, getHeight(0, 0) - 2, 0);
+            clonedMesh.position.set(0, (0, _terrainConfigJs.getHeight)(0, 0) - 2, 0);
             clonedMesh.scale.set(2.45, 2.45, 2.45);
             clonedMesh.material.envMap = envMap;
             clonedMesh.material.envMapIntensity = 0.35;
@@ -2013,7 +1972,7 @@ async function fnLoadRockModels() {
         //clonedMesh.material.side = THREE.FrontSide;
         //clonedMesh.material.transparent = true;
         });
-        lodRocks.position.set(100, getHeight(100, 1000), 1000);
+        lodRocks.position.set(100, (0, _terrainConfigJs.getHeight)(100, 1000), 1000);
         worldScene.scene.add(lodRocks);
     //model.scale.set(100, 100, 100);
     //console.log(model.children[0])
@@ -2138,7 +2097,7 @@ async function fnLoadStoneFigureModel(url, name, position, scale, rotation, mate
     mesh.material = material;
     material.transparent = true;
     material.uniforms.uDiffuseMap.value = diffuseMap;
-    material.uniforms.uTerrainHeight.value = getHeight(position.x, position.z);
+    material.uniforms.uTerrainHeight.value = (0, _terrainConfigJs.getHeight)(position.x, position.z);
     material.uniforms.uFadeHeight.value = 8.0;
     material.uniforms.uBrightness.value = 0.75;
     material.uniforms.hologramColor.value = color;
@@ -2155,11 +2114,11 @@ async function fnLoadStoneFigureModel(url, name, position, scale, rotation, mate
     lod.addLevel(LOD1, DISTANCE_LOD1);
     lod.addLevel(LOD2, DISTANCE_LOD2);
     lod.rotateY(rotation);
-    lod.position.set(position.x, getHeight(position.x, position.z), position.z);
+    lod.position.set(position.x, (0, _terrainConfigJs.getHeight)(position.x, position.z), position.z);
     lod.scale.set(scale.x, scale.y, scale.z);
     //collider.visible = true;
     collider.rotateY(rotation);
-    collider.position.set(position.x, getHeight(position.x, position.z), position.z);
+    collider.position.set(position.x, (0, _terrainConfigJs.getHeight)(position.x, position.z), position.z);
     collider.scale.set(scale.x, scale.y, scale.z);
     // Ensure world matrix is updated before applying it to geometry
     collider.updateMatrixWorld(true);
@@ -2174,7 +2133,7 @@ async function fnLoadStoneFigureModel(url, name, position, scale, rotation, mate
     const collisionRadius = colliderBVH.geometry.boundingSphere.radius;
     worldScene.scene.add(lod);
     //renderer.compile(lod, camera, worldScene.scene);
-    (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, new _three.Vector3(position.x, getHeight(position.x, position.z), position.z), diffuseMap, true, true, DISTANCE_TEXTURE_SWAP, false, colliderBVH, collisionRadius);
+    (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, new _three.Vector3(position.x, (0, _terrainConfigJs.getHeight)(position.x, position.z), position.z), diffuseMap, true, true, DISTANCE_TEXTURE_SWAP, false, colliderBVH, collisionRadius);
 }
 //Load models for desktop
 if (!visitedFromMobileDevice) {
@@ -2236,7 +2195,7 @@ document.body.addEventListener("touchstart", function() {
 const videoGeometry = new _three.PlaneGeometry(384, 216, 32, 16); // 10x10 segments for smooth edges
 // Create a mesh with the geometry and custom shader material
 const videoPlane = new _three.Mesh(videoGeometry, videoShaderMaterial);
-videoPlane.position.set(0, getHeight(0, 0) + 110.0, 0);
+videoPlane.position.set(0, (0, _terrainConfigJs.getHeight)(0, 0) + 110.0, 0);
 // Video plane is added when grass workers are done with initial load
 /********************************************************************
 // Position Camera at pageload
@@ -2245,16 +2204,16 @@ if (visitedFromMobileDevice) {
     camera.rotation.x = 0;
     camera.far = 1100;
     camera.fov = 60;
-    startPosition = new _three.Vector3(0, getHeight(0, 550) + PERSON_HEIGHT, 550);
-    endPosition = new _three.Vector3(0, getHeight(0, 450) + PERSON_HEIGHT, 450);
+    startPosition = new _three.Vector3(0, (0, _terrainConfigJs.getHeight)(0, 550) + PERSON_HEIGHT, 550);
+    endPosition = new _three.Vector3(0, (0, _terrainConfigJs.getHeight)(0, 450) + PERSON_HEIGHT, 450);
     if (window.matchMedia("(orientation: landscape)").matches) {
-        startPosition = new _three.Vector3(0, getHeight(0, 350) + PERSON_HEIGHT, 350);
-        endPosition = new _three.Vector3(0, getHeight(0, 250) + PERSON_HEIGHT, 250);
+        startPosition = new _three.Vector3(0, (0, _terrainConfigJs.getHeight)(0, 350) + PERSON_HEIGHT, 350);
+        endPosition = new _three.Vector3(0, (0, _terrainConfigJs.getHeight)(0, 250) + PERSON_HEIGHT, 250);
         camera.far = 950;
     }
 } else {
-    startPosition = new _three.Vector3(0, getHeight(0, 420) + PERSON_HEIGHT, 420); // Starting position
-    endPosition = new _three.Vector3(0, getHeight(0, 320) + PERSON_HEIGHT, 320); // Ending position
+    startPosition = new _three.Vector3(0, (0, _terrainConfigJs.getHeight)(0, 420) + PERSON_HEIGHT, 420); // Starting position
+    endPosition = new _three.Vector3(0, (0, _terrainConfigJs.getHeight)(0, 320) + PERSON_HEIGHT, 320); // Ending position
     camera.rotation.x = Math.PI / 16;
 }
 camera.position.set(startPosition.x, startPosition.y, startPosition.z);
@@ -2283,7 +2242,7 @@ function fnAnimateCamera() {
         // Interpolate position
         const interpolatedPosition = new _three.Vector3().lerpVectors(startPosition, endPosition, progress);
         // Calculate dynamic y position
-        const dynamicY = getHeight(interpolatedPosition.x, interpolatedPosition.z) + PERSON_HEIGHT;
+        const dynamicY = (0, _terrainConfigJs.getHeight)(interpolatedPosition.x, interpolatedPosition.z) + PERSON_HEIGHT;
         // Set camera position
         camera.position.set(interpolatedPosition.x, dynamicY, interpolatedPosition.z);
         // Stop animation when completed
@@ -2299,11 +2258,11 @@ function fnCheckOrientation() {
         if (window.matchMedia("(orientation: landscape)").matches && visitedFromMobileDevice) {
             camera.far = 750;
             camera.rotation.x = 0;
-            camera.position.set(0, getHeight(0, 250) + PERSON_HEIGHT, 250);
+            camera.position.set(0, (0, _terrainConfigJs.getHeight)(0, 250) + PERSON_HEIGHT, 250);
         } else if (window.matchMedia("(orientation: portrait)").matches && visitedFromMobileDevice) {
             camera.far = 1100;
             camera.rotation.x = 0;
-            camera.position.set(0, getHeight(0, 450) + PERSON_HEIGHT, 450);
+            camera.position.set(0, (0, _terrainConfigJs.getHeight)(0, 450) + PERSON_HEIGHT, 450);
         }
     }
 }
@@ -2405,7 +2364,7 @@ document.addEventListener("keydown", onKeyDown);
 document.addEventListener("keyup", onKeyUp);
 //let playerCollider = new THREE.Sphere(new THREE.Vector3(camera.position.x, getHeight(camera.position.x, camera.position.y) + PERSON_HEIGHT, camera.position.y), 3.0);
 const playerCollider = new _three.Sphere(new _three.Vector3(0, 0, 0));
-playerCollider.center.set(endPosition.x, getHeight(endPosition.x, endPosition.y), endPosition.z);
+playerCollider.center.set(endPosition.x, (0, _terrainConfigJs.getHeight)(endPosition.x, endPosition.y), endPosition.z);
 const intersects = [];
 function fnUpdateControls(deltaTime) {
     // Create a new Vector3 for the player's potential next position
@@ -2471,7 +2430,7 @@ function fnUpdateControls(deltaTime) {
     playerCollider.center.copy(newPosition);
     controls.getObject().position.copy(playerCollider.center);
     // Sample Y-value from the height data array to ensure the player stays on the terrain
-    const height = getHeight(playerCollider.center.x, playerCollider.center.z);
+    const height = (0, _terrainConfigJs.getHeight)(playerCollider.center.x, playerCollider.center.z);
     playerCollider.center.y = height + PERSON_HEIGHT;
     controls.getObject().position.y = playerCollider.center.y;
 }
@@ -2557,15 +2516,12 @@ for(let i = 0; i < workerPoolSize; i++){
         grassGeometry.setAttribute("instanceRotationMatrix", new _three.InstancedBufferAttribute(grassGeometryData.rotationMatrices, 9));
         grassGeometry.setAttribute("scale", new _three.InstancedBufferAttribute(grassGeometryData.scales, 1));
         grassGeometry.setAttribute("uv", new _three.InstancedBufferAttribute(grassGeometryData.uvs, 2));
-        //grassGeometry.computeVertexNormals();
-        //calc the y-value using GetHeight()
-        for(let i = 0; i < grassGeometryData.instanceCount; i++)grassGeometryData.offsets[i * 3 + 1] = getHeight(grassGeometryData.offsets[i * 3], grassGeometryData.offsets[i * 3 + 2]) - 0.60; // Calculate height using getHeight
+        // Height is now calculated in the worker - no main thread loop needed!
         grassGeometry.setAttribute("offset", new _three.InstancedBufferAttribute(grassGeometryData.offsets, 3));
         //const grassMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide });
         const grassMesh = new _three.InstancedMesh(grassGeometry, grassMaterial, grassGeometryData.instanceCount);
         //grassMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-        // Set the bounding box for the grass mesh to match the chunk size
-        //grassMesh.computeBoundingSphere();
+        // Set bounding sphere for frustum culling
         grassMesh.geometry.boundingSphere = grassGeometryData.boundingSphere;
         grassMesh.material.envMap = envMap;
         grassMesh.material.envMapIntensity = GRASS_MESH_ENVMAP_INTENSITY;
@@ -2641,7 +2597,7 @@ function fnGenerateChunk(x, z) {
     for(let i = 0; i < vertices.length; i += 3){
         const vertexX = vertices[i] + offsetX;
         const vertexZ = vertices[i + 2] + offsetZ;
-        vertices[i + 1] = getHeight(vertexX, vertexZ); // Set Y position based on height
+        vertices[i + 1] = (0, _terrainConfigJs.getHeight)(vertexX, vertexZ); // Set Y position based on height
     }
     // Create the mesh
     const chunkMesh = new _three.Mesh(baseGeometry, groundMaterial);
@@ -2924,7 +2880,7 @@ const TEXTURE_SWAP_CHECK_INTERVAL = 100;
     videoTexture.needsUpdate = true;
 }
 
-},{"three":"ktPTu","three/examples/jsm/math/SimplexNoise":"4r7fB","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/Addons.js":"iBAni","three/examples/jsm/math/Octree.js":"iwBOl","three/examples/jsm/helpers/OctreeHelper.js":"70dYF","three-mesh-bvh":"6y2ur","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./Utils.js":"c7A1Q","./shaders/grass.js":"cNzyR","./shaders/powerlines.js":"gJXUV","./shaders/stonefigure.js":"e77je","./shaders/videoFade.js":"2lLRY","./patchProjectorMaterial.js":"joMhG","./content.json":"24cue","./GrassScene.js":"a5jmZ","./WorldScene.js":"5ZFD0","./ModelLoader.js":"5o86C","./LODManager.js":"3L9vB","./SoundManager.js":"70lfs","cdb16b6f1235a7ac":"9rntO","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","./materials/videoShaderMaterial.js":"iyqMm","./materials/fadeShaderMaterial.js":"9kv9Y","./materials/horizonHazeMaterial.js":"9SL6m"}],"ktPTu":[function(require,module,exports) {
+},{"three":"ktPTu","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/Addons.js":"iBAni","three/examples/jsm/math/Octree.js":"iwBOl","three/examples/jsm/helpers/OctreeHelper.js":"70dYF","three-mesh-bvh":"6y2ur","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./Utils.js":"c7A1Q","./shaders/grass.js":"cNzyR","./shaders/powerlines.js":"gJXUV","./shaders/stonefigure.js":"e77je","./shaders/videoFade.js":"2lLRY","./patchProjectorMaterial.js":"joMhG","./content.json":"24cue","./GrassScene.js":"a5jmZ","./WorldScene.js":"5ZFD0","./ModelLoader.js":"5o86C","./LODManager.js":"3L9vB","./SoundManager.js":"70lfs","cdb16b6f1235a7ac":"9rntO","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","./materials/videoShaderMaterial.js":"iyqMm","./materials/fadeShaderMaterial.js":"9kv9Y","./materials/horizonHazeMaterial.js":"9SL6m","./terrainConfig.js":"hE4Kl"}],"ktPTu":[function(require,module,exports) {
 /**
  * @license
  * Copyright 2010-2024 Three.js Authors
@@ -34383,1000 +34339,7 @@ exports.export = function(dest, destName, get) {
     });
 };
 
-},{}],"4r7fB":[function(require,module,exports) {
-// Ported from Stefan Gustavson's java implementation
-// http://staffwww.itn.liu.se/~stegu/simplexnoise/simplexnoise.pdf
-// Read Stefan's excellent paper for details on how this code works.
-//
-// Sean McCullough banksean@gmail.com
-//
-// Added 4D noise
-/**
- * You can pass in a random number generator object if you like.
- * It is assumed to have a random() method.
- */ var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-parcelHelpers.export(exports, "SimplexNoise", ()=>SimplexNoise);
-class SimplexNoise {
-    constructor(r = Math){
-        this.grad3 = [
-            [
-                1,
-                1,
-                0
-            ],
-            [
-                -1,
-                1,
-                0
-            ],
-            [
-                1,
-                -1,
-                0
-            ],
-            [
-                -1,
-                -1,
-                0
-            ],
-            [
-                1,
-                0,
-                1
-            ],
-            [
-                -1,
-                0,
-                1
-            ],
-            [
-                1,
-                0,
-                -1
-            ],
-            [
-                -1,
-                0,
-                -1
-            ],
-            [
-                0,
-                1,
-                1
-            ],
-            [
-                0,
-                -1,
-                1
-            ],
-            [
-                0,
-                1,
-                -1
-            ],
-            [
-                0,
-                -1,
-                -1
-            ]
-        ];
-        this.grad4 = [
-            [
-                0,
-                1,
-                1,
-                1
-            ],
-            [
-                0,
-                1,
-                1,
-                -1
-            ],
-            [
-                0,
-                1,
-                -1,
-                1
-            ],
-            [
-                0,
-                1,
-                -1,
-                -1
-            ],
-            [
-                0,
-                -1,
-                1,
-                1
-            ],
-            [
-                0,
-                -1,
-                1,
-                -1
-            ],
-            [
-                0,
-                -1,
-                -1,
-                1
-            ],
-            [
-                0,
-                -1,
-                -1,
-                -1
-            ],
-            [
-                1,
-                0,
-                1,
-                1
-            ],
-            [
-                1,
-                0,
-                1,
-                -1
-            ],
-            [
-                1,
-                0,
-                -1,
-                1
-            ],
-            [
-                1,
-                0,
-                -1,
-                -1
-            ],
-            [
-                -1,
-                0,
-                1,
-                1
-            ],
-            [
-                -1,
-                0,
-                1,
-                -1
-            ],
-            [
-                -1,
-                0,
-                -1,
-                1
-            ],
-            [
-                -1,
-                0,
-                -1,
-                -1
-            ],
-            [
-                1,
-                1,
-                0,
-                1
-            ],
-            [
-                1,
-                1,
-                0,
-                -1
-            ],
-            [
-                1,
-                -1,
-                0,
-                1
-            ],
-            [
-                1,
-                -1,
-                0,
-                -1
-            ],
-            [
-                -1,
-                1,
-                0,
-                1
-            ],
-            [
-                -1,
-                1,
-                0,
-                -1
-            ],
-            [
-                -1,
-                -1,
-                0,
-                1
-            ],
-            [
-                -1,
-                -1,
-                0,
-                -1
-            ],
-            [
-                1,
-                1,
-                1,
-                0
-            ],
-            [
-                1,
-                1,
-                -1,
-                0
-            ],
-            [
-                1,
-                -1,
-                1,
-                0
-            ],
-            [
-                1,
-                -1,
-                -1,
-                0
-            ],
-            [
-                -1,
-                1,
-                1,
-                0
-            ],
-            [
-                -1,
-                1,
-                -1,
-                0
-            ],
-            [
-                -1,
-                -1,
-                1,
-                0
-            ],
-            [
-                -1,
-                -1,
-                -1,
-                0
-            ]
-        ];
-        this.p = [];
-        for(let i = 0; i < 256; i++)this.p[i] = Math.floor(r.random() * 256);
-        // To remove the need for index wrapping, double the permutation table length
-        this.perm = [];
-        for(let i = 0; i < 512; i++)this.perm[i] = this.p[i & 255];
-        // A lookup table to traverse the simplex around a given point in 4D.
-        // Details can be found where this table is used, in the 4D noise method.
-        this.simplex = [
-            [
-                0,
-                1,
-                2,
-                3
-            ],
-            [
-                0,
-                1,
-                3,
-                2
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                2,
-                3,
-                1
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                1,
-                2,
-                3,
-                0
-            ],
-            [
-                0,
-                2,
-                1,
-                3
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                3,
-                1,
-                2
-            ],
-            [
-                0,
-                3,
-                2,
-                1
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                1,
-                3,
-                2,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                1,
-                2,
-                0,
-                3
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                1,
-                3,
-                0,
-                2
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                2,
-                3,
-                0,
-                1
-            ],
-            [
-                2,
-                3,
-                1,
-                0
-            ],
-            [
-                1,
-                0,
-                2,
-                3
-            ],
-            [
-                1,
-                0,
-                3,
-                2
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                2,
-                0,
-                3,
-                1
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                2,
-                1,
-                3,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                2,
-                0,
-                1,
-                3
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                3,
-                0,
-                1,
-                2
-            ],
-            [
-                3,
-                0,
-                2,
-                1
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                3,
-                1,
-                2,
-                0
-            ],
-            [
-                2,
-                1,
-                0,
-                3
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                3,
-                1,
-                0,
-                2
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                3,
-                2,
-                0,
-                1
-            ],
-            [
-                3,
-                2,
-                1,
-                0
-            ]
-        ];
-    }
-    dot(g, x, y) {
-        return g[0] * x + g[1] * y;
-    }
-    dot3(g, x, y, z) {
-        return g[0] * x + g[1] * y + g[2] * z;
-    }
-    dot4(g, x, y, z, w) {
-        return g[0] * x + g[1] * y + g[2] * z + g[3] * w;
-    }
-    noise(xin, yin) {
-        let n0; // Noise contributions from the three corners
-        let n1;
-        let n2;
-        // Skew the input space to determine which simplex cell we're in
-        const F2 = 0.5 * (Math.sqrt(3.0) - 1.0);
-        const s = (xin + yin) * F2; // Hairy factor for 2D
-        const i = Math.floor(xin + s);
-        const j = Math.floor(yin + s);
-        const G2 = (3.0 - Math.sqrt(3.0)) / 6.0;
-        const t = (i + j) * G2;
-        const X0 = i - t; // Unskew the cell origin back to (x,y) space
-        const Y0 = j - t;
-        const x0 = xin - X0; // The x,y distances from the cell origin
-        const y0 = yin - Y0;
-        // For the 2D case, the simplex shape is an equilateral triangle.
-        // Determine which simplex we are in.
-        let i1; // Offsets for second (middle) corner of simplex in (i,j) coords
-        let j1;
-        if (x0 > y0) {
-            i1 = 1;
-            j1 = 0;
-        // lower triangle, XY order: (0,0)->(1,0)->(1,1)
-        } else {
-            i1 = 0;
-            j1 = 1;
-        } // upper triangle, YX order: (0,0)->(0,1)->(1,1)
-        // A step of (1,0) in (i,j) means a step of (1-c,-c) in (x,y), and
-        // a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where
-        // c = (3-sqrt(3))/6
-        const x1 = x0 - i1 + G2; // Offsets for middle corner in (x,y) unskewed coords
-        const y1 = y0 - j1 + G2;
-        const x2 = x0 - 1.0 + 2.0 * G2; // Offsets for last corner in (x,y) unskewed coords
-        const y2 = y0 - 1.0 + 2.0 * G2;
-        // Work out the hashed gradient indices of the three simplex corners
-        const ii = i & 255;
-        const jj = j & 255;
-        const gi0 = this.perm[ii + this.perm[jj]] % 12;
-        const gi1 = this.perm[ii + i1 + this.perm[jj + j1]] % 12;
-        const gi2 = this.perm[ii + 1 + this.perm[jj + 1]] % 12;
-        // Calculate the contribution from the three corners
-        let t0 = 0.5 - x0 * x0 - y0 * y0;
-        if (t0 < 0) n0 = 0.0;
-        else {
-            t0 *= t0;
-            n0 = t0 * t0 * this.dot(this.grad3[gi0], x0, y0); // (x,y) of grad3 used for 2D gradient
-        }
-        let t1 = 0.5 - x1 * x1 - y1 * y1;
-        if (t1 < 0) n1 = 0.0;
-        else {
-            t1 *= t1;
-            n1 = t1 * t1 * this.dot(this.grad3[gi1], x1, y1);
-        }
-        let t2 = 0.5 - x2 * x2 - y2 * y2;
-        if (t2 < 0) n2 = 0.0;
-        else {
-            t2 *= t2;
-            n2 = t2 * t2 * this.dot(this.grad3[gi2], x2, y2);
-        }
-        // Add contributions from each corner to get the final noise value.
-        // The result is scaled to return values in the interval [-1,1].
-        return 70.0 * (n0 + n1 + n2);
-    }
-    // 3D simplex noise
-    noise3d(xin, yin, zin) {
-        let n0; // Noise contributions from the four corners
-        let n1;
-        let n2;
-        let n3;
-        // Skew the input space to determine which simplex cell we're in
-        const F3 = 1.0 / 3.0;
-        const s = (xin + yin + zin) * F3; // Very nice and simple skew factor for 3D
-        const i = Math.floor(xin + s);
-        const j = Math.floor(yin + s);
-        const k = Math.floor(zin + s);
-        const G3 = 1.0 / 6.0; // Very nice and simple unskew factor, too
-        const t = (i + j + k) * G3;
-        const X0 = i - t; // Unskew the cell origin back to (x,y,z) space
-        const Y0 = j - t;
-        const Z0 = k - t;
-        const x0 = xin - X0; // The x,y,z distances from the cell origin
-        const y0 = yin - Y0;
-        const z0 = zin - Z0;
-        // For the 3D case, the simplex shape is a slightly irregular tetrahedron.
-        // Determine which simplex we are in.
-        let i1; // Offsets for second corner of simplex in (i,j,k) coords
-        let j1;
-        let k1;
-        let i2; // Offsets for third corner of simplex in (i,j,k) coords
-        let j2;
-        let k2;
-        if (x0 >= y0) {
-            if (y0 >= z0) {
-                i1 = 1;
-                j1 = 0;
-                k1 = 0;
-                i2 = 1;
-                j2 = 1;
-                k2 = 0;
-            // X Y Z order
-            } else if (x0 >= z0) {
-                i1 = 1;
-                j1 = 0;
-                k1 = 0;
-                i2 = 1;
-                j2 = 0;
-                k2 = 1;
-            // X Z Y order
-            } else {
-                i1 = 0;
-                j1 = 0;
-                k1 = 1;
-                i2 = 1;
-                j2 = 0;
-                k2 = 1;
-            } // Z X Y order
-        } else {
-            if (y0 < z0) {
-                i1 = 0;
-                j1 = 0;
-                k1 = 1;
-                i2 = 0;
-                j2 = 1;
-                k2 = 1;
-            // Z Y X order
-            } else if (x0 < z0) {
-                i1 = 0;
-                j1 = 1;
-                k1 = 0;
-                i2 = 0;
-                j2 = 1;
-                k2 = 1;
-            // Y Z X order
-            } else {
-                i1 = 0;
-                j1 = 1;
-                k1 = 0;
-                i2 = 1;
-                j2 = 1;
-                k2 = 0;
-            } // Y X Z order
-        }
-        // A step of (1,0,0) in (i,j,k) means a step of (1-c,-c,-c) in (x,y,z),
-        // a step of (0,1,0) in (i,j,k) means a step of (-c,1-c,-c) in (x,y,z), and
-        // a step of (0,0,1) in (i,j,k) means a step of (-c,-c,1-c) in (x,y,z), where
-        // c = 1/6.
-        const x1 = x0 - i1 + G3; // Offsets for second corner in (x,y,z) coords
-        const y1 = y0 - j1 + G3;
-        const z1 = z0 - k1 + G3;
-        const x2 = x0 - i2 + 2.0 * G3; // Offsets for third corner in (x,y,z) coords
-        const y2 = y0 - j2 + 2.0 * G3;
-        const z2 = z0 - k2 + 2.0 * G3;
-        const x3 = x0 - 1.0 + 3.0 * G3; // Offsets for last corner in (x,y,z) coords
-        const y3 = y0 - 1.0 + 3.0 * G3;
-        const z3 = z0 - 1.0 + 3.0 * G3;
-        // Work out the hashed gradient indices of the four simplex corners
-        const ii = i & 255;
-        const jj = j & 255;
-        const kk = k & 255;
-        const gi0 = this.perm[ii + this.perm[jj + this.perm[kk]]] % 12;
-        const gi1 = this.perm[ii + i1 + this.perm[jj + j1 + this.perm[kk + k1]]] % 12;
-        const gi2 = this.perm[ii + i2 + this.perm[jj + j2 + this.perm[kk + k2]]] % 12;
-        const gi3 = this.perm[ii + 1 + this.perm[jj + 1 + this.perm[kk + 1]]] % 12;
-        // Calculate the contribution from the four corners
-        let t0 = 0.6 - x0 * x0 - y0 * y0 - z0 * z0;
-        if (t0 < 0) n0 = 0.0;
-        else {
-            t0 *= t0;
-            n0 = t0 * t0 * this.dot3(this.grad3[gi0], x0, y0, z0);
-        }
-        let t1 = 0.6 - x1 * x1 - y1 * y1 - z1 * z1;
-        if (t1 < 0) n1 = 0.0;
-        else {
-            t1 *= t1;
-            n1 = t1 * t1 * this.dot3(this.grad3[gi1], x1, y1, z1);
-        }
-        let t2 = 0.6 - x2 * x2 - y2 * y2 - z2 * z2;
-        if (t2 < 0) n2 = 0.0;
-        else {
-            t2 *= t2;
-            n2 = t2 * t2 * this.dot3(this.grad3[gi2], x2, y2, z2);
-        }
-        let t3 = 0.6 - x3 * x3 - y3 * y3 - z3 * z3;
-        if (t3 < 0) n3 = 0.0;
-        else {
-            t3 *= t3;
-            n3 = t3 * t3 * this.dot3(this.grad3[gi3], x3, y3, z3);
-        }
-        // Add contributions from each corner to get the final noise value.
-        // The result is scaled to stay just inside [-1,1]
-        return 32.0 * (n0 + n1 + n2 + n3);
-    }
-    // 4D simplex noise
-    noise4d(x, y, z, w) {
-        // For faster and easier lookups
-        const grad4 = this.grad4;
-        const simplex = this.simplex;
-        const perm = this.perm;
-        // The skewing and unskewing factors are hairy again for the 4D case
-        const F4 = (Math.sqrt(5.0) - 1.0) / 4.0;
-        const G4 = (5.0 - Math.sqrt(5.0)) / 20.0;
-        let n0; // Noise contributions from the five corners
-        let n1;
-        let n2;
-        let n3;
-        let n4;
-        // Skew the (x,y,z,w) space to determine which cell of 24 simplices we're in
-        const s = (x + y + z + w) * F4; // Factor for 4D skewing
-        const i = Math.floor(x + s);
-        const j = Math.floor(y + s);
-        const k = Math.floor(z + s);
-        const l = Math.floor(w + s);
-        const t = (i + j + k + l) * G4; // Factor for 4D unskewing
-        const X0 = i - t; // Unskew the cell origin back to (x,y,z,w) space
-        const Y0 = j - t;
-        const Z0 = k - t;
-        const W0 = l - t;
-        const x0 = x - X0; // The x,y,z,w distances from the cell origin
-        const y0 = y - Y0;
-        const z0 = z - Z0;
-        const w0 = w - W0;
-        // For the 4D case, the simplex is a 4D shape I won't even try to describe.
-        // To find out which of the 24 possible simplices we're in, we need to
-        // determine the magnitude ordering of x0, y0, z0 and w0.
-        // The method below is a good way of finding the ordering of x,y,z,w and
-        // then find the correct traversal order for the simplex we’re in.
-        // First, six pair-wise comparisons are performed between each possible pair
-        // of the four coordinates, and the results are used to add up binary bits
-        // for an integer index.
-        const c1 = x0 > y0 ? 32 : 0;
-        const c2 = x0 > z0 ? 16 : 0;
-        const c3 = y0 > z0 ? 8 : 0;
-        const c4 = x0 > w0 ? 4 : 0;
-        const c5 = y0 > w0 ? 2 : 0;
-        const c6 = z0 > w0 ? 1 : 0;
-        const c = c1 + c2 + c3 + c4 + c5 + c6;
-        // simplex[c] is a 4-vector with the numbers 0, 1, 2 and 3 in some order.
-        // Many values of c will never occur, since e.g. x>y>z>w makes x<z, y<w and x<w
-        // impossible. Only the 24 indices which have non-zero entries make any sense.
-        // We use a thresholding to set the coordinates in turn from the largest magnitude.
-        // The number 3 in the "simplex" array is at the position of the largest coordinate.
-        const i1 = simplex[c][0] >= 3 ? 1 : 0;
-        const j1 = simplex[c][1] >= 3 ? 1 : 0;
-        const k1 = simplex[c][2] >= 3 ? 1 : 0;
-        const l1 = simplex[c][3] >= 3 ? 1 : 0;
-        // The number 2 in the "simplex" array is at the second largest coordinate.
-        const i2 = simplex[c][0] >= 2 ? 1 : 0;
-        const j2 = simplex[c][1] >= 2 ? 1 : 0;
-        const k2 = simplex[c][2] >= 2 ? 1 : 0;
-        const l2 = simplex[c][3] >= 2 ? 1 : 0;
-        // The number 1 in the "simplex" array is at the second smallest coordinate.
-        const i3 = simplex[c][0] >= 1 ? 1 : 0;
-        const j3 = simplex[c][1] >= 1 ? 1 : 0;
-        const k3 = simplex[c][2] >= 1 ? 1 : 0;
-        const l3 = simplex[c][3] >= 1 ? 1 : 0;
-        // The fifth corner has all coordinate offsets = 1, so no need to look that up.
-        const x1 = x0 - i1 + G4; // Offsets for second corner in (x,y,z,w) coords
-        const y1 = y0 - j1 + G4;
-        const z1 = z0 - k1 + G4;
-        const w1 = w0 - l1 + G4;
-        const x2 = x0 - i2 + 2.0 * G4; // Offsets for third corner in (x,y,z,w) coords
-        const y2 = y0 - j2 + 2.0 * G4;
-        const z2 = z0 - k2 + 2.0 * G4;
-        const w2 = w0 - l2 + 2.0 * G4;
-        const x3 = x0 - i3 + 3.0 * G4; // Offsets for fourth corner in (x,y,z,w) coords
-        const y3 = y0 - j3 + 3.0 * G4;
-        const z3 = z0 - k3 + 3.0 * G4;
-        const w3 = w0 - l3 + 3.0 * G4;
-        const x4 = x0 - 1.0 + 4.0 * G4; // Offsets for last corner in (x,y,z,w) coords
-        const y4 = y0 - 1.0 + 4.0 * G4;
-        const z4 = z0 - 1.0 + 4.0 * G4;
-        const w4 = w0 - 1.0 + 4.0 * G4;
-        // Work out the hashed gradient indices of the five simplex corners
-        const ii = i & 255;
-        const jj = j & 255;
-        const kk = k & 255;
-        const ll = l & 255;
-        const gi0 = perm[ii + perm[jj + perm[kk + perm[ll]]]] % 32;
-        const gi1 = perm[ii + i1 + perm[jj + j1 + perm[kk + k1 + perm[ll + l1]]]] % 32;
-        const gi2 = perm[ii + i2 + perm[jj + j2 + perm[kk + k2 + perm[ll + l2]]]] % 32;
-        const gi3 = perm[ii + i3 + perm[jj + j3 + perm[kk + k3 + perm[ll + l3]]]] % 32;
-        const gi4 = perm[ii + 1 + perm[jj + 1 + perm[kk + 1 + perm[ll + 1]]]] % 32;
-        // Calculate the contribution from the five corners
-        let t0 = 0.6 - x0 * x0 - y0 * y0 - z0 * z0 - w0 * w0;
-        if (t0 < 0) n0 = 0.0;
-        else {
-            t0 *= t0;
-            n0 = t0 * t0 * this.dot4(grad4[gi0], x0, y0, z0, w0);
-        }
-        let t1 = 0.6 - x1 * x1 - y1 * y1 - z1 * z1 - w1 * w1;
-        if (t1 < 0) n1 = 0.0;
-        else {
-            t1 *= t1;
-            n1 = t1 * t1 * this.dot4(grad4[gi1], x1, y1, z1, w1);
-        }
-        let t2 = 0.6 - x2 * x2 - y2 * y2 - z2 * z2 - w2 * w2;
-        if (t2 < 0) n2 = 0.0;
-        else {
-            t2 *= t2;
-            n2 = t2 * t2 * this.dot4(grad4[gi2], x2, y2, z2, w2);
-        }
-        let t3 = 0.6 - x3 * x3 - y3 * y3 - z3 * z3 - w3 * w3;
-        if (t3 < 0) n3 = 0.0;
-        else {
-            t3 *= t3;
-            n3 = t3 * t3 * this.dot4(grad4[gi3], x3, y3, z3, w3);
-        }
-        let t4 = 0.6 - x4 * x4 - y4 * y4 - z4 * z4 - w4 * w4;
-        if (t4 < 0) n4 = 0.0;
-        else {
-            t4 *= t4;
-            n4 = t4 * t4 * this.dot4(grad4[gi4], x4, y4, z4, w4);
-        }
-        // Sum up and scale the result to cover the range [-1,1]
-        return 27.0 * (n0 + n1 + n2 + n3 + n4);
-    }
-}
-
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"dVRsF":[function(require,module,exports) {
+},{}],"dVRsF":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "GLTFLoader", ()=>GLTFLoader);
@@ -178194,7 +177157,1000 @@ class Octree {
     }
 }
 
-},{"three":"ktPTu","../math/Capsule.js":"8C4a2","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"4bcgP":[function(require,module,exports) {
+},{"three":"ktPTu","../math/Capsule.js":"8C4a2","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"4r7fB":[function(require,module,exports) {
+// Ported from Stefan Gustavson's java implementation
+// http://staffwww.itn.liu.se/~stegu/simplexnoise/simplexnoise.pdf
+// Read Stefan's excellent paper for details on how this code works.
+//
+// Sean McCullough banksean@gmail.com
+//
+// Added 4D noise
+/**
+ * You can pass in a random number generator object if you like.
+ * It is assumed to have a random() method.
+ */ var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "SimplexNoise", ()=>SimplexNoise);
+class SimplexNoise {
+    constructor(r = Math){
+        this.grad3 = [
+            [
+                1,
+                1,
+                0
+            ],
+            [
+                -1,
+                1,
+                0
+            ],
+            [
+                1,
+                -1,
+                0
+            ],
+            [
+                -1,
+                -1,
+                0
+            ],
+            [
+                1,
+                0,
+                1
+            ],
+            [
+                -1,
+                0,
+                1
+            ],
+            [
+                1,
+                0,
+                -1
+            ],
+            [
+                -1,
+                0,
+                -1
+            ],
+            [
+                0,
+                1,
+                1
+            ],
+            [
+                0,
+                -1,
+                1
+            ],
+            [
+                0,
+                1,
+                -1
+            ],
+            [
+                0,
+                -1,
+                -1
+            ]
+        ];
+        this.grad4 = [
+            [
+                0,
+                1,
+                1,
+                1
+            ],
+            [
+                0,
+                1,
+                1,
+                -1
+            ],
+            [
+                0,
+                1,
+                -1,
+                1
+            ],
+            [
+                0,
+                1,
+                -1,
+                -1
+            ],
+            [
+                0,
+                -1,
+                1,
+                1
+            ],
+            [
+                0,
+                -1,
+                1,
+                -1
+            ],
+            [
+                0,
+                -1,
+                -1,
+                1
+            ],
+            [
+                0,
+                -1,
+                -1,
+                -1
+            ],
+            [
+                1,
+                0,
+                1,
+                1
+            ],
+            [
+                1,
+                0,
+                1,
+                -1
+            ],
+            [
+                1,
+                0,
+                -1,
+                1
+            ],
+            [
+                1,
+                0,
+                -1,
+                -1
+            ],
+            [
+                -1,
+                0,
+                1,
+                1
+            ],
+            [
+                -1,
+                0,
+                1,
+                -1
+            ],
+            [
+                -1,
+                0,
+                -1,
+                1
+            ],
+            [
+                -1,
+                0,
+                -1,
+                -1
+            ],
+            [
+                1,
+                1,
+                0,
+                1
+            ],
+            [
+                1,
+                1,
+                0,
+                -1
+            ],
+            [
+                1,
+                -1,
+                0,
+                1
+            ],
+            [
+                1,
+                -1,
+                0,
+                -1
+            ],
+            [
+                -1,
+                1,
+                0,
+                1
+            ],
+            [
+                -1,
+                1,
+                0,
+                -1
+            ],
+            [
+                -1,
+                -1,
+                0,
+                1
+            ],
+            [
+                -1,
+                -1,
+                0,
+                -1
+            ],
+            [
+                1,
+                1,
+                1,
+                0
+            ],
+            [
+                1,
+                1,
+                -1,
+                0
+            ],
+            [
+                1,
+                -1,
+                1,
+                0
+            ],
+            [
+                1,
+                -1,
+                -1,
+                0
+            ],
+            [
+                -1,
+                1,
+                1,
+                0
+            ],
+            [
+                -1,
+                1,
+                -1,
+                0
+            ],
+            [
+                -1,
+                -1,
+                1,
+                0
+            ],
+            [
+                -1,
+                -1,
+                -1,
+                0
+            ]
+        ];
+        this.p = [];
+        for(let i = 0; i < 256; i++)this.p[i] = Math.floor(r.random() * 256);
+        // To remove the need for index wrapping, double the permutation table length
+        this.perm = [];
+        for(let i = 0; i < 512; i++)this.perm[i] = this.p[i & 255];
+        // A lookup table to traverse the simplex around a given point in 4D.
+        // Details can be found where this table is used, in the 4D noise method.
+        this.simplex = [
+            [
+                0,
+                1,
+                2,
+                3
+            ],
+            [
+                0,
+                1,
+                3,
+                2
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                2,
+                3,
+                1
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                1,
+                2,
+                3,
+                0
+            ],
+            [
+                0,
+                2,
+                1,
+                3
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                3,
+                1,
+                2
+            ],
+            [
+                0,
+                3,
+                2,
+                1
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                1,
+                3,
+                2,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                1,
+                2,
+                0,
+                3
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                1,
+                3,
+                0,
+                2
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                2,
+                3,
+                0,
+                1
+            ],
+            [
+                2,
+                3,
+                1,
+                0
+            ],
+            [
+                1,
+                0,
+                2,
+                3
+            ],
+            [
+                1,
+                0,
+                3,
+                2
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                2,
+                0,
+                3,
+                1
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                2,
+                1,
+                3,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                2,
+                0,
+                1,
+                3
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                3,
+                0,
+                1,
+                2
+            ],
+            [
+                3,
+                0,
+                2,
+                1
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                3,
+                1,
+                2,
+                0
+            ],
+            [
+                2,
+                1,
+                0,
+                3
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                3,
+                1,
+                0,
+                2
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                3,
+                2,
+                0,
+                1
+            ],
+            [
+                3,
+                2,
+                1,
+                0
+            ]
+        ];
+    }
+    dot(g, x, y) {
+        return g[0] * x + g[1] * y;
+    }
+    dot3(g, x, y, z) {
+        return g[0] * x + g[1] * y + g[2] * z;
+    }
+    dot4(g, x, y, z, w) {
+        return g[0] * x + g[1] * y + g[2] * z + g[3] * w;
+    }
+    noise(xin, yin) {
+        let n0; // Noise contributions from the three corners
+        let n1;
+        let n2;
+        // Skew the input space to determine which simplex cell we're in
+        const F2 = 0.5 * (Math.sqrt(3.0) - 1.0);
+        const s = (xin + yin) * F2; // Hairy factor for 2D
+        const i = Math.floor(xin + s);
+        const j = Math.floor(yin + s);
+        const G2 = (3.0 - Math.sqrt(3.0)) / 6.0;
+        const t = (i + j) * G2;
+        const X0 = i - t; // Unskew the cell origin back to (x,y) space
+        const Y0 = j - t;
+        const x0 = xin - X0; // The x,y distances from the cell origin
+        const y0 = yin - Y0;
+        // For the 2D case, the simplex shape is an equilateral triangle.
+        // Determine which simplex we are in.
+        let i1; // Offsets for second (middle) corner of simplex in (i,j) coords
+        let j1;
+        if (x0 > y0) {
+            i1 = 1;
+            j1 = 0;
+        // lower triangle, XY order: (0,0)->(1,0)->(1,1)
+        } else {
+            i1 = 0;
+            j1 = 1;
+        } // upper triangle, YX order: (0,0)->(0,1)->(1,1)
+        // A step of (1,0) in (i,j) means a step of (1-c,-c) in (x,y), and
+        // a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where
+        // c = (3-sqrt(3))/6
+        const x1 = x0 - i1 + G2; // Offsets for middle corner in (x,y) unskewed coords
+        const y1 = y0 - j1 + G2;
+        const x2 = x0 - 1.0 + 2.0 * G2; // Offsets for last corner in (x,y) unskewed coords
+        const y2 = y0 - 1.0 + 2.0 * G2;
+        // Work out the hashed gradient indices of the three simplex corners
+        const ii = i & 255;
+        const jj = j & 255;
+        const gi0 = this.perm[ii + this.perm[jj]] % 12;
+        const gi1 = this.perm[ii + i1 + this.perm[jj + j1]] % 12;
+        const gi2 = this.perm[ii + 1 + this.perm[jj + 1]] % 12;
+        // Calculate the contribution from the three corners
+        let t0 = 0.5 - x0 * x0 - y0 * y0;
+        if (t0 < 0) n0 = 0.0;
+        else {
+            t0 *= t0;
+            n0 = t0 * t0 * this.dot(this.grad3[gi0], x0, y0); // (x,y) of grad3 used for 2D gradient
+        }
+        let t1 = 0.5 - x1 * x1 - y1 * y1;
+        if (t1 < 0) n1 = 0.0;
+        else {
+            t1 *= t1;
+            n1 = t1 * t1 * this.dot(this.grad3[gi1], x1, y1);
+        }
+        let t2 = 0.5 - x2 * x2 - y2 * y2;
+        if (t2 < 0) n2 = 0.0;
+        else {
+            t2 *= t2;
+            n2 = t2 * t2 * this.dot(this.grad3[gi2], x2, y2);
+        }
+        // Add contributions from each corner to get the final noise value.
+        // The result is scaled to return values in the interval [-1,1].
+        return 70.0 * (n0 + n1 + n2);
+    }
+    // 3D simplex noise
+    noise3d(xin, yin, zin) {
+        let n0; // Noise contributions from the four corners
+        let n1;
+        let n2;
+        let n3;
+        // Skew the input space to determine which simplex cell we're in
+        const F3 = 1.0 / 3.0;
+        const s = (xin + yin + zin) * F3; // Very nice and simple skew factor for 3D
+        const i = Math.floor(xin + s);
+        const j = Math.floor(yin + s);
+        const k = Math.floor(zin + s);
+        const G3 = 1.0 / 6.0; // Very nice and simple unskew factor, too
+        const t = (i + j + k) * G3;
+        const X0 = i - t; // Unskew the cell origin back to (x,y,z) space
+        const Y0 = j - t;
+        const Z0 = k - t;
+        const x0 = xin - X0; // The x,y,z distances from the cell origin
+        const y0 = yin - Y0;
+        const z0 = zin - Z0;
+        // For the 3D case, the simplex shape is a slightly irregular tetrahedron.
+        // Determine which simplex we are in.
+        let i1; // Offsets for second corner of simplex in (i,j,k) coords
+        let j1;
+        let k1;
+        let i2; // Offsets for third corner of simplex in (i,j,k) coords
+        let j2;
+        let k2;
+        if (x0 >= y0) {
+            if (y0 >= z0) {
+                i1 = 1;
+                j1 = 0;
+                k1 = 0;
+                i2 = 1;
+                j2 = 1;
+                k2 = 0;
+            // X Y Z order
+            } else if (x0 >= z0) {
+                i1 = 1;
+                j1 = 0;
+                k1 = 0;
+                i2 = 1;
+                j2 = 0;
+                k2 = 1;
+            // X Z Y order
+            } else {
+                i1 = 0;
+                j1 = 0;
+                k1 = 1;
+                i2 = 1;
+                j2 = 0;
+                k2 = 1;
+            } // Z X Y order
+        } else {
+            if (y0 < z0) {
+                i1 = 0;
+                j1 = 0;
+                k1 = 1;
+                i2 = 0;
+                j2 = 1;
+                k2 = 1;
+            // Z Y X order
+            } else if (x0 < z0) {
+                i1 = 0;
+                j1 = 1;
+                k1 = 0;
+                i2 = 0;
+                j2 = 1;
+                k2 = 1;
+            // Y Z X order
+            } else {
+                i1 = 0;
+                j1 = 1;
+                k1 = 0;
+                i2 = 1;
+                j2 = 1;
+                k2 = 0;
+            } // Y X Z order
+        }
+        // A step of (1,0,0) in (i,j,k) means a step of (1-c,-c,-c) in (x,y,z),
+        // a step of (0,1,0) in (i,j,k) means a step of (-c,1-c,-c) in (x,y,z), and
+        // a step of (0,0,1) in (i,j,k) means a step of (-c,-c,1-c) in (x,y,z), where
+        // c = 1/6.
+        const x1 = x0 - i1 + G3; // Offsets for second corner in (x,y,z) coords
+        const y1 = y0 - j1 + G3;
+        const z1 = z0 - k1 + G3;
+        const x2 = x0 - i2 + 2.0 * G3; // Offsets for third corner in (x,y,z) coords
+        const y2 = y0 - j2 + 2.0 * G3;
+        const z2 = z0 - k2 + 2.0 * G3;
+        const x3 = x0 - 1.0 + 3.0 * G3; // Offsets for last corner in (x,y,z) coords
+        const y3 = y0 - 1.0 + 3.0 * G3;
+        const z3 = z0 - 1.0 + 3.0 * G3;
+        // Work out the hashed gradient indices of the four simplex corners
+        const ii = i & 255;
+        const jj = j & 255;
+        const kk = k & 255;
+        const gi0 = this.perm[ii + this.perm[jj + this.perm[kk]]] % 12;
+        const gi1 = this.perm[ii + i1 + this.perm[jj + j1 + this.perm[kk + k1]]] % 12;
+        const gi2 = this.perm[ii + i2 + this.perm[jj + j2 + this.perm[kk + k2]]] % 12;
+        const gi3 = this.perm[ii + 1 + this.perm[jj + 1 + this.perm[kk + 1]]] % 12;
+        // Calculate the contribution from the four corners
+        let t0 = 0.6 - x0 * x0 - y0 * y0 - z0 * z0;
+        if (t0 < 0) n0 = 0.0;
+        else {
+            t0 *= t0;
+            n0 = t0 * t0 * this.dot3(this.grad3[gi0], x0, y0, z0);
+        }
+        let t1 = 0.6 - x1 * x1 - y1 * y1 - z1 * z1;
+        if (t1 < 0) n1 = 0.0;
+        else {
+            t1 *= t1;
+            n1 = t1 * t1 * this.dot3(this.grad3[gi1], x1, y1, z1);
+        }
+        let t2 = 0.6 - x2 * x2 - y2 * y2 - z2 * z2;
+        if (t2 < 0) n2 = 0.0;
+        else {
+            t2 *= t2;
+            n2 = t2 * t2 * this.dot3(this.grad3[gi2], x2, y2, z2);
+        }
+        let t3 = 0.6 - x3 * x3 - y3 * y3 - z3 * z3;
+        if (t3 < 0) n3 = 0.0;
+        else {
+            t3 *= t3;
+            n3 = t3 * t3 * this.dot3(this.grad3[gi3], x3, y3, z3);
+        }
+        // Add contributions from each corner to get the final noise value.
+        // The result is scaled to stay just inside [-1,1]
+        return 32.0 * (n0 + n1 + n2 + n3);
+    }
+    // 4D simplex noise
+    noise4d(x, y, z, w) {
+        // For faster and easier lookups
+        const grad4 = this.grad4;
+        const simplex = this.simplex;
+        const perm = this.perm;
+        // The skewing and unskewing factors are hairy again for the 4D case
+        const F4 = (Math.sqrt(5.0) - 1.0) / 4.0;
+        const G4 = (5.0 - Math.sqrt(5.0)) / 20.0;
+        let n0; // Noise contributions from the five corners
+        let n1;
+        let n2;
+        let n3;
+        let n4;
+        // Skew the (x,y,z,w) space to determine which cell of 24 simplices we're in
+        const s = (x + y + z + w) * F4; // Factor for 4D skewing
+        const i = Math.floor(x + s);
+        const j = Math.floor(y + s);
+        const k = Math.floor(z + s);
+        const l = Math.floor(w + s);
+        const t = (i + j + k + l) * G4; // Factor for 4D unskewing
+        const X0 = i - t; // Unskew the cell origin back to (x,y,z,w) space
+        const Y0 = j - t;
+        const Z0 = k - t;
+        const W0 = l - t;
+        const x0 = x - X0; // The x,y,z,w distances from the cell origin
+        const y0 = y - Y0;
+        const z0 = z - Z0;
+        const w0 = w - W0;
+        // For the 4D case, the simplex is a 4D shape I won't even try to describe.
+        // To find out which of the 24 possible simplices we're in, we need to
+        // determine the magnitude ordering of x0, y0, z0 and w0.
+        // The method below is a good way of finding the ordering of x,y,z,w and
+        // then find the correct traversal order for the simplex we’re in.
+        // First, six pair-wise comparisons are performed between each possible pair
+        // of the four coordinates, and the results are used to add up binary bits
+        // for an integer index.
+        const c1 = x0 > y0 ? 32 : 0;
+        const c2 = x0 > z0 ? 16 : 0;
+        const c3 = y0 > z0 ? 8 : 0;
+        const c4 = x0 > w0 ? 4 : 0;
+        const c5 = y0 > w0 ? 2 : 0;
+        const c6 = z0 > w0 ? 1 : 0;
+        const c = c1 + c2 + c3 + c4 + c5 + c6;
+        // simplex[c] is a 4-vector with the numbers 0, 1, 2 and 3 in some order.
+        // Many values of c will never occur, since e.g. x>y>z>w makes x<z, y<w and x<w
+        // impossible. Only the 24 indices which have non-zero entries make any sense.
+        // We use a thresholding to set the coordinates in turn from the largest magnitude.
+        // The number 3 in the "simplex" array is at the position of the largest coordinate.
+        const i1 = simplex[c][0] >= 3 ? 1 : 0;
+        const j1 = simplex[c][1] >= 3 ? 1 : 0;
+        const k1 = simplex[c][2] >= 3 ? 1 : 0;
+        const l1 = simplex[c][3] >= 3 ? 1 : 0;
+        // The number 2 in the "simplex" array is at the second largest coordinate.
+        const i2 = simplex[c][0] >= 2 ? 1 : 0;
+        const j2 = simplex[c][1] >= 2 ? 1 : 0;
+        const k2 = simplex[c][2] >= 2 ? 1 : 0;
+        const l2 = simplex[c][3] >= 2 ? 1 : 0;
+        // The number 1 in the "simplex" array is at the second smallest coordinate.
+        const i3 = simplex[c][0] >= 1 ? 1 : 0;
+        const j3 = simplex[c][1] >= 1 ? 1 : 0;
+        const k3 = simplex[c][2] >= 1 ? 1 : 0;
+        const l3 = simplex[c][3] >= 1 ? 1 : 0;
+        // The fifth corner has all coordinate offsets = 1, so no need to look that up.
+        const x1 = x0 - i1 + G4; // Offsets for second corner in (x,y,z,w) coords
+        const y1 = y0 - j1 + G4;
+        const z1 = z0 - k1 + G4;
+        const w1 = w0 - l1 + G4;
+        const x2 = x0 - i2 + 2.0 * G4; // Offsets for third corner in (x,y,z,w) coords
+        const y2 = y0 - j2 + 2.0 * G4;
+        const z2 = z0 - k2 + 2.0 * G4;
+        const w2 = w0 - l2 + 2.0 * G4;
+        const x3 = x0 - i3 + 3.0 * G4; // Offsets for fourth corner in (x,y,z,w) coords
+        const y3 = y0 - j3 + 3.0 * G4;
+        const z3 = z0 - k3 + 3.0 * G4;
+        const w3 = w0 - l3 + 3.0 * G4;
+        const x4 = x0 - 1.0 + 4.0 * G4; // Offsets for last corner in (x,y,z,w) coords
+        const y4 = y0 - 1.0 + 4.0 * G4;
+        const z4 = z0 - 1.0 + 4.0 * G4;
+        const w4 = w0 - 1.0 + 4.0 * G4;
+        // Work out the hashed gradient indices of the five simplex corners
+        const ii = i & 255;
+        const jj = j & 255;
+        const kk = k & 255;
+        const ll = l & 255;
+        const gi0 = perm[ii + perm[jj + perm[kk + perm[ll]]]] % 32;
+        const gi1 = perm[ii + i1 + perm[jj + j1 + perm[kk + k1 + perm[ll + l1]]]] % 32;
+        const gi2 = perm[ii + i2 + perm[jj + j2 + perm[kk + k2 + perm[ll + l2]]]] % 32;
+        const gi3 = perm[ii + i3 + perm[jj + j3 + perm[kk + k3 + perm[ll + l3]]]] % 32;
+        const gi4 = perm[ii + 1 + perm[jj + 1 + perm[kk + 1 + perm[ll + 1]]]] % 32;
+        // Calculate the contribution from the five corners
+        let t0 = 0.6 - x0 * x0 - y0 * y0 - z0 * z0 - w0 * w0;
+        if (t0 < 0) n0 = 0.0;
+        else {
+            t0 *= t0;
+            n0 = t0 * t0 * this.dot4(grad4[gi0], x0, y0, z0, w0);
+        }
+        let t1 = 0.6 - x1 * x1 - y1 * y1 - z1 * z1 - w1 * w1;
+        if (t1 < 0) n1 = 0.0;
+        else {
+            t1 *= t1;
+            n1 = t1 * t1 * this.dot4(grad4[gi1], x1, y1, z1, w1);
+        }
+        let t2 = 0.6 - x2 * x2 - y2 * y2 - z2 * z2 - w2 * w2;
+        if (t2 < 0) n2 = 0.0;
+        else {
+            t2 *= t2;
+            n2 = t2 * t2 * this.dot4(grad4[gi2], x2, y2, z2, w2);
+        }
+        let t3 = 0.6 - x3 * x3 - y3 * y3 - z3 * z3 - w3 * w3;
+        if (t3 < 0) n3 = 0.0;
+        else {
+            t3 *= t3;
+            n3 = t3 * t3 * this.dot4(grad4[gi3], x3, y3, z3, w3);
+        }
+        let t4 = 0.6 - x4 * x4 - y4 * y4 - z4 * z4 - w4 * w4;
+        if (t4 < 0) n4 = 0.0;
+        else {
+            t4 *= t4;
+            n4 = t4 * t4 * this.dot4(grad4[gi4], x4, y4, z4, w4);
+        }
+        // Sum up and scale the result to cover the range [-1,1]
+        return 27.0 * (n0 + n1 + n2 + n3 + n4);
+    }
+}
+
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"4bcgP":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "ConvexObjectBreaker", ()=>ConvexObjectBreaker);
@@ -226482,6 +226438,70 @@ module.exports = "#define GLSLIFY 1\nvarying vec3 vWorldPosition;\nvarying float
 },{}],"5qECw":[function(require,module,exports) {
 module.exports = "#define GLSLIFY 1\n\n// uniform vec3 uBaseColor;\n// uniform sampler2D uEnvMap;\n// uniform vec3 uCameraPosition;\n// uniform float uHazeStart;\n// uniform float uHazeEnd;\n// uniform float uHazeIntensity;\n\n// void main() {\n//     // Direction from camera to fragment\n//     vec3 viewDir = normalize(vWorldPosition - uCameraPosition);\n\n//     // Horizon direction (force horizontal)\n//     vec3 horizonDir = normalize(vec3(viewDir.x, 0.0, viewDir.z));\n\n//     // Convert to equirectangular UV\n//     float u = atan(horizonDir.z, horizonDir.x) / (2.0 * 3.14159265) + 0.5;\n//     float v = asin(clamp(horizonDir.y, -1.0, 1.0)) / 3.14159265 + 0.5;\n\n//     // Sample HDRI\n//     vec3 horizonColor = texture2D(uEnvMap, vec2(u, v)).rgb;\n\n//     // Distance-based haze\n//     float hazeFactor = smoothstep(uHazeStart, uHazeEnd, vDistanceFromCamera) * uHazeIntensity;\n\n//     // Final color\n//     vec3 finalColor = mix(uBaseColor, horizonColor, hazeFactor);\n\n//     gl_FragColor = vec4(finalColor, 1.0);\n// }\n\n// uniform vec3 uBaseColor;\n// uniform sampler2D uEnvMap;\n// uniform vec3 uCameraPosition;\n// uniform float uHazeStart;\n// uniform float uHazeEnd;\n// uniform float uHazeIntensity;\n\n// void main() {\n//     // Direction from camera to fragment\n//     vec3 viewDir = normalize(vWorldPosition - uCameraPosition);\n\n//     // Force horizontal direction for horizon\n//     vec3 horizonDir = normalize(vec3(viewDir.x, 0.0, viewDir.z));\n\n//     // Convert to equirectangular UV\n//     float u = atan(horizonDir.z, horizonDir.x) / (2.0 * 3.14159265) + 0.5;\n//     float v = asin(clamp(horizonDir.y, -1.0, 1.0)) / 3.14159265 + 0.5;\n\n//     // Apply optional vertical offset to align HDRI horizon\n//     v += 0.05;\n//     v = clamp(v, 0.0, 1.0);\n\n//     // Sample HDRI for horizon color\n//     vec3 horizonColor = texture2D(uEnvMap, vec2(u, v)).rgb;\n//     horizonColor = pow(horizonColor, vec3(1.0/2.2));\n\n//     // Distance-based haze factor\n//     float hazeFactor = smoothstep(uHazeStart, uHazeEnd, vDistanceFromCamera) * uHazeIntensity;\n\n//     // Blend base color (black) with horizon color\n//     vec3 finalColor = mix(uBaseColor, horizonColor, hazeFactor);\n\n//     gl_FragColor = vec4(finalColor, 1.0);\n// }\n\nvarying vec3 vWorldPosition;\nvarying float vDistanceFromCamera;\n\nuniform vec3 uBaseColor;\nuniform sampler2D uEnvMap;          // Equirectangular HDR texture\nuniform vec3 uCameraPosition;\nuniform float uHazeStart;\nuniform float uHazeEnd;\nuniform float uHazeIntensity;\n\n#define PI 3.14159265359\n\nvoid main() {\n    // 1\uFE0F\u20E3 Direction from camera to fragment\n    vec3 viewDir = normalize(vWorldPosition - uCameraPosition);\n\n    // 2\uFE0F\u20E3 Horizon direction (force horizontal)\n    vec3 horizonDir = normalize(vec3(viewDir.x, 0.0, viewDir.z));\n\n    // 3\uFE0F\u20E3 Convert direction to equirectangular UV coordinates\n    float u = atan(horizonDir.z, horizonDir.x) / (2.0 * PI) + 0.5;\n    float v = 0.5; // Sample at horizon (middle of texture vertically)\n\n    // 4\uFE0F\u20E3 Sample HDR texture\n    vec3 horizonColor = texture2D(uEnvMap, vec2(u, v)).rgb;\n\n    // 5\uFE0F\u20E3 Distance-based haze factor\n    float hazeFactor = smoothstep(uHazeStart, uHazeEnd, vDistanceFromCamera) * uHazeIntensity;\n\n    // 6\uFE0F\u20E3 Blend base color with horizon color\n    vec3 finalColor = mix(uBaseColor, horizonColor, hazeFactor);\n\n    gl_FragColor = vec4(finalColor, 1.0);\n}";
 
-},{}]},["l9Mez","ebWYT"], "ebWYT", "parcelRequire2041")
+},{}],"hE4Kl":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "TERRAIN_SEED", ()=>TERRAIN_SEED);
+parcelHelpers.export(exports, "NOISE_SCALE", ()=>NOISE_SCALE);
+parcelHelpers.export(exports, "NOISE_AMPLITUDE", ()=>NOISE_AMPLITUDE);
+parcelHelpers.export(exports, "GRASS_Y_OFFSET", ()=>GRASS_Y_OFFSET);
+parcelHelpers.export(exports, "flatAreas", ()=>flatAreas);
+parcelHelpers.export(exports, "simplex", ()=>simplex);
+// ============ SHARED FUNCTIONS ============
+parcelHelpers.export(exports, "smoothstep", ()=>smoothstep);
+parcelHelpers.export(exports, "getHeight", ()=>getHeight);
+var _simplexNoise = require("three/examples/jsm/math/SimplexNoise");
+// Seeded PRNG (mulberry32) - produces same sequence given same seed
+function mulberry32(seed) {
+    return function() {
+        let t = seed += 0x6D2B79F5;
+        t = Math.imul(t ^ t >>> 15, t | 1);
+        t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+}
+const TERRAIN_SEED = 12345;
+const NOISE_SCALE = 400;
+const NOISE_AMPLITUDE = 17.5;
+const GRASS_Y_OFFSET = -0.6;
+const flatAreas = [
+    {
+        x: 1200,
+        z: 950,
+        size: 250
+    },
+    {
+        x: 385,
+        z: -300,
+        size: 120
+    }
+];
+// ============ SHARED SIMPLEX INSTANCE ============
+// SimplexNoise expects an object with .random() method (like Math)
+const seededRandom = {
+    random: mulberry32(TERRAIN_SEED)
+};
+const simplex = new (0, _simplexNoise.SimplexNoise)(seededRandom);
+function smoothstep(edge0, edge1, x) {
+    let t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+    return t * t * (3 - 2 * t);
+}
+function getHeight(x, z) {
+    let roughTerrain = NOISE_AMPLITUDE * simplex.noise(x / NOISE_SCALE, z / NOISE_SCALE);
+    let smoothTerrain = 0.0;
+    let blendFactor = 1;
+    for (let area of flatAreas){
+        let distanceX = Math.abs(x - area.x);
+        let distanceZ = Math.abs(z - area.z);
+        let transitionSize = area.size * 0.25;
+        let factorX = smoothstep(area.size - transitionSize, area.size + transitionSize, distanceX);
+        let factorZ = smoothstep(area.size - transitionSize, area.size + transitionSize, distanceZ);
+        let areaBlend = Math.min(factorX, factorZ);
+        blendFactor = Math.min(blendFactor, areaBlend);
+    }
+    return roughTerrain * blendFactor + smoothTerrain * (1 - blendFactor);
+}
+
+},{"three/examples/jsm/math/SimplexNoise":"4r7fB","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}]},["l9Mez","ebWYT"], "ebWYT", "parcelRequire2041")
 
 //# sourceMappingURL=index.739bf03c.js.map
