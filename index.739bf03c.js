@@ -2387,7 +2387,7 @@ function fnUpdateControls(deltaTime) {
     newPosition.addScaledVector(direction, -velocity.z * deltaTime);
     newPosition.addScaledVector(right, -velocity.x * deltaTime);
     // --- COLLISION CHECK START ---
-    const playerRadius = 6.0;
+    const playerRadius = 5.5;
     const playerSphere = new _three.Sphere(newPosition, playerRadius);
     const closestPoint = new _three.Vector3();
     modelRegistry.forEach((data, id)=>{
@@ -2693,28 +2693,64 @@ const fnOnTerrainComplete = fnCreateOnceFunction();
 // ];
 const GRASS_LOD_LEVELS = [
     {
-        distanceSq: 22500,
+        distanceSq: 10000,
         multiplier: 1.0
     },
     {
+        distanceSq: 22500,
+        multiplier: 0.95
+    },
+    {
+        distanceSq: 40000,
+        multiplier: 0.90
+    },
+    {
+        distanceSq: 62500,
+        multiplier: 0.85
+    },
+    {
         distanceSq: 90000,
-        multiplier: 0.9
+        multiplier: 0.80
+    },
+    {
+        distanceSq: 122500,
+        multiplier: 0.70
+    },
+    {
+        distanceSq: 160000,
+        multiplier: 0.60
     },
     {
         distanceSq: 202500,
-        multiplier: 0.6
+        multiplier: 0.50
+    },
+    {
+        distanceSq: 250000,
+        multiplier: 0.40
     },
     {
         distanceSq: 360000,
-        multiplier: 0.4
+        multiplier: 0.30
+    },
+    {
+        distanceSq: 490000,
+        multiplier: 0.20
+    },
+    {
+        distanceSq: 640000,
+        multiplier: 0.15
     },
     {
         distanceSq: 810000,
-        multiplier: 0.2
+        multiplier: 0.10
+    },
+    {
+        distanceSq: 1000000,
+        multiplier: 0.05
     },
     {
         distanceSq: 1440000,
-        multiplier: 0.05
+        multiplier: 0.02
     },
     {
         distanceSq: Infinity,
