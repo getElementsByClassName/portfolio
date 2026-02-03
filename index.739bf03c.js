@@ -1139,7 +1139,7 @@ const grassDiffuseMap = textureLoader.load("./assets/grassColor.png");
 const pmremGenerator = new _three.PMREMGenerator(renderer);
 pmremGenerator.compileEquirectangularShader();
 //let skyboxToLoad = visitedFromMobileDevice ? 'belfast_sunset_puresky_1k' : 'belfast_sunset_puresky_1k';
-let skyboxToLoad = visitedFromMobileDevice ? "belfast_sunset_puresky_1k" : "belfast_sunset_puresky_2k";
+let skyboxToLoad = visitedFromMobileDevice ? "belfast_sunset_puresky_1k" : "belfast_sunset_puresky_1k";
 let envMap = null;
 // Load the HDR texture
 const rgbeLoader = new (0, _rgbeloader.RGBELoader)();
@@ -2698,7 +2698,7 @@ const GRASS_LOD_LEVELS = [
     },
     {
         distanceSq: 90000,
-        multiplier: 0.8
+        multiplier: 0.9
     },
     {
         distanceSq: 202500,
@@ -226462,7 +226462,7 @@ function mulberry32(seed) {
 }
 const TERRAIN_SEED = 12345;
 const NOISE_SCALE = 400;
-const NOISE_AMPLITUDE = 17.5;
+const NOISE_AMPLITUDE = 18.5;
 const GRASS_Y_OFFSET = -0.6;
 const flatAreas = [
     {

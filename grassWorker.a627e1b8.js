@@ -32132,7 +32132,7 @@ function mulberry32(seed) {
 }
 const TERRAIN_SEED = 12345;
 const NOISE_SCALE = 400;
-const NOISE_AMPLITUDE = 17.5;
+const NOISE_AMPLITUDE = 18.5;
 const GRASS_Y_OFFSET = -0.6;
 const flatAreas = [
     {
