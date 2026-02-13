@@ -210474,7 +210474,7 @@ class WorldScene {
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = _three.PCFSoftShadowMap;
         this.renderer.shadowMap.autoUpdate = true;
-        this.renderer.toneMappingExposure = 0.185;
+        this.renderer.toneMappingExposure = 0.28;
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.container.appendChild(this.renderer.domElement);
         this.composerDefault = new (0, _postprocessing.EffectComposer)(this.renderer, {
@@ -210547,7 +210547,7 @@ class WorldScene {
             levels: 6,
             luminanceThreshold: 1.0,
             luminanceSmoothing: 0.2,
-            intensity: 0.6,
+            intensity: 0.55,
             opacity: 1.0,
             radius: 0.85,
             kernelSize: (0, _postprocessing.KernelSize).MEDIUM
