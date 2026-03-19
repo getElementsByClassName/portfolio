@@ -2493,7 +2493,7 @@ const grassMaterial = new (0, _vanillaDefault.default)({
 const viewRadius = 7; // Number of chunks to load around the player (6)
 const unloadRadius = 8; // Number of chunks to unload outside this radius (7)
 const chunkVertexCount = 10; // 4
-const instanceCount = 4200; //(4750) (19500)
+const instanceCount = 4000; //(4750) (19500)
 const loadedChunks = new Map(); // Store references to loaded chunks
 // Define special chunk configurations by their X, Z values
 const specialChunks = {
@@ -2738,15 +2738,15 @@ const GRASS_LOD_LEVELS = [
     },
     {
         distanceSq: 640000,
-        multiplier: 0.02
+        multiplier: 0.1
     },
     {
         distanceSq: 810000,
-        multiplier: 0.02
+        multiplier: 0.1
     },
     {
         distanceSq: 1000000,
-        multiplier: 0.02
+        multiplier: 0.01
     },
     {
         distanceSq: 1440000,
@@ -2754,7 +2754,7 @@ const GRASS_LOD_LEVELS = [
     },
     {
         distanceSq: Infinity,
-        multiplier: 0.01
+        multiplier: 0.001
     } // Beyond
 ];
 const halfChunkSize = chunkSize * 0.5;
