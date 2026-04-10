@@ -1139,7 +1139,7 @@ const grassDiffuseMap = textureLoader.load("./assets/grassColor.png");
 const pmremGenerator = new _three.PMREMGenerator(renderer);
 pmremGenerator.compileEquirectangularShader();
 //let skyboxToLoad = visitedFromMobileDevice ? 'belfast_sunset_puresky_1k' : 'belfast_sunset_puresky_1k';
-let skyboxToLoad = visitedFromMobileDevice ? "belfast_sunset_puresky_1k" : "belfast_sunset_puresky_1k";
+let skyboxToLoad = visitedFromMobileDevice ? "belfast_sunset_puresky_1k" : "belfast_sunset_puresky_2k";
 let envMap = null;
 // Load the HDR texture
 const rgbeLoader = new (0, _rgbeloader.RGBELoader)();
@@ -2916,7 +2916,7 @@ const TEXTURE_SWAP_CHECK_INTERVAL = 100;
     videoTexture.needsUpdate = true;
 }
 
-},{"three":"ktPTu","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/Addons.js":"iBAni","three/examples/jsm/math/Octree.js":"iwBOl","three/examples/jsm/helpers/OctreeHelper.js":"70dYF","three-mesh-bvh":"6y2ur","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./Utils.js":"c7A1Q","./shaders/grass.js":"cNzyR","./shaders/powerlines.js":"gJXUV","./shaders/stonefigure.js":"e77je","./shaders/videoFade.js":"2lLRY","./patchProjectorMaterial.js":"joMhG","./content.json":"24cue","./GrassScene.js":"a5jmZ","./WorldScene.js":"5ZFD0","./ModelLoader.js":"5o86C","./LODManager.js":"3L9vB","./SoundManager.js":"70lfs","cdb16b6f1235a7ac":"9rntO","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","./materials/videoShaderMaterial.js":"iyqMm","./materials/fadeShaderMaterial.js":"9kv9Y","./materials/horizonHazeMaterial.js":"9SL6m","./terrainConfig.js":"hE4Kl"}],"ktPTu":[function(require,module,exports) {
+},{"three":"ktPTu","./terrainConfig.js":"hE4Kl","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/Addons.js":"iBAni","three/examples/jsm/math/Octree.js":"iwBOl","three/examples/jsm/helpers/OctreeHelper.js":"70dYF","three-mesh-bvh":"6y2ur","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./Utils.js":"c7A1Q","./shaders/grass.js":"cNzyR","./shaders/powerlines.js":"gJXUV","./materials/videoShaderMaterial.js":"iyqMm","./shaders/stonefigure.js":"e77je","./shaders/videoFade.js":"2lLRY","./materials/fadeShaderMaterial.js":"9kv9Y","./materials/horizonHazeMaterial.js":"9SL6m","./patchProjectorMaterial.js":"joMhG","./content.json":"24cue","./GrassScene.js":"a5jmZ","./WorldScene.js":"5ZFD0","./ModelLoader.js":"5o86C","./LODManager.js":"3L9vB","./SoundManager.js":"70lfs","cdb16b6f1235a7ac":"9rntO","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"ktPTu":[function(require,module,exports) {
 /**
  * @license
  * Copyright 2010-2024 Three.js Authors
@@ -34375,7 +34375,1064 @@ exports.export = function(dest, destName, get) {
     });
 };
 
-},{}],"dVRsF":[function(require,module,exports) {
+},{}],"hE4Kl":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "TERRAIN_SEED", ()=>TERRAIN_SEED);
+parcelHelpers.export(exports, "NOISE_SCALE", ()=>NOISE_SCALE);
+parcelHelpers.export(exports, "NOISE_AMPLITUDE", ()=>NOISE_AMPLITUDE);
+parcelHelpers.export(exports, "GRASS_Y_OFFSET", ()=>GRASS_Y_OFFSET);
+parcelHelpers.export(exports, "flatAreas", ()=>flatAreas);
+parcelHelpers.export(exports, "simplex", ()=>simplex);
+// ============ SHARED FUNCTIONS ============
+parcelHelpers.export(exports, "smoothstep", ()=>smoothstep);
+parcelHelpers.export(exports, "getHeight", ()=>getHeight);
+var _simplexNoise = require("three/examples/jsm/math/SimplexNoise");
+// Seeded PRNG (mulberry32) - produces same sequence given same seed
+function mulberry32(seed) {
+    return function() {
+        let t = seed += 0x6D2B79F5;
+        t = Math.imul(t ^ t >>> 15, t | 1);
+        t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+}
+const TERRAIN_SEED = 12345;
+const NOISE_SCALE = 400;
+const NOISE_AMPLITUDE = 12.5;
+const GRASS_Y_OFFSET = -0.2;
+const flatAreas = [
+    {
+        x: 1200,
+        z: 950,
+        size: 250
+    },
+    {
+        x: 385,
+        z: -300,
+        size: 120
+    }
+];
+// ============ SHARED SIMPLEX INSTANCE ============
+// SimplexNoise expects an object with .random() method (like Math)
+const seededRandom = {
+    random: mulberry32(TERRAIN_SEED)
+};
+const simplex = new (0, _simplexNoise.SimplexNoise)(seededRandom);
+function smoothstep(edge0, edge1, x) {
+    let t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+    return t * t * (3 - 2 * t);
+}
+function getHeight(x, z) {
+    let roughTerrain = NOISE_AMPLITUDE * simplex.noise(x / NOISE_SCALE, z / NOISE_SCALE);
+    let smoothTerrain = 0.0;
+    let blendFactor = 1;
+    for (let area of flatAreas){
+        let distanceX = Math.abs(x - area.x);
+        let distanceZ = Math.abs(z - area.z);
+        let transitionSize = area.size * 0.25;
+        let factorX = smoothstep(area.size - transitionSize, area.size + transitionSize, distanceX);
+        let factorZ = smoothstep(area.size - transitionSize, area.size + transitionSize, distanceZ);
+        let areaBlend = Math.min(factorX, factorZ);
+        blendFactor = Math.min(blendFactor, areaBlend);
+    }
+    return roughTerrain * blendFactor + smoothTerrain * (1 - blendFactor);
+}
+
+},{"three/examples/jsm/math/SimplexNoise":"4r7fB","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"4r7fB":[function(require,module,exports) {
+// Ported from Stefan Gustavson's java implementation
+// http://staffwww.itn.liu.se/~stegu/simplexnoise/simplexnoise.pdf
+// Read Stefan's excellent paper for details on how this code works.
+//
+// Sean McCullough banksean@gmail.com
+//
+// Added 4D noise
+/**
+ * You can pass in a random number generator object if you like.
+ * It is assumed to have a random() method.
+ */ var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "SimplexNoise", ()=>SimplexNoise);
+class SimplexNoise {
+    constructor(r = Math){
+        this.grad3 = [
+            [
+                1,
+                1,
+                0
+            ],
+            [
+                -1,
+                1,
+                0
+            ],
+            [
+                1,
+                -1,
+                0
+            ],
+            [
+                -1,
+                -1,
+                0
+            ],
+            [
+                1,
+                0,
+                1
+            ],
+            [
+                -1,
+                0,
+                1
+            ],
+            [
+                1,
+                0,
+                -1
+            ],
+            [
+                -1,
+                0,
+                -1
+            ],
+            [
+                0,
+                1,
+                1
+            ],
+            [
+                0,
+                -1,
+                1
+            ],
+            [
+                0,
+                1,
+                -1
+            ],
+            [
+                0,
+                -1,
+                -1
+            ]
+        ];
+        this.grad4 = [
+            [
+                0,
+                1,
+                1,
+                1
+            ],
+            [
+                0,
+                1,
+                1,
+                -1
+            ],
+            [
+                0,
+                1,
+                -1,
+                1
+            ],
+            [
+                0,
+                1,
+                -1,
+                -1
+            ],
+            [
+                0,
+                -1,
+                1,
+                1
+            ],
+            [
+                0,
+                -1,
+                1,
+                -1
+            ],
+            [
+                0,
+                -1,
+                -1,
+                1
+            ],
+            [
+                0,
+                -1,
+                -1,
+                -1
+            ],
+            [
+                1,
+                0,
+                1,
+                1
+            ],
+            [
+                1,
+                0,
+                1,
+                -1
+            ],
+            [
+                1,
+                0,
+                -1,
+                1
+            ],
+            [
+                1,
+                0,
+                -1,
+                -1
+            ],
+            [
+                -1,
+                0,
+                1,
+                1
+            ],
+            [
+                -1,
+                0,
+                1,
+                -1
+            ],
+            [
+                -1,
+                0,
+                -1,
+                1
+            ],
+            [
+                -1,
+                0,
+                -1,
+                -1
+            ],
+            [
+                1,
+                1,
+                0,
+                1
+            ],
+            [
+                1,
+                1,
+                0,
+                -1
+            ],
+            [
+                1,
+                -1,
+                0,
+                1
+            ],
+            [
+                1,
+                -1,
+                0,
+                -1
+            ],
+            [
+                -1,
+                1,
+                0,
+                1
+            ],
+            [
+                -1,
+                1,
+                0,
+                -1
+            ],
+            [
+                -1,
+                -1,
+                0,
+                1
+            ],
+            [
+                -1,
+                -1,
+                0,
+                -1
+            ],
+            [
+                1,
+                1,
+                1,
+                0
+            ],
+            [
+                1,
+                1,
+                -1,
+                0
+            ],
+            [
+                1,
+                -1,
+                1,
+                0
+            ],
+            [
+                1,
+                -1,
+                -1,
+                0
+            ],
+            [
+                -1,
+                1,
+                1,
+                0
+            ],
+            [
+                -1,
+                1,
+                -1,
+                0
+            ],
+            [
+                -1,
+                -1,
+                1,
+                0
+            ],
+            [
+                -1,
+                -1,
+                -1,
+                0
+            ]
+        ];
+        this.p = [];
+        for(let i = 0; i < 256; i++)this.p[i] = Math.floor(r.random() * 256);
+        // To remove the need for index wrapping, double the permutation table length
+        this.perm = [];
+        for(let i = 0; i < 512; i++)this.perm[i] = this.p[i & 255];
+        // A lookup table to traverse the simplex around a given point in 4D.
+        // Details can be found where this table is used, in the 4D noise method.
+        this.simplex = [
+            [
+                0,
+                1,
+                2,
+                3
+            ],
+            [
+                0,
+                1,
+                3,
+                2
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                2,
+                3,
+                1
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                1,
+                2,
+                3,
+                0
+            ],
+            [
+                0,
+                2,
+                1,
+                3
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                3,
+                1,
+                2
+            ],
+            [
+                0,
+                3,
+                2,
+                1
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                1,
+                3,
+                2,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                1,
+                2,
+                0,
+                3
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                1,
+                3,
+                0,
+                2
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                2,
+                3,
+                0,
+                1
+            ],
+            [
+                2,
+                3,
+                1,
+                0
+            ],
+            [
+                1,
+                0,
+                2,
+                3
+            ],
+            [
+                1,
+                0,
+                3,
+                2
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                2,
+                0,
+                3,
+                1
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                2,
+                1,
+                3,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                2,
+                0,
+                1,
+                3
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                3,
+                0,
+                1,
+                2
+            ],
+            [
+                3,
+                0,
+                2,
+                1
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                3,
+                1,
+                2,
+                0
+            ],
+            [
+                2,
+                1,
+                0,
+                3
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                3,
+                1,
+                0,
+                2
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                3,
+                2,
+                0,
+                1
+            ],
+            [
+                3,
+                2,
+                1,
+                0
+            ]
+        ];
+    }
+    dot(g, x, y) {
+        return g[0] * x + g[1] * y;
+    }
+    dot3(g, x, y, z) {
+        return g[0] * x + g[1] * y + g[2] * z;
+    }
+    dot4(g, x, y, z, w) {
+        return g[0] * x + g[1] * y + g[2] * z + g[3] * w;
+    }
+    noise(xin, yin) {
+        let n0; // Noise contributions from the three corners
+        let n1;
+        let n2;
+        // Skew the input space to determine which simplex cell we're in
+        const F2 = 0.5 * (Math.sqrt(3.0) - 1.0);
+        const s = (xin + yin) * F2; // Hairy factor for 2D
+        const i = Math.floor(xin + s);
+        const j = Math.floor(yin + s);
+        const G2 = (3.0 - Math.sqrt(3.0)) / 6.0;
+        const t = (i + j) * G2;
+        const X0 = i - t; // Unskew the cell origin back to (x,y) space
+        const Y0 = j - t;
+        const x0 = xin - X0; // The x,y distances from the cell origin
+        const y0 = yin - Y0;
+        // For the 2D case, the simplex shape is an equilateral triangle.
+        // Determine which simplex we are in.
+        let i1; // Offsets for second (middle) corner of simplex in (i,j) coords
+        let j1;
+        if (x0 > y0) {
+            i1 = 1;
+            j1 = 0;
+        // lower triangle, XY order: (0,0)->(1,0)->(1,1)
+        } else {
+            i1 = 0;
+            j1 = 1;
+        } // upper triangle, YX order: (0,0)->(0,1)->(1,1)
+        // A step of (1,0) in (i,j) means a step of (1-c,-c) in (x,y), and
+        // a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where
+        // c = (3-sqrt(3))/6
+        const x1 = x0 - i1 + G2; // Offsets for middle corner in (x,y) unskewed coords
+        const y1 = y0 - j1 + G2;
+        const x2 = x0 - 1.0 + 2.0 * G2; // Offsets for last corner in (x,y) unskewed coords
+        const y2 = y0 - 1.0 + 2.0 * G2;
+        // Work out the hashed gradient indices of the three simplex corners
+        const ii = i & 255;
+        const jj = j & 255;
+        const gi0 = this.perm[ii + this.perm[jj]] % 12;
+        const gi1 = this.perm[ii + i1 + this.perm[jj + j1]] % 12;
+        const gi2 = this.perm[ii + 1 + this.perm[jj + 1]] % 12;
+        // Calculate the contribution from the three corners
+        let t0 = 0.5 - x0 * x0 - y0 * y0;
+        if (t0 < 0) n0 = 0.0;
+        else {
+            t0 *= t0;
+            n0 = t0 * t0 * this.dot(this.grad3[gi0], x0, y0); // (x,y) of grad3 used for 2D gradient
+        }
+        let t1 = 0.5 - x1 * x1 - y1 * y1;
+        if (t1 < 0) n1 = 0.0;
+        else {
+            t1 *= t1;
+            n1 = t1 * t1 * this.dot(this.grad3[gi1], x1, y1);
+        }
+        let t2 = 0.5 - x2 * x2 - y2 * y2;
+        if (t2 < 0) n2 = 0.0;
+        else {
+            t2 *= t2;
+            n2 = t2 * t2 * this.dot(this.grad3[gi2], x2, y2);
+        }
+        // Add contributions from each corner to get the final noise value.
+        // The result is scaled to return values in the interval [-1,1].
+        return 70.0 * (n0 + n1 + n2);
+    }
+    // 3D simplex noise
+    noise3d(xin, yin, zin) {
+        let n0; // Noise contributions from the four corners
+        let n1;
+        let n2;
+        let n3;
+        // Skew the input space to determine which simplex cell we're in
+        const F3 = 1.0 / 3.0;
+        const s = (xin + yin + zin) * F3; // Very nice and simple skew factor for 3D
+        const i = Math.floor(xin + s);
+        const j = Math.floor(yin + s);
+        const k = Math.floor(zin + s);
+        const G3 = 1.0 / 6.0; // Very nice and simple unskew factor, too
+        const t = (i + j + k) * G3;
+        const X0 = i - t; // Unskew the cell origin back to (x,y,z) space
+        const Y0 = j - t;
+        const Z0 = k - t;
+        const x0 = xin - X0; // The x,y,z distances from the cell origin
+        const y0 = yin - Y0;
+        const z0 = zin - Z0;
+        // For the 3D case, the simplex shape is a slightly irregular tetrahedron.
+        // Determine which simplex we are in.
+        let i1; // Offsets for second corner of simplex in (i,j,k) coords
+        let j1;
+        let k1;
+        let i2; // Offsets for third corner of simplex in (i,j,k) coords
+        let j2;
+        let k2;
+        if (x0 >= y0) {
+            if (y0 >= z0) {
+                i1 = 1;
+                j1 = 0;
+                k1 = 0;
+                i2 = 1;
+                j2 = 1;
+                k2 = 0;
+            // X Y Z order
+            } else if (x0 >= z0) {
+                i1 = 1;
+                j1 = 0;
+                k1 = 0;
+                i2 = 1;
+                j2 = 0;
+                k2 = 1;
+            // X Z Y order
+            } else {
+                i1 = 0;
+                j1 = 0;
+                k1 = 1;
+                i2 = 1;
+                j2 = 0;
+                k2 = 1;
+            } // Z X Y order
+        } else {
+            if (y0 < z0) {
+                i1 = 0;
+                j1 = 0;
+                k1 = 1;
+                i2 = 0;
+                j2 = 1;
+                k2 = 1;
+            // Z Y X order
+            } else if (x0 < z0) {
+                i1 = 0;
+                j1 = 1;
+                k1 = 0;
+                i2 = 0;
+                j2 = 1;
+                k2 = 1;
+            // Y Z X order
+            } else {
+                i1 = 0;
+                j1 = 1;
+                k1 = 0;
+                i2 = 1;
+                j2 = 1;
+                k2 = 0;
+            } // Y X Z order
+        }
+        // A step of (1,0,0) in (i,j,k) means a step of (1-c,-c,-c) in (x,y,z),
+        // a step of (0,1,0) in (i,j,k) means a step of (-c,1-c,-c) in (x,y,z), and
+        // a step of (0,0,1) in (i,j,k) means a step of (-c,-c,1-c) in (x,y,z), where
+        // c = 1/6.
+        const x1 = x0 - i1 + G3; // Offsets for second corner in (x,y,z) coords
+        const y1 = y0 - j1 + G3;
+        const z1 = z0 - k1 + G3;
+        const x2 = x0 - i2 + 2.0 * G3; // Offsets for third corner in (x,y,z) coords
+        const y2 = y0 - j2 + 2.0 * G3;
+        const z2 = z0 - k2 + 2.0 * G3;
+        const x3 = x0 - 1.0 + 3.0 * G3; // Offsets for last corner in (x,y,z) coords
+        const y3 = y0 - 1.0 + 3.0 * G3;
+        const z3 = z0 - 1.0 + 3.0 * G3;
+        // Work out the hashed gradient indices of the four simplex corners
+        const ii = i & 255;
+        const jj = j & 255;
+        const kk = k & 255;
+        const gi0 = this.perm[ii + this.perm[jj + this.perm[kk]]] % 12;
+        const gi1 = this.perm[ii + i1 + this.perm[jj + j1 + this.perm[kk + k1]]] % 12;
+        const gi2 = this.perm[ii + i2 + this.perm[jj + j2 + this.perm[kk + k2]]] % 12;
+        const gi3 = this.perm[ii + 1 + this.perm[jj + 1 + this.perm[kk + 1]]] % 12;
+        // Calculate the contribution from the four corners
+        let t0 = 0.6 - x0 * x0 - y0 * y0 - z0 * z0;
+        if (t0 < 0) n0 = 0.0;
+        else {
+            t0 *= t0;
+            n0 = t0 * t0 * this.dot3(this.grad3[gi0], x0, y0, z0);
+        }
+        let t1 = 0.6 - x1 * x1 - y1 * y1 - z1 * z1;
+        if (t1 < 0) n1 = 0.0;
+        else {
+            t1 *= t1;
+            n1 = t1 * t1 * this.dot3(this.grad3[gi1], x1, y1, z1);
+        }
+        let t2 = 0.6 - x2 * x2 - y2 * y2 - z2 * z2;
+        if (t2 < 0) n2 = 0.0;
+        else {
+            t2 *= t2;
+            n2 = t2 * t2 * this.dot3(this.grad3[gi2], x2, y2, z2);
+        }
+        let t3 = 0.6 - x3 * x3 - y3 * y3 - z3 * z3;
+        if (t3 < 0) n3 = 0.0;
+        else {
+            t3 *= t3;
+            n3 = t3 * t3 * this.dot3(this.grad3[gi3], x3, y3, z3);
+        }
+        // Add contributions from each corner to get the final noise value.
+        // The result is scaled to stay just inside [-1,1]
+        return 32.0 * (n0 + n1 + n2 + n3);
+    }
+    // 4D simplex noise
+    noise4d(x, y, z, w) {
+        // For faster and easier lookups
+        const grad4 = this.grad4;
+        const simplex = this.simplex;
+        const perm = this.perm;
+        // The skewing and unskewing factors are hairy again for the 4D case
+        const F4 = (Math.sqrt(5.0) - 1.0) / 4.0;
+        const G4 = (5.0 - Math.sqrt(5.0)) / 20.0;
+        let n0; // Noise contributions from the five corners
+        let n1;
+        let n2;
+        let n3;
+        let n4;
+        // Skew the (x,y,z,w) space to determine which cell of 24 simplices we're in
+        const s = (x + y + z + w) * F4; // Factor for 4D skewing
+        const i = Math.floor(x + s);
+        const j = Math.floor(y + s);
+        const k = Math.floor(z + s);
+        const l = Math.floor(w + s);
+        const t = (i + j + k + l) * G4; // Factor for 4D unskewing
+        const X0 = i - t; // Unskew the cell origin back to (x,y,z,w) space
+        const Y0 = j - t;
+        const Z0 = k - t;
+        const W0 = l - t;
+        const x0 = x - X0; // The x,y,z,w distances from the cell origin
+        const y0 = y - Y0;
+        const z0 = z - Z0;
+        const w0 = w - W0;
+        // For the 4D case, the simplex is a 4D shape I won't even try to describe.
+        // To find out which of the 24 possible simplices we're in, we need to
+        // determine the magnitude ordering of x0, y0, z0 and w0.
+        // The method below is a good way of finding the ordering of x,y,z,w and
+        // then find the correct traversal order for the simplex we’re in.
+        // First, six pair-wise comparisons are performed between each possible pair
+        // of the four coordinates, and the results are used to add up binary bits
+        // for an integer index.
+        const c1 = x0 > y0 ? 32 : 0;
+        const c2 = x0 > z0 ? 16 : 0;
+        const c3 = y0 > z0 ? 8 : 0;
+        const c4 = x0 > w0 ? 4 : 0;
+        const c5 = y0 > w0 ? 2 : 0;
+        const c6 = z0 > w0 ? 1 : 0;
+        const c = c1 + c2 + c3 + c4 + c5 + c6;
+        // simplex[c] is a 4-vector with the numbers 0, 1, 2 and 3 in some order.
+        // Many values of c will never occur, since e.g. x>y>z>w makes x<z, y<w and x<w
+        // impossible. Only the 24 indices which have non-zero entries make any sense.
+        // We use a thresholding to set the coordinates in turn from the largest magnitude.
+        // The number 3 in the "simplex" array is at the position of the largest coordinate.
+        const i1 = simplex[c][0] >= 3 ? 1 : 0;
+        const j1 = simplex[c][1] >= 3 ? 1 : 0;
+        const k1 = simplex[c][2] >= 3 ? 1 : 0;
+        const l1 = simplex[c][3] >= 3 ? 1 : 0;
+        // The number 2 in the "simplex" array is at the second largest coordinate.
+        const i2 = simplex[c][0] >= 2 ? 1 : 0;
+        const j2 = simplex[c][1] >= 2 ? 1 : 0;
+        const k2 = simplex[c][2] >= 2 ? 1 : 0;
+        const l2 = simplex[c][3] >= 2 ? 1 : 0;
+        // The number 1 in the "simplex" array is at the second smallest coordinate.
+        const i3 = simplex[c][0] >= 1 ? 1 : 0;
+        const j3 = simplex[c][1] >= 1 ? 1 : 0;
+        const k3 = simplex[c][2] >= 1 ? 1 : 0;
+        const l3 = simplex[c][3] >= 1 ? 1 : 0;
+        // The fifth corner has all coordinate offsets = 1, so no need to look that up.
+        const x1 = x0 - i1 + G4; // Offsets for second corner in (x,y,z,w) coords
+        const y1 = y0 - j1 + G4;
+        const z1 = z0 - k1 + G4;
+        const w1 = w0 - l1 + G4;
+        const x2 = x0 - i2 + 2.0 * G4; // Offsets for third corner in (x,y,z,w) coords
+        const y2 = y0 - j2 + 2.0 * G4;
+        const z2 = z0 - k2 + 2.0 * G4;
+        const w2 = w0 - l2 + 2.0 * G4;
+        const x3 = x0 - i3 + 3.0 * G4; // Offsets for fourth corner in (x,y,z,w) coords
+        const y3 = y0 - j3 + 3.0 * G4;
+        const z3 = z0 - k3 + 3.0 * G4;
+        const w3 = w0 - l3 + 3.0 * G4;
+        const x4 = x0 - 1.0 + 4.0 * G4; // Offsets for last corner in (x,y,z,w) coords
+        const y4 = y0 - 1.0 + 4.0 * G4;
+        const z4 = z0 - 1.0 + 4.0 * G4;
+        const w4 = w0 - 1.0 + 4.0 * G4;
+        // Work out the hashed gradient indices of the five simplex corners
+        const ii = i & 255;
+        const jj = j & 255;
+        const kk = k & 255;
+        const ll = l & 255;
+        const gi0 = perm[ii + perm[jj + perm[kk + perm[ll]]]] % 32;
+        const gi1 = perm[ii + i1 + perm[jj + j1 + perm[kk + k1 + perm[ll + l1]]]] % 32;
+        const gi2 = perm[ii + i2 + perm[jj + j2 + perm[kk + k2 + perm[ll + l2]]]] % 32;
+        const gi3 = perm[ii + i3 + perm[jj + j3 + perm[kk + k3 + perm[ll + l3]]]] % 32;
+        const gi4 = perm[ii + 1 + perm[jj + 1 + perm[kk + 1 + perm[ll + 1]]]] % 32;
+        // Calculate the contribution from the five corners
+        let t0 = 0.6 - x0 * x0 - y0 * y0 - z0 * z0 - w0 * w0;
+        if (t0 < 0) n0 = 0.0;
+        else {
+            t0 *= t0;
+            n0 = t0 * t0 * this.dot4(grad4[gi0], x0, y0, z0, w0);
+        }
+        let t1 = 0.6 - x1 * x1 - y1 * y1 - z1 * z1 - w1 * w1;
+        if (t1 < 0) n1 = 0.0;
+        else {
+            t1 *= t1;
+            n1 = t1 * t1 * this.dot4(grad4[gi1], x1, y1, z1, w1);
+        }
+        let t2 = 0.6 - x2 * x2 - y2 * y2 - z2 * z2 - w2 * w2;
+        if (t2 < 0) n2 = 0.0;
+        else {
+            t2 *= t2;
+            n2 = t2 * t2 * this.dot4(grad4[gi2], x2, y2, z2, w2);
+        }
+        let t3 = 0.6 - x3 * x3 - y3 * y3 - z3 * z3 - w3 * w3;
+        if (t3 < 0) n3 = 0.0;
+        else {
+            t3 *= t3;
+            n3 = t3 * t3 * this.dot4(grad4[gi3], x3, y3, z3, w3);
+        }
+        let t4 = 0.6 - x4 * x4 - y4 * y4 - z4 * z4 - w4 * w4;
+        if (t4 < 0) n4 = 0.0;
+        else {
+            t4 *= t4;
+            n4 = t4 * t4 * this.dot4(grad4[gi4], x4, y4, z4, w4);
+        }
+        // Sum up and scale the result to cover the range [-1,1]
+        return 27.0 * (n0 + n1 + n2 + n3 + n4);
+    }
+}
+
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"dVRsF":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "GLTFLoader", ()=>GLTFLoader);
@@ -177193,1000 +178250,7 @@ class Octree {
     }
 }
 
-},{"three":"ktPTu","../math/Capsule.js":"8C4a2","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"4r7fB":[function(require,module,exports) {
-// Ported from Stefan Gustavson's java implementation
-// http://staffwww.itn.liu.se/~stegu/simplexnoise/simplexnoise.pdf
-// Read Stefan's excellent paper for details on how this code works.
-//
-// Sean McCullough banksean@gmail.com
-//
-// Added 4D noise
-/**
- * You can pass in a random number generator object if you like.
- * It is assumed to have a random() method.
- */ var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-parcelHelpers.export(exports, "SimplexNoise", ()=>SimplexNoise);
-class SimplexNoise {
-    constructor(r = Math){
-        this.grad3 = [
-            [
-                1,
-                1,
-                0
-            ],
-            [
-                -1,
-                1,
-                0
-            ],
-            [
-                1,
-                -1,
-                0
-            ],
-            [
-                -1,
-                -1,
-                0
-            ],
-            [
-                1,
-                0,
-                1
-            ],
-            [
-                -1,
-                0,
-                1
-            ],
-            [
-                1,
-                0,
-                -1
-            ],
-            [
-                -1,
-                0,
-                -1
-            ],
-            [
-                0,
-                1,
-                1
-            ],
-            [
-                0,
-                -1,
-                1
-            ],
-            [
-                0,
-                1,
-                -1
-            ],
-            [
-                0,
-                -1,
-                -1
-            ]
-        ];
-        this.grad4 = [
-            [
-                0,
-                1,
-                1,
-                1
-            ],
-            [
-                0,
-                1,
-                1,
-                -1
-            ],
-            [
-                0,
-                1,
-                -1,
-                1
-            ],
-            [
-                0,
-                1,
-                -1,
-                -1
-            ],
-            [
-                0,
-                -1,
-                1,
-                1
-            ],
-            [
-                0,
-                -1,
-                1,
-                -1
-            ],
-            [
-                0,
-                -1,
-                -1,
-                1
-            ],
-            [
-                0,
-                -1,
-                -1,
-                -1
-            ],
-            [
-                1,
-                0,
-                1,
-                1
-            ],
-            [
-                1,
-                0,
-                1,
-                -1
-            ],
-            [
-                1,
-                0,
-                -1,
-                1
-            ],
-            [
-                1,
-                0,
-                -1,
-                -1
-            ],
-            [
-                -1,
-                0,
-                1,
-                1
-            ],
-            [
-                -1,
-                0,
-                1,
-                -1
-            ],
-            [
-                -1,
-                0,
-                -1,
-                1
-            ],
-            [
-                -1,
-                0,
-                -1,
-                -1
-            ],
-            [
-                1,
-                1,
-                0,
-                1
-            ],
-            [
-                1,
-                1,
-                0,
-                -1
-            ],
-            [
-                1,
-                -1,
-                0,
-                1
-            ],
-            [
-                1,
-                -1,
-                0,
-                -1
-            ],
-            [
-                -1,
-                1,
-                0,
-                1
-            ],
-            [
-                -1,
-                1,
-                0,
-                -1
-            ],
-            [
-                -1,
-                -1,
-                0,
-                1
-            ],
-            [
-                -1,
-                -1,
-                0,
-                -1
-            ],
-            [
-                1,
-                1,
-                1,
-                0
-            ],
-            [
-                1,
-                1,
-                -1,
-                0
-            ],
-            [
-                1,
-                -1,
-                1,
-                0
-            ],
-            [
-                1,
-                -1,
-                -1,
-                0
-            ],
-            [
-                -1,
-                1,
-                1,
-                0
-            ],
-            [
-                -1,
-                1,
-                -1,
-                0
-            ],
-            [
-                -1,
-                -1,
-                1,
-                0
-            ],
-            [
-                -1,
-                -1,
-                -1,
-                0
-            ]
-        ];
-        this.p = [];
-        for(let i = 0; i < 256; i++)this.p[i] = Math.floor(r.random() * 256);
-        // To remove the need for index wrapping, double the permutation table length
-        this.perm = [];
-        for(let i = 0; i < 512; i++)this.perm[i] = this.p[i & 255];
-        // A lookup table to traverse the simplex around a given point in 4D.
-        // Details can be found where this table is used, in the 4D noise method.
-        this.simplex = [
-            [
-                0,
-                1,
-                2,
-                3
-            ],
-            [
-                0,
-                1,
-                3,
-                2
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                2,
-                3,
-                1
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                1,
-                2,
-                3,
-                0
-            ],
-            [
-                0,
-                2,
-                1,
-                3
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                3,
-                1,
-                2
-            ],
-            [
-                0,
-                3,
-                2,
-                1
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                1,
-                3,
-                2,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                1,
-                2,
-                0,
-                3
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                1,
-                3,
-                0,
-                2
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                2,
-                3,
-                0,
-                1
-            ],
-            [
-                2,
-                3,
-                1,
-                0
-            ],
-            [
-                1,
-                0,
-                2,
-                3
-            ],
-            [
-                1,
-                0,
-                3,
-                2
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                2,
-                0,
-                3,
-                1
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                2,
-                1,
-                3,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                2,
-                0,
-                1,
-                3
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                3,
-                0,
-                1,
-                2
-            ],
-            [
-                3,
-                0,
-                2,
-                1
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                3,
-                1,
-                2,
-                0
-            ],
-            [
-                2,
-                1,
-                0,
-                3
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                3,
-                1,
-                0,
-                2
-            ],
-            [
-                0,
-                0,
-                0,
-                0
-            ],
-            [
-                3,
-                2,
-                0,
-                1
-            ],
-            [
-                3,
-                2,
-                1,
-                0
-            ]
-        ];
-    }
-    dot(g, x, y) {
-        return g[0] * x + g[1] * y;
-    }
-    dot3(g, x, y, z) {
-        return g[0] * x + g[1] * y + g[2] * z;
-    }
-    dot4(g, x, y, z, w) {
-        return g[0] * x + g[1] * y + g[2] * z + g[3] * w;
-    }
-    noise(xin, yin) {
-        let n0; // Noise contributions from the three corners
-        let n1;
-        let n2;
-        // Skew the input space to determine which simplex cell we're in
-        const F2 = 0.5 * (Math.sqrt(3.0) - 1.0);
-        const s = (xin + yin) * F2; // Hairy factor for 2D
-        const i = Math.floor(xin + s);
-        const j = Math.floor(yin + s);
-        const G2 = (3.0 - Math.sqrt(3.0)) / 6.0;
-        const t = (i + j) * G2;
-        const X0 = i - t; // Unskew the cell origin back to (x,y) space
-        const Y0 = j - t;
-        const x0 = xin - X0; // The x,y distances from the cell origin
-        const y0 = yin - Y0;
-        // For the 2D case, the simplex shape is an equilateral triangle.
-        // Determine which simplex we are in.
-        let i1; // Offsets for second (middle) corner of simplex in (i,j) coords
-        let j1;
-        if (x0 > y0) {
-            i1 = 1;
-            j1 = 0;
-        // lower triangle, XY order: (0,0)->(1,0)->(1,1)
-        } else {
-            i1 = 0;
-            j1 = 1;
-        } // upper triangle, YX order: (0,0)->(0,1)->(1,1)
-        // A step of (1,0) in (i,j) means a step of (1-c,-c) in (x,y), and
-        // a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where
-        // c = (3-sqrt(3))/6
-        const x1 = x0 - i1 + G2; // Offsets for middle corner in (x,y) unskewed coords
-        const y1 = y0 - j1 + G2;
-        const x2 = x0 - 1.0 + 2.0 * G2; // Offsets for last corner in (x,y) unskewed coords
-        const y2 = y0 - 1.0 + 2.0 * G2;
-        // Work out the hashed gradient indices of the three simplex corners
-        const ii = i & 255;
-        const jj = j & 255;
-        const gi0 = this.perm[ii + this.perm[jj]] % 12;
-        const gi1 = this.perm[ii + i1 + this.perm[jj + j1]] % 12;
-        const gi2 = this.perm[ii + 1 + this.perm[jj + 1]] % 12;
-        // Calculate the contribution from the three corners
-        let t0 = 0.5 - x0 * x0 - y0 * y0;
-        if (t0 < 0) n0 = 0.0;
-        else {
-            t0 *= t0;
-            n0 = t0 * t0 * this.dot(this.grad3[gi0], x0, y0); // (x,y) of grad3 used for 2D gradient
-        }
-        let t1 = 0.5 - x1 * x1 - y1 * y1;
-        if (t1 < 0) n1 = 0.0;
-        else {
-            t1 *= t1;
-            n1 = t1 * t1 * this.dot(this.grad3[gi1], x1, y1);
-        }
-        let t2 = 0.5 - x2 * x2 - y2 * y2;
-        if (t2 < 0) n2 = 0.0;
-        else {
-            t2 *= t2;
-            n2 = t2 * t2 * this.dot(this.grad3[gi2], x2, y2);
-        }
-        // Add contributions from each corner to get the final noise value.
-        // The result is scaled to return values in the interval [-1,1].
-        return 70.0 * (n0 + n1 + n2);
-    }
-    // 3D simplex noise
-    noise3d(xin, yin, zin) {
-        let n0; // Noise contributions from the four corners
-        let n1;
-        let n2;
-        let n3;
-        // Skew the input space to determine which simplex cell we're in
-        const F3 = 1.0 / 3.0;
-        const s = (xin + yin + zin) * F3; // Very nice and simple skew factor for 3D
-        const i = Math.floor(xin + s);
-        const j = Math.floor(yin + s);
-        const k = Math.floor(zin + s);
-        const G3 = 1.0 / 6.0; // Very nice and simple unskew factor, too
-        const t = (i + j + k) * G3;
-        const X0 = i - t; // Unskew the cell origin back to (x,y,z) space
-        const Y0 = j - t;
-        const Z0 = k - t;
-        const x0 = xin - X0; // The x,y,z distances from the cell origin
-        const y0 = yin - Y0;
-        const z0 = zin - Z0;
-        // For the 3D case, the simplex shape is a slightly irregular tetrahedron.
-        // Determine which simplex we are in.
-        let i1; // Offsets for second corner of simplex in (i,j,k) coords
-        let j1;
-        let k1;
-        let i2; // Offsets for third corner of simplex in (i,j,k) coords
-        let j2;
-        let k2;
-        if (x0 >= y0) {
-            if (y0 >= z0) {
-                i1 = 1;
-                j1 = 0;
-                k1 = 0;
-                i2 = 1;
-                j2 = 1;
-                k2 = 0;
-            // X Y Z order
-            } else if (x0 >= z0) {
-                i1 = 1;
-                j1 = 0;
-                k1 = 0;
-                i2 = 1;
-                j2 = 0;
-                k2 = 1;
-            // X Z Y order
-            } else {
-                i1 = 0;
-                j1 = 0;
-                k1 = 1;
-                i2 = 1;
-                j2 = 0;
-                k2 = 1;
-            } // Z X Y order
-        } else {
-            if (y0 < z0) {
-                i1 = 0;
-                j1 = 0;
-                k1 = 1;
-                i2 = 0;
-                j2 = 1;
-                k2 = 1;
-            // Z Y X order
-            } else if (x0 < z0) {
-                i1 = 0;
-                j1 = 1;
-                k1 = 0;
-                i2 = 0;
-                j2 = 1;
-                k2 = 1;
-            // Y Z X order
-            } else {
-                i1 = 0;
-                j1 = 1;
-                k1 = 0;
-                i2 = 1;
-                j2 = 1;
-                k2 = 0;
-            } // Y X Z order
-        }
-        // A step of (1,0,0) in (i,j,k) means a step of (1-c,-c,-c) in (x,y,z),
-        // a step of (0,1,0) in (i,j,k) means a step of (-c,1-c,-c) in (x,y,z), and
-        // a step of (0,0,1) in (i,j,k) means a step of (-c,-c,1-c) in (x,y,z), where
-        // c = 1/6.
-        const x1 = x0 - i1 + G3; // Offsets for second corner in (x,y,z) coords
-        const y1 = y0 - j1 + G3;
-        const z1 = z0 - k1 + G3;
-        const x2 = x0 - i2 + 2.0 * G3; // Offsets for third corner in (x,y,z) coords
-        const y2 = y0 - j2 + 2.0 * G3;
-        const z2 = z0 - k2 + 2.0 * G3;
-        const x3 = x0 - 1.0 + 3.0 * G3; // Offsets for last corner in (x,y,z) coords
-        const y3 = y0 - 1.0 + 3.0 * G3;
-        const z3 = z0 - 1.0 + 3.0 * G3;
-        // Work out the hashed gradient indices of the four simplex corners
-        const ii = i & 255;
-        const jj = j & 255;
-        const kk = k & 255;
-        const gi0 = this.perm[ii + this.perm[jj + this.perm[kk]]] % 12;
-        const gi1 = this.perm[ii + i1 + this.perm[jj + j1 + this.perm[kk + k1]]] % 12;
-        const gi2 = this.perm[ii + i2 + this.perm[jj + j2 + this.perm[kk + k2]]] % 12;
-        const gi3 = this.perm[ii + 1 + this.perm[jj + 1 + this.perm[kk + 1]]] % 12;
-        // Calculate the contribution from the four corners
-        let t0 = 0.6 - x0 * x0 - y0 * y0 - z0 * z0;
-        if (t0 < 0) n0 = 0.0;
-        else {
-            t0 *= t0;
-            n0 = t0 * t0 * this.dot3(this.grad3[gi0], x0, y0, z0);
-        }
-        let t1 = 0.6 - x1 * x1 - y1 * y1 - z1 * z1;
-        if (t1 < 0) n1 = 0.0;
-        else {
-            t1 *= t1;
-            n1 = t1 * t1 * this.dot3(this.grad3[gi1], x1, y1, z1);
-        }
-        let t2 = 0.6 - x2 * x2 - y2 * y2 - z2 * z2;
-        if (t2 < 0) n2 = 0.0;
-        else {
-            t2 *= t2;
-            n2 = t2 * t2 * this.dot3(this.grad3[gi2], x2, y2, z2);
-        }
-        let t3 = 0.6 - x3 * x3 - y3 * y3 - z3 * z3;
-        if (t3 < 0) n3 = 0.0;
-        else {
-            t3 *= t3;
-            n3 = t3 * t3 * this.dot3(this.grad3[gi3], x3, y3, z3);
-        }
-        // Add contributions from each corner to get the final noise value.
-        // The result is scaled to stay just inside [-1,1]
-        return 32.0 * (n0 + n1 + n2 + n3);
-    }
-    // 4D simplex noise
-    noise4d(x, y, z, w) {
-        // For faster and easier lookups
-        const grad4 = this.grad4;
-        const simplex = this.simplex;
-        const perm = this.perm;
-        // The skewing and unskewing factors are hairy again for the 4D case
-        const F4 = (Math.sqrt(5.0) - 1.0) / 4.0;
-        const G4 = (5.0 - Math.sqrt(5.0)) / 20.0;
-        let n0; // Noise contributions from the five corners
-        let n1;
-        let n2;
-        let n3;
-        let n4;
-        // Skew the (x,y,z,w) space to determine which cell of 24 simplices we're in
-        const s = (x + y + z + w) * F4; // Factor for 4D skewing
-        const i = Math.floor(x + s);
-        const j = Math.floor(y + s);
-        const k = Math.floor(z + s);
-        const l = Math.floor(w + s);
-        const t = (i + j + k + l) * G4; // Factor for 4D unskewing
-        const X0 = i - t; // Unskew the cell origin back to (x,y,z,w) space
-        const Y0 = j - t;
-        const Z0 = k - t;
-        const W0 = l - t;
-        const x0 = x - X0; // The x,y,z,w distances from the cell origin
-        const y0 = y - Y0;
-        const z0 = z - Z0;
-        const w0 = w - W0;
-        // For the 4D case, the simplex is a 4D shape I won't even try to describe.
-        // To find out which of the 24 possible simplices we're in, we need to
-        // determine the magnitude ordering of x0, y0, z0 and w0.
-        // The method below is a good way of finding the ordering of x,y,z,w and
-        // then find the correct traversal order for the simplex we’re in.
-        // First, six pair-wise comparisons are performed between each possible pair
-        // of the four coordinates, and the results are used to add up binary bits
-        // for an integer index.
-        const c1 = x0 > y0 ? 32 : 0;
-        const c2 = x0 > z0 ? 16 : 0;
-        const c3 = y0 > z0 ? 8 : 0;
-        const c4 = x0 > w0 ? 4 : 0;
-        const c5 = y0 > w0 ? 2 : 0;
-        const c6 = z0 > w0 ? 1 : 0;
-        const c = c1 + c2 + c3 + c4 + c5 + c6;
-        // simplex[c] is a 4-vector with the numbers 0, 1, 2 and 3 in some order.
-        // Many values of c will never occur, since e.g. x>y>z>w makes x<z, y<w and x<w
-        // impossible. Only the 24 indices which have non-zero entries make any sense.
-        // We use a thresholding to set the coordinates in turn from the largest magnitude.
-        // The number 3 in the "simplex" array is at the position of the largest coordinate.
-        const i1 = simplex[c][0] >= 3 ? 1 : 0;
-        const j1 = simplex[c][1] >= 3 ? 1 : 0;
-        const k1 = simplex[c][2] >= 3 ? 1 : 0;
-        const l1 = simplex[c][3] >= 3 ? 1 : 0;
-        // The number 2 in the "simplex" array is at the second largest coordinate.
-        const i2 = simplex[c][0] >= 2 ? 1 : 0;
-        const j2 = simplex[c][1] >= 2 ? 1 : 0;
-        const k2 = simplex[c][2] >= 2 ? 1 : 0;
-        const l2 = simplex[c][3] >= 2 ? 1 : 0;
-        // The number 1 in the "simplex" array is at the second smallest coordinate.
-        const i3 = simplex[c][0] >= 1 ? 1 : 0;
-        const j3 = simplex[c][1] >= 1 ? 1 : 0;
-        const k3 = simplex[c][2] >= 1 ? 1 : 0;
-        const l3 = simplex[c][3] >= 1 ? 1 : 0;
-        // The fifth corner has all coordinate offsets = 1, so no need to look that up.
-        const x1 = x0 - i1 + G4; // Offsets for second corner in (x,y,z,w) coords
-        const y1 = y0 - j1 + G4;
-        const z1 = z0 - k1 + G4;
-        const w1 = w0 - l1 + G4;
-        const x2 = x0 - i2 + 2.0 * G4; // Offsets for third corner in (x,y,z,w) coords
-        const y2 = y0 - j2 + 2.0 * G4;
-        const z2 = z0 - k2 + 2.0 * G4;
-        const w2 = w0 - l2 + 2.0 * G4;
-        const x3 = x0 - i3 + 3.0 * G4; // Offsets for fourth corner in (x,y,z,w) coords
-        const y3 = y0 - j3 + 3.0 * G4;
-        const z3 = z0 - k3 + 3.0 * G4;
-        const w3 = w0 - l3 + 3.0 * G4;
-        const x4 = x0 - 1.0 + 4.0 * G4; // Offsets for last corner in (x,y,z,w) coords
-        const y4 = y0 - 1.0 + 4.0 * G4;
-        const z4 = z0 - 1.0 + 4.0 * G4;
-        const w4 = w0 - 1.0 + 4.0 * G4;
-        // Work out the hashed gradient indices of the five simplex corners
-        const ii = i & 255;
-        const jj = j & 255;
-        const kk = k & 255;
-        const ll = l & 255;
-        const gi0 = perm[ii + perm[jj + perm[kk + perm[ll]]]] % 32;
-        const gi1 = perm[ii + i1 + perm[jj + j1 + perm[kk + k1 + perm[ll + l1]]]] % 32;
-        const gi2 = perm[ii + i2 + perm[jj + j2 + perm[kk + k2 + perm[ll + l2]]]] % 32;
-        const gi3 = perm[ii + i3 + perm[jj + j3 + perm[kk + k3 + perm[ll + l3]]]] % 32;
-        const gi4 = perm[ii + 1 + perm[jj + 1 + perm[kk + 1 + perm[ll + 1]]]] % 32;
-        // Calculate the contribution from the five corners
-        let t0 = 0.6 - x0 * x0 - y0 * y0 - z0 * z0 - w0 * w0;
-        if (t0 < 0) n0 = 0.0;
-        else {
-            t0 *= t0;
-            n0 = t0 * t0 * this.dot4(grad4[gi0], x0, y0, z0, w0);
-        }
-        let t1 = 0.6 - x1 * x1 - y1 * y1 - z1 * z1 - w1 * w1;
-        if (t1 < 0) n1 = 0.0;
-        else {
-            t1 *= t1;
-            n1 = t1 * t1 * this.dot4(grad4[gi1], x1, y1, z1, w1);
-        }
-        let t2 = 0.6 - x2 * x2 - y2 * y2 - z2 * z2 - w2 * w2;
-        if (t2 < 0) n2 = 0.0;
-        else {
-            t2 *= t2;
-            n2 = t2 * t2 * this.dot4(grad4[gi2], x2, y2, z2, w2);
-        }
-        let t3 = 0.6 - x3 * x3 - y3 * y3 - z3 * z3 - w3 * w3;
-        if (t3 < 0) n3 = 0.0;
-        else {
-            t3 *= t3;
-            n3 = t3 * t3 * this.dot4(grad4[gi3], x3, y3, z3, w3);
-        }
-        let t4 = 0.6 - x4 * x4 - y4 * y4 - z4 * z4 - w4 * w4;
-        if (t4 < 0) n4 = 0.0;
-        else {
-            t4 *= t4;
-            n4 = t4 * t4 * this.dot4(grad4[gi4], x4, y4, z4, w4);
-        }
-        // Sum up and scale the result to cover the range [-1,1]
-        return 27.0 * (n0 + n1 + n2 + n3 + n4);
-    }
-}
-
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"4bcgP":[function(require,module,exports) {
+},{"three":"ktPTu","../math/Capsule.js":"8C4a2","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"4bcgP":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "ConvexObjectBreaker", ()=>ConvexObjectBreaker);
@@ -209679,6 +209743,54 @@ module.exports = "#define GLSLIFY 1\n    varying float vPositionAlongLine;\n\n  
 },{}],"ejOYH":[function(require,module,exports) {
 module.exports = "#define GLSLIFY 1\n    uniform float uTime;\nuniform vec3 colorStart;\nuniform vec3 colorEnd;\nvarying float vPositionAlongLine;\n\n// Precompute constants\nconst float TIME_SCALE = 0.15;\nconst float POSITION_SCALE = 0.0125; // 1.0/80.0 precomputed\nconst float ALPHA = 0.70;\nconst float SMOOTHSTEP_MIN = 0.4;\nconst float SMOOTHSTEP_MAX = 1.0;\nconst float SMOOTHSTEP_RANGE = 0.6; // 1.0 - 0.4\n\nvoid main() {\n    // Single calculation combining time and position effects\n    float runEffect = abs(sin(uTime * TIME_SCALE - vPositionAlongLine * POSITION_SCALE));\n    \n    // Optimized smoothstep - avoid division by precomputing range\n    float t = clamp((runEffect - SMOOTHSTEP_MIN) / SMOOTHSTEP_RANGE, 0.0, 1.0);\n    // Apply smoothstep curve manually (more efficient than built-in smoothstep)\n    t = t * t * (3.0 - 2.0 * t);\n    \n    // Mix colors and output\n    vec3 color = mix(colorStart, colorEnd, t);\n    gl_FragColor = vec4(color, ALPHA);\n}\n    \n    /*\n    uniform float uTime;\n    uniform vec3 colorStart;\n    uniform vec3 colorEnd;\n    varying float vPositionAlongLine;\n\n    void main() {\n        float runEffect = abs(sin(uTime * 0.15 - (vPositionAlongLine/80.0))); // Adjust speed and length scaling\n        //float runEffect = smoothstep(uTime - 0.1, uTime + 0.1, vPositionAlongLine);\n        vec3 color = mix(colorStart, colorEnd, smoothstep(0.4, 1.0, runEffect));\n        gl_FragColor = vec4(color, 0.70);\n    }\n    *//*\n    uniform float uTime;\n    uniform vec3 colorStart;\n    uniform vec3 colorEnd;\n    varying float vPositionAlongLine;\n\n    void main() {\n        float runEffect = abs(sin(uTime * 0.15 - (vPositionAlongLine/80.0))); // Adjust speed and length scaling\n        //float runEffect = smoothstep(uTime - 0.1, uTime + 0.1, vPositionAlongLine);\n        vec3 color = mix(colorStart, colorEnd, smoothstep(0.4, 1.0, runEffect));\n        gl_FragColor = vec4(color, 0.70);\n    }\n    *//*\n    uniform float uTime;\n    uniform vec3 colorStart;\n    uniform vec3 colorEnd;\n    varying float vPositionAlongLine;\n\n    void main() {\n        float runEffect = abs(sin(uTime * 0.15 - (vPositionAlongLine/80.0))); // Adjust speed and length scaling\n        //float runEffect = smoothstep(uTime - 0.1, uTime + 0.1, vPositionAlongLine);\n        vec3 color = mix(colorStart, colorEnd, smoothstep(0.4, 1.0, runEffect));\n        gl_FragColor = vec4(color, 0.70);\n    }\n    *//*\n    uniform float uTime;\n    uniform vec3 colorStart;\n    uniform vec3 colorEnd;\n    varying float vPositionAlongLine;\n\n    void main() {\n        float runEffect = abs(sin(uTime * 0.15 - (vPositionAlongLine/80.0))); // Adjust speed and length scaling\n        //float runEffect = smoothstep(uTime - 0.1, uTime + 0.1, vPositionAlongLine);\n        vec3 color = mix(colorStart, colorEnd, smoothstep(0.4, 1.0, runEffect));\n        gl_FragColor = vec4(color, 0.70);\n    }\n    */";
 
+},{}],"iyqMm":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "createVideoShaderMaterial", ()=>createVideoShaderMaterial);
+var _three = require("three");
+var _videotexture = require("../shaders/videotexture");
+var _videotextureDefault = parcelHelpers.interopDefault(_videotexture);
+function createVideoShaderMaterial(videoTexture, options = {}) {
+    const { edgeTransparency = 0.15, globalOpacity = 0.85 } = options;
+    return new _three.ShaderMaterial({
+        uniforms: {
+            videoTexture: {
+                value: videoTexture
+            },
+            edgeTransparency: {
+                value: edgeTransparency
+            },
+            uTime: {
+                value: 0.0
+            },
+            globalOpacity: {
+                value: globalOpacity
+            }
+        },
+        vertexShader: (0, _videotextureDefault.default).vert,
+        fragmentShader: (0, _videotextureDefault.default).frag,
+        transparent: true
+    });
+}
+
+},{"three":"ktPTu","../shaders/videotexture":"5S7oy","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"5S7oy":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _videotextureVertGlsl = require("./glsl/videotexture.vert.glsl");
+var _videotextureVertGlslDefault = parcelHelpers.interopDefault(_videotextureVertGlsl);
+var _videotextureFragGlsl = require("./glsl/videotexture.frag.glsl");
+var _videotextureFragGlslDefault = parcelHelpers.interopDefault(_videotextureFragGlsl);
+exports.default = {
+    frag: (0, _videotextureFragGlslDefault.default),
+    vert: (0, _videotextureVertGlslDefault.default)
+};
+
+},{"./glsl/videotexture.vert.glsl":"41TsU","./glsl/videotexture.frag.glsl":"riKA5","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"41TsU":[function(require,module,exports) {
+module.exports = "#define GLSLIFY 1\n\nvarying vec2 vUv;\nvarying float vCameraDistance;\nuniform float uTime;\n\n// Simple noise function (much lighter than Simplex)\nfloat hash(float n) {\n    return fract(sin(n) * 43758.5453);\n}\n\nfloat noise(float x) {\n    float i = floor(x);\n    float f = fract(x);\n    f = f * f * (3.0 - 2.0 * f);\n    return mix(hash(i), hash(i + 1.0), f);\n}\n\nvoid main() {\n    vUv = uv;\n    \n    vec3 pos = position;\n    \n    float n = noise(pos.x * 0.008 + uTime);\n    pos.z += n * 20.0;\n    \n    vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);\n    gl_Position = projectionMatrix * mvPosition;\n    vCameraDistance = -mvPosition.z;\n}\n\n/*\n        //precision highp float;\n\n        varying vec2 vUv;\n        varying float vCameraDistance;\n        uniform float uTime;\n\n        //\n        // Description : Array and textureless GLSL 2D/3D/4D simplex\n        //               noise functions.\n        //      Author : Ian McEwan, Ashima Arts.\n        //  Maintainer : ijm\n        //     Lastmod : 20110822 (ijm)\n        //     License : Copyright (C) 2011 Ashima Arts. All rights reserved.\n        //               Distributed under the MIT License. See LICENSE file.\n        //               https://github.com/ashima/webgl-noise\n        //\n\n        vec3 mod289(vec3 x) {\n        return x - floor(x * (1.0 / 289.0)) * 289.0;\n        }\n\n        vec4 mod289(vec4 x) {\n        return x - floor(x * (1.0 / 289.0)) * 289.0;\n        }\n\n        vec4 permute(vec4 x) {\n            return mod289(((x*34.0)+1.0)*x);\n        }\n\n        vec4 taylorInvSqrt(vec4 r)\n        {\n        return 1.79284291400159 - 0.85373472095314 * r;\n        }\n\n        float snoise(vec3 v) {\n        const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;\n        const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);\n\n        // First corner\n        vec3 i  = floor(v + dot(v, C.yyy) );\n        vec3 x0 =   v - i + dot(i, C.xxx) ;\n\n        // Other corners\n        vec3 g = step(x0.yzx, x0.xyz);\n        vec3 l = 1.0 - g;\n        vec3 i1 = min( g.xyz, l.zxy );\n        vec3 i2 = max( g.xyz, l.zxy );\n\n        //   x0 = x0 - 0.0 + 0.0 * C.xxx;\n        //   x1 = x0 - i1  + 1.0 * C.xxx;\n        //   x2 = x0 - i2  + 2.0 * C.xxx;\n        //   x3 = x0 - 1.0 + 3.0 * C.xxx;\n        vec3 x1 = x0 - i1 + C.xxx;\n        vec3 x2 = x0 - i2 + C.yyy; // 2.0*C.x = 1/3 = C.y\n        vec3 x3 = x0 - D.yyy;      // -1.0+3.0*C.x = -0.5 = -D.y\n\n        // Permutations\n        i = mod289(i);\n        vec4 p = permute( permute( permute(\n                    i.z + vec4(0.0, i1.z, i2.z, 1.0 ))\n                + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))\n                + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));\n\n        // Gradients: 7x7 points over a square, mapped onto an octahedron.\n        // The ring size 17*17 = 289 is close to a multiple of 49 (49*6 = 294)\n        float n_ = 0.142857142857; // 1.0/7.0\n        vec3  ns = n_ * D.wyz - D.xzx;\n\n        vec4 j = p - 49.0 * floor(p * ns.z * ns.z);  //  mod(p,7*7)\n\n        vec4 x_ = floor(j * ns.z);\n        vec4 y_ = floor(j - 7.0 * x_ );    // mod(j,N)\n\n        vec4 x = x_ *ns.x + ns.yyyy;\n        vec4 y = y_ *ns.x + ns.yyyy;\n        vec4 h = 1.0 - abs(x) - abs(y);\n\n        vec4 b0 = vec4( x.xy, y.xy );\n        vec4 b1 = vec4( x.zw, y.zw );\n\n        //vec4 s0 = vec4(lessThan(b0,0.0))*2.0 - 1.0;\n        //vec4 s1 = vec4(lessThan(b1,0.0))*2.0 - 1.0;\n        vec4 s0 = floor(b0)*2.0 + 1.0;\n        vec4 s1 = floor(b1)*2.0 + 1.0;\n        vec4 sh = -step(h, vec4(0.0));\n\n        vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;\n        vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;\n\n        vec3 p0 = vec3(a0.xy,h.x);\n        vec3 p1 = vec3(a0.zw,h.y);\n        vec3 p2 = vec3(a1.xy,h.z);\n        vec3 p3 = vec3(a1.zw,h.w);\n\n        // Normalise gradients\n        vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));\n        p0 *= norm.x;\n        p1 *= norm.y;\n        p2 *= norm.z;\n        p3 *= norm.w;\n\n        // Mix final noise value\n        vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);\n        m = m * m;\n        return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1),\n                                        dot(p2,x2), dot(p3,x3) ) );\n        }\n\n        void main() {\n            vUv = uv;\n\n            vec3 pos = position;\n            float noiseFreq = 0.008;\n            float noiseAmp = 5.0;\n            vec3 noisePos = vec3(pos.x * noiseFreq + uTime, pos.y, pos.z);\n            pos.z += snoise(noisePos) * noiseAmp;\n\n            vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);\n            gl_Position = projectionMatrix * mvPosition;\n\n            // Calculate distance from camera (in view space, z is negative in front of camera)\n            vCameraDistance = -mvPosition.z;\n\n            //gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.);\n        }\n\n        *//*\n        //precision highp float;\n\n        varying vec2 vUv;\n        varying float vCameraDistance;\n        uniform float uTime;\n\n        //\n        // Description : Array and textureless GLSL 2D/3D/4D simplex\n        //               noise functions.\n        //      Author : Ian McEwan, Ashima Arts.\n        //  Maintainer : ijm\n        //     Lastmod : 20110822 (ijm)\n        //     License : Copyright (C) 2011 Ashima Arts. All rights reserved.\n        //               Distributed under the MIT License. See LICENSE file.\n        //               https://github.com/ashima/webgl-noise\n        //\n\n        vec3 mod289(vec3 x) {\n        return x - floor(x * (1.0 / 289.0)) * 289.0;\n        }\n\n        vec4 mod289(vec4 x) {\n        return x - floor(x * (1.0 / 289.0)) * 289.0;\n        }\n\n        vec4 permute(vec4 x) {\n            return mod289(((x*34.0)+1.0)*x);\n        }\n\n        vec4 taylorInvSqrt(vec4 r)\n        {\n        return 1.79284291400159 - 0.85373472095314 * r;\n        }\n\n        float snoise(vec3 v) {\n        const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;\n        const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);\n\n        // First corner\n        vec3 i  = floor(v + dot(v, C.yyy) );\n        vec3 x0 =   v - i + dot(i, C.xxx) ;\n\n        // Other corners\n        vec3 g = step(x0.yzx, x0.xyz);\n        vec3 l = 1.0 - g;\n        vec3 i1 = min( g.xyz, l.zxy );\n        vec3 i2 = max( g.xyz, l.zxy );\n\n        //   x0 = x0 - 0.0 + 0.0 * C.xxx;\n        //   x1 = x0 - i1  + 1.0 * C.xxx;\n        //   x2 = x0 - i2  + 2.0 * C.xxx;\n        //   x3 = x0 - 1.0 + 3.0 * C.xxx;\n        vec3 x1 = x0 - i1 + C.xxx;\n        vec3 x2 = x0 - i2 + C.yyy; // 2.0*C.x = 1/3 = C.y\n        vec3 x3 = x0 - D.yyy;      // -1.0+3.0*C.x = -0.5 = -D.y\n\n        // Permutations\n        i = mod289(i);\n        vec4 p = permute( permute( permute(\n                    i.z + vec4(0.0, i1.z, i2.z, 1.0 ))\n                + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))\n                + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));\n\n        // Gradients: 7x7 points over a square, mapped onto an octahedron.\n        // The ring size 17*17 = 289 is close to a multiple of 49 (49*6 = 294)\n        float n_ = 0.142857142857; // 1.0/7.0\n        vec3  ns = n_ * D.wyz - D.xzx;\n\n        vec4 j = p - 49.0 * floor(p * ns.z * ns.z);  //  mod(p,7*7)\n\n        vec4 x_ = floor(j * ns.z);\n        vec4 y_ = floor(j - 7.0 * x_ );    // mod(j,N)\n\n        vec4 x = x_ *ns.x + ns.yyyy;\n        vec4 y = y_ *ns.x + ns.yyyy;\n        vec4 h = 1.0 - abs(x) - abs(y);\n\n        vec4 b0 = vec4( x.xy, y.xy );\n        vec4 b1 = vec4( x.zw, y.zw );\n\n        //vec4 s0 = vec4(lessThan(b0,0.0))*2.0 - 1.0;\n        //vec4 s1 = vec4(lessThan(b1,0.0))*2.0 - 1.0;\n        vec4 s0 = floor(b0)*2.0 + 1.0;\n        vec4 s1 = floor(b1)*2.0 + 1.0;\n        vec4 sh = -step(h, vec4(0.0));\n\n        vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;\n        vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;\n\n        vec3 p0 = vec3(a0.xy,h.x);\n        vec3 p1 = vec3(a0.zw,h.y);\n        vec3 p2 = vec3(a1.xy,h.z);\n        vec3 p3 = vec3(a1.zw,h.w);\n\n        // Normalise gradients\n        vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));\n        p0 *= norm.x;\n        p1 *= norm.y;\n        p2 *= norm.z;\n        p3 *= norm.w;\n\n        // Mix final noise value\n        vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);\n        m = m * m;\n        return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1),\n                                        dot(p2,x2), dot(p3,x3) ) );\n        }\n\n        void main() {\n            vUv = uv;\n\n            vec3 pos = position;\n            float noiseFreq = 0.008;\n            float noiseAmp = 5.0;\n            vec3 noisePos = vec3(pos.x * noiseFreq + uTime, pos.y, pos.z);\n            pos.z += snoise(noisePos) * noiseAmp;\n\n            vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);\n            gl_Position = projectionMatrix * mvPosition;\n\n            // Calculate distance from camera (in view space, z is negative in front of camera)\n            vCameraDistance = -mvPosition.z;\n\n            //gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.);\n        }\n\n        *//*\n        //precision highp float;\n\n        varying vec2 vUv;\n        varying float vCameraDistance;\n        uniform float uTime;\n\n        //\n        // Description : Array and textureless GLSL 2D/3D/4D simplex\n        //               noise functions.\n        //      Author : Ian McEwan, Ashima Arts.\n        //  Maintainer : ijm\n        //     Lastmod : 20110822 (ijm)\n        //     License : Copyright (C) 2011 Ashima Arts. All rights reserved.\n        //               Distributed under the MIT License. See LICENSE file.\n        //               https://github.com/ashima/webgl-noise\n        //\n\n        vec3 mod289(vec3 x) {\n        return x - floor(x * (1.0 / 289.0)) * 289.0;\n        }\n\n        vec4 mod289(vec4 x) {\n        return x - floor(x * (1.0 / 289.0)) * 289.0;\n        }\n\n        vec4 permute(vec4 x) {\n            return mod289(((x*34.0)+1.0)*x);\n        }\n\n        vec4 taylorInvSqrt(vec4 r)\n        {\n        return 1.79284291400159 - 0.85373472095314 * r;\n        }\n\n        float snoise(vec3 v) {\n        const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;\n        const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);\n\n        // First corner\n        vec3 i  = floor(v + dot(v, C.yyy) );\n        vec3 x0 =   v - i + dot(i, C.xxx) ;\n\n        // Other corners\n        vec3 g = step(x0.yzx, x0.xyz);\n        vec3 l = 1.0 - g;\n        vec3 i1 = min( g.xyz, l.zxy );\n        vec3 i2 = max( g.xyz, l.zxy );\n\n        //   x0 = x0 - 0.0 + 0.0 * C.xxx;\n        //   x1 = x0 - i1  + 1.0 * C.xxx;\n        //   x2 = x0 - i2  + 2.0 * C.xxx;\n        //   x3 = x0 - 1.0 + 3.0 * C.xxx;\n        vec3 x1 = x0 - i1 + C.xxx;\n        vec3 x2 = x0 - i2 + C.yyy; // 2.0*C.x = 1/3 = C.y\n        vec3 x3 = x0 - D.yyy;      // -1.0+3.0*C.x = -0.5 = -D.y\n\n        // Permutations\n        i = mod289(i);\n        vec4 p = permute( permute( permute(\n                    i.z + vec4(0.0, i1.z, i2.z, 1.0 ))\n                + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))\n                + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));\n\n        // Gradients: 7x7 points over a square, mapped onto an octahedron.\n        // The ring size 17*17 = 289 is close to a multiple of 49 (49*6 = 294)\n        float n_ = 0.142857142857; // 1.0/7.0\n        vec3  ns = n_ * D.wyz - D.xzx;\n\n        vec4 j = p - 49.0 * floor(p * ns.z * ns.z);  //  mod(p,7*7)\n\n        vec4 x_ = floor(j * ns.z);\n        vec4 y_ = floor(j - 7.0 * x_ );    // mod(j,N)\n\n        vec4 x = x_ *ns.x + ns.yyyy;\n        vec4 y = y_ *ns.x + ns.yyyy;\n        vec4 h = 1.0 - abs(x) - abs(y);\n\n        vec4 b0 = vec4( x.xy, y.xy );\n        vec4 b1 = vec4( x.zw, y.zw );\n\n        //vec4 s0 = vec4(lessThan(b0,0.0))*2.0 - 1.0;\n        //vec4 s1 = vec4(lessThan(b1,0.0))*2.0 - 1.0;\n        vec4 s0 = floor(b0)*2.0 + 1.0;\n        vec4 s1 = floor(b1)*2.0 + 1.0;\n        vec4 sh = -step(h, vec4(0.0));\n\n        vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;\n        vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;\n\n        vec3 p0 = vec3(a0.xy,h.x);\n        vec3 p1 = vec3(a0.zw,h.y);\n        vec3 p2 = vec3(a1.xy,h.z);\n        vec3 p3 = vec3(a1.zw,h.w);\n\n        // Normalise gradients\n        vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));\n        p0 *= norm.x;\n        p1 *= norm.y;\n        p2 *= norm.z;\n        p3 *= norm.w;\n\n        // Mix final noise value\n        vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);\n        m = m * m;\n        return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1),\n                                        dot(p2,x2), dot(p3,x3) ) );\n        }\n\n        void main() {\n            vUv = uv;\n\n            vec3 pos = position;\n            float noiseFreq = 0.008;\n            float noiseAmp = 5.0;\n            vec3 noisePos = vec3(pos.x * noiseFreq + uTime, pos.y, pos.z);\n            pos.z += snoise(noisePos) * noiseAmp;\n\n            vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);\n            gl_Position = projectionMatrix * mvPosition;\n\n            // Calculate distance from camera (in view space, z is negative in front of camera)\n            vCameraDistance = -mvPosition.z;\n\n            //gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.);\n        }\n\n        *//*\n        //precision highp float;\n\n        varying vec2 vUv;\n        varying float vCameraDistance;\n        uniform float uTime;\n\n        //\n        // Description : Array and textureless GLSL 2D/3D/4D simplex\n        //               noise functions.\n        //      Author : Ian McEwan, Ashima Arts.\n        //  Maintainer : ijm\n        //     Lastmod : 20110822 (ijm)\n        //     License : Copyright (C) 2011 Ashima Arts. All rights reserved.\n        //               Distributed under the MIT License. See LICENSE file.\n        //               https://github.com/ashima/webgl-noise\n        //\n\n        vec3 mod289(vec3 x) {\n        return x - floor(x * (1.0 / 289.0)) * 289.0;\n        }\n\n        vec4 mod289(vec4 x) {\n        return x - floor(x * (1.0 / 289.0)) * 289.0;\n        }\n\n        vec4 permute(vec4 x) {\n            return mod289(((x*34.0)+1.0)*x);\n        }\n\n        vec4 taylorInvSqrt(vec4 r)\n        {\n        return 1.79284291400159 - 0.85373472095314 * r;\n        }\n\n        float snoise(vec3 v) {\n        const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;\n        const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);\n\n        // First corner\n        vec3 i  = floor(v + dot(v, C.yyy) );\n        vec3 x0 =   v - i + dot(i, C.xxx) ;\n\n        // Other corners\n        vec3 g = step(x0.yzx, x0.xyz);\n        vec3 l = 1.0 - g;\n        vec3 i1 = min( g.xyz, l.zxy );\n        vec3 i2 = max( g.xyz, l.zxy );\n\n        //   x0 = x0 - 0.0 + 0.0 * C.xxx;\n        //   x1 = x0 - i1  + 1.0 * C.xxx;\n        //   x2 = x0 - i2  + 2.0 * C.xxx;\n        //   x3 = x0 - 1.0 + 3.0 * C.xxx;\n        vec3 x1 = x0 - i1 + C.xxx;\n        vec3 x2 = x0 - i2 + C.yyy; // 2.0*C.x = 1/3 = C.y\n        vec3 x3 = x0 - D.yyy;      // -1.0+3.0*C.x = -0.5 = -D.y\n\n        // Permutations\n        i = mod289(i);\n        vec4 p = permute( permute( permute(\n                    i.z + vec4(0.0, i1.z, i2.z, 1.0 ))\n                + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))\n                + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));\n\n        // Gradients: 7x7 points over a square, mapped onto an octahedron.\n        // The ring size 17*17 = 289 is close to a multiple of 49 (49*6 = 294)\n        float n_ = 0.142857142857; // 1.0/7.0\n        vec3  ns = n_ * D.wyz - D.xzx;\n\n        vec4 j = p - 49.0 * floor(p * ns.z * ns.z);  //  mod(p,7*7)\n\n        vec4 x_ = floor(j * ns.z);\n        vec4 y_ = floor(j - 7.0 * x_ );    // mod(j,N)\n\n        vec4 x = x_ *ns.x + ns.yyyy;\n        vec4 y = y_ *ns.x + ns.yyyy;\n        vec4 h = 1.0 - abs(x) - abs(y);\n\n        vec4 b0 = vec4( x.xy, y.xy );\n        vec4 b1 = vec4( x.zw, y.zw );\n\n        //vec4 s0 = vec4(lessThan(b0,0.0))*2.0 - 1.0;\n        //vec4 s1 = vec4(lessThan(b1,0.0))*2.0 - 1.0;\n        vec4 s0 = floor(b0)*2.0 + 1.0;\n        vec4 s1 = floor(b1)*2.0 + 1.0;\n        vec4 sh = -step(h, vec4(0.0));\n\n        vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;\n        vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;\n\n        vec3 p0 = vec3(a0.xy,h.x);\n        vec3 p1 = vec3(a0.zw,h.y);\n        vec3 p2 = vec3(a1.xy,h.z);\n        vec3 p3 = vec3(a1.zw,h.w);\n\n        // Normalise gradients\n        vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));\n        p0 *= norm.x;\n        p1 *= norm.y;\n        p2 *= norm.z;\n        p3 *= norm.w;\n\n        // Mix final noise value\n        vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);\n        m = m * m;\n        return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1),\n                                        dot(p2,x2), dot(p3,x3) ) );\n        }\n\n        void main() {\n            vUv = uv;\n\n            vec3 pos = position;\n            float noiseFreq = 0.008;\n            float noiseAmp = 5.0;\n            vec3 noisePos = vec3(pos.x * noiseFreq + uTime, pos.y, pos.z);\n            pos.z += snoise(noisePos) * noiseAmp;\n\n            vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);\n            gl_Position = projectionMatrix * mvPosition;\n\n            // Calculate distance from camera (in view space, z is negative in front of camera)\n            vCameraDistance = -mvPosition.z;\n\n            //gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.);\n        }\n\n        */";
+
+},{}],"riKA5":[function(require,module,exports) {
+module.exports = "#define GLSLIFY 1\nuniform sampler2D videoTexture;\nuniform float edgeTransparency;\nuniform float globalOpacity;\n\nvarying vec2 vUv;\nvarying float vCameraDistance;\n\nconst float minDistance = 400.0;\nconst float maxDistance = 1400.0;\n\nvoid main() {\n    vec4 color = texture2D(videoTexture, vUv);\n    \n    // Edge transparency (simplified)\n    vec2 edgeDist = min(vUv, 1.0 - vUv);\n    float minEdgeDist = min(edgeDist.x, edgeDist.y);\n    float edgeAlpha = smoothstep(0.0, edgeTransparency, minEdgeDist);\n    \n    // Distance attenuation\n    float distanceAttenuation = 1.0 - smoothstep(minDistance, maxDistance, vCameraDistance);\n    \n    // Final alpha\n    float finalAlpha = edgeAlpha * globalOpacity * distanceAttenuation;\n    \n    // Apply distance fading to color (fade to darker/transparent instead of white)\n    vec3 finalColor = color.rgb * distanceAttenuation;\n    \n    gl_FragColor = vec4(finalColor, finalAlpha);\n}\n\n//precision highp float;\n/*\nuniform sampler2D videoTexture;\nuniform float edgeTransparency;\nuniform float globalOpacity; // Add this new uniform - value between 0.0 and 1.0\n\nvarying vec2 vUv;\nvarying float vCameraDistance;\nfloat attenuationStrength = 3.0;\nfloat minDistance = 800.0;\nfloat maxDistance = 1800.0;\n\n// Function to calculate alpha based on distance from edges\nfloat getAlpha(vec2 uv) {\n    float distFromEdge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));\n    return 1.0 - smoothstep(0.1, 0.0, distFromEdge / edgeTransparency);\n}\n\n// Function to calculate attenuation based on camera distance\nfloat getCameraDistanceAttenuation() {\n    // Linear interpolation between min and max distance\n    return 1.0 - clamp((vCameraDistance - minDistance) / (maxDistance - minDistance), 0.0, 1.0);\n}\n\n\nvoid main() {\n    vec4 color = texture2D(videoTexture, vUv);\n    float edgeAlpha = getAlpha(vUv);\n    float distanceAttenuation = getCameraDistanceAttenuation();\n    \n    // Multiply by the global opacity factor\n    float finalAlpha = edgeAlpha * globalOpacity * distanceAttenuation;\n\n    // Fade the colors as distance increases\n    vec3 fadedColor = mix(color.rgb, vec3(1.0, 1.0, 1.0), 1.0 - distanceAttenuation);\n    \n    gl_FragColor = vec4(fadedColor, finalAlpha);\n}\n*//*\nuniform sampler2D videoTexture;\nuniform float edgeTransparency;\nuniform float globalOpacity; // Add this new uniform - value between 0.0 and 1.0\n\nvarying vec2 vUv;\nvarying float vCameraDistance;\nfloat attenuationStrength = 3.0;\nfloat minDistance = 800.0;\nfloat maxDistance = 1800.0;\n\n// Function to calculate alpha based on distance from edges\nfloat getAlpha(vec2 uv) {\n    float distFromEdge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));\n    return 1.0 - smoothstep(0.1, 0.0, distFromEdge / edgeTransparency);\n}\n\n// Function to calculate attenuation based on camera distance\nfloat getCameraDistanceAttenuation() {\n    // Linear interpolation between min and max distance\n    return 1.0 - clamp((vCameraDistance - minDistance) / (maxDistance - minDistance), 0.0, 1.0);\n}\n\n\nvoid main() {\n    vec4 color = texture2D(videoTexture, vUv);\n    float edgeAlpha = getAlpha(vUv);\n    float distanceAttenuation = getCameraDistanceAttenuation();\n    \n    // Multiply by the global opacity factor\n    float finalAlpha = edgeAlpha * globalOpacity * distanceAttenuation;\n\n    // Fade the colors as distance increases\n    vec3 fadedColor = mix(color.rgb, vec3(1.0, 1.0, 1.0), 1.0 - distanceAttenuation);\n    \n    gl_FragColor = vec4(fadedColor, finalAlpha);\n}\n*//*\nuniform sampler2D videoTexture;\nuniform float edgeTransparency;\nuniform float globalOpacity; // Add this new uniform - value between 0.0 and 1.0\n\nvarying vec2 vUv;\nvarying float vCameraDistance;\nfloat attenuationStrength = 3.0;\nfloat minDistance = 800.0;\nfloat maxDistance = 1800.0;\n\n// Function to calculate alpha based on distance from edges\nfloat getAlpha(vec2 uv) {\n    float distFromEdge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));\n    return 1.0 - smoothstep(0.1, 0.0, distFromEdge / edgeTransparency);\n}\n\n// Function to calculate attenuation based on camera distance\nfloat getCameraDistanceAttenuation() {\n    // Linear interpolation between min and max distance\n    return 1.0 - clamp((vCameraDistance - minDistance) / (maxDistance - minDistance), 0.0, 1.0);\n}\n\n\nvoid main() {\n    vec4 color = texture2D(videoTexture, vUv);\n    float edgeAlpha = getAlpha(vUv);\n    float distanceAttenuation = getCameraDistanceAttenuation();\n    \n    // Multiply by the global opacity factor\n    float finalAlpha = edgeAlpha * globalOpacity * distanceAttenuation;\n\n    // Fade the colors as distance increases\n    vec3 fadedColor = mix(color.rgb, vec3(1.0, 1.0, 1.0), 1.0 - distanceAttenuation);\n    \n    gl_FragColor = vec4(fadedColor, finalAlpha);\n}\n*//*\nuniform sampler2D videoTexture;\nuniform float edgeTransparency;\nuniform float globalOpacity; // Add this new uniform - value between 0.0 and 1.0\n\nvarying vec2 vUv;\nvarying float vCameraDistance;\nfloat attenuationStrength = 3.0;\nfloat minDistance = 800.0;\nfloat maxDistance = 1800.0;\n\n// Function to calculate alpha based on distance from edges\nfloat getAlpha(vec2 uv) {\n    float distFromEdge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));\n    return 1.0 - smoothstep(0.1, 0.0, distFromEdge / edgeTransparency);\n}\n\n// Function to calculate attenuation based on camera distance\nfloat getCameraDistanceAttenuation() {\n    // Linear interpolation between min and max distance\n    return 1.0 - clamp((vCameraDistance - minDistance) / (maxDistance - minDistance), 0.0, 1.0);\n}\n\n\nvoid main() {\n    vec4 color = texture2D(videoTexture, vUv);\n    float edgeAlpha = getAlpha(vUv);\n    float distanceAttenuation = getCameraDistanceAttenuation();\n    \n    // Multiply by the global opacity factor\n    float finalAlpha = edgeAlpha * globalOpacity * distanceAttenuation;\n\n    // Fade the colors as distance increases\n    vec3 fadedColor = mix(color.rgb, vec3(1.0, 1.0, 1.0), 1.0 - distanceAttenuation);\n    \n    gl_FragColor = vec4(fadedColor, finalAlpha);\n}\n*/";
+
 },{}],"e77je":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
@@ -209714,6 +209826,125 @@ module.exports = "#define GLSLIFY 1\n      varying vec3 vWorldPos;\n      varyin
 
 },{}],"bbp22":[function(require,module,exports) {
 module.exports = "#define GLSLIFY 1\n      uniform sampler2D uVideoTexture;\n      uniform sampler2D uDiffuseMap;\n      uniform vec3 uProjectorPosition;\n      uniform vec3 uProjectorDirection;\n      uniform mat4 uProjectorMatrix;\n      uniform float uProjectorFOV;\n      uniform float uProjectorAspect;\n      uniform vec3 uBaseColor;\n      uniform float uProjectionIntensity;\n      uniform float uVignette;\n      uniform float uBlendFactor;\n      uniform float uMinZDistance;\n      uniform float uFadeHeight;\n      uniform float uTerrainHeight;\n      \n      varying vec3 vWorldPos;\n      varying vec2 vUv;\n      varying vec3 vNormalVector;\n      varying float vIsFrontFacing;\n      \nvoid main() {\n  // Sample the diffuse texture\n  vec4 diffuseC = texture2D(uDiffuseMap, vUv);\n  vec3 finalColor = diffuseC.rgb; // Initialize with diffuse color by default\n\n  float fadeFactor = smoothstep(uTerrainHeight, uTerrainHeight + uFadeHeight, vWorldPos.y);\n\n  // We explicitly designate the positive normal direction as the side for projection\n  // For a standard plane, this is the side with normal (0,0,1)\n  bool isProjectionSide = vIsFrontFacing > 0.0; // Only project on front side\n  \n  if (isProjectionSide) {\n    // Direction from projector to this fragment\n    vec3 projToFrag = normalize(vWorldPos - uProjectorPosition);\n    \n    // Project the point onto the projector's viewing plane\n    vec4 projectorViewPosition = uProjectorMatrix * vec4(vWorldPos, 1.0);\n    \n    // If the fragment is in front of the projector, show the projection\n    if (projectorViewPosition.z > uMinZDistance) {\n      // Calculate UV coordinates for projection\n      //float distance = length(vWorldPos - uProjectorPosition);\n      //float attenuation = 1.0 / (1.0 + 0.1 * distance + 0.0 * distance);\n      \n      // Convert view position to NDC space, then to UV coordinates\n      vec2 projUV = projectorViewPosition.xy / projectorViewPosition.z;\n      projUV = projUV * 0.5 + 0.5;\n      \n      // Check if within projection bounds (0 to 1)\n      if (projUV.x >= 0.0 && projUV.x <= 1.0 && projUV.y >= 0.0 && projUV.y <= 1.0) {\n        // Sample video texture with projected coordinates\n        vec4 projectedColor = texture2D(uVideoTexture, projUV);\n        \n        // Add vignette effect for old-school projector look\n        //float vignetteAmount = 1.0 - uVignette * length(projUV - 0.5) * 2.0;\n        //vignetteAmount = clamp(vignetteAmount, 0.0, 1.0);\n        \n        // Add subtle noise for film grain effect\n        //float noise = fract(sin(dot(projUV, vec2(12.9898, 78.233))) * 43758.5453) * 0.09;\n        \n        // Calculate projection color with effects\n        vec3 projColor = projectedColor.rgb * uProjectionIntensity;\n        //projColor += noise;\n        \n        // Screen blend mode (brightens the image)\n        vec3 blendedColor = 1.0 - (1.0 - diffuseC.rgb) * (1.0 - projColor);\n        \n        // Final color is a blend between the diffuse and the blended projection\n        finalColor = mix(diffuseC.rgb , blendedColor, uBlendFactor);\n        finalColor *= 2.5;\n        //finalColor *= fadeFactor;\n      }\n    }\n  }\n  \n  // Always output the final color, whether it's been projected on or not\n  csm_DiffuseColor = vec4(finalColor, 1.0) * fadeFactor;\n}";
+
+},{}],"9kv9Y":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "createFadeShaderMaterial", ()=>createFadeShaderMaterial);
+var _three = require("three");
+var _vanilla = require("three-custom-shader-material/vanilla");
+var _vanillaDefault = parcelHelpers.interopDefault(_vanilla);
+var _fadeJs = require("../shaders/fade.js");
+var _fadeJsDefault = parcelHelpers.interopDefault(_fadeJs);
+function createFadeShaderMaterial(options = {}) {
+    const { fadeHeight = 5.5, brightness = 1.0, side = _three.FrontSide } = options;
+    return new (0, _vanillaDefault.default)({
+        baseMaterial: _three.MeshStandardMaterial,
+        uniforms: {
+            uDiffuseMap: {
+                value: null
+            },
+            uHasDiffuseMap: {
+                value: true
+            },
+            uColor: {
+                value: null
+            },
+            uTerrainHeight: {
+                value: null
+            },
+            uFadeHeight: {
+                value: fadeHeight
+            },
+            uMeshPosition: {
+                value: null
+            },
+            uBrightness: {
+                value: brightness
+            }
+        },
+        vertexShader: (0, _fadeJsDefault.default).vert,
+        fragmentShader: (0, _fadeJsDefault.default).frag,
+        side: side
+    });
+}
+
+},{"three":"ktPTu","three-custom-shader-material/vanilla":"7rL7K","../shaders/fade.js":"gb4bA","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"gb4bA":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _fadeVertGlsl = require("./glsl/fade.vert.glsl");
+var _fadeVertGlslDefault = parcelHelpers.interopDefault(_fadeVertGlsl);
+var _fadeFragGlsl = require("./glsl/fade.frag.glsl");
+var _fadeFragGlslDefault = parcelHelpers.interopDefault(_fadeFragGlsl);
+exports.default = {
+    frag: (0, _fadeFragGlslDefault.default),
+    vert: (0, _fadeVertGlslDefault.default)
+};
+
+},{"./glsl/fade.vert.glsl":"ddl6j","./glsl/fade.frag.glsl":"7eI8B","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"ddl6j":[function(require,module,exports) {
+module.exports = "#define GLSLIFY 1\n        varying vec3 vWorldPosition;\n        varying vec2 vUv;\n        void main() {\n            vUv = uv;\n            vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;\n            csm_PositionRaw = projectionMatrix * modelViewMatrix * vec4(position, 1.0);\n        }";
+
+},{}],"7eI8B":[function(require,module,exports) {
+module.exports = "#define GLSLIFY 1\n        uniform bool uHasDiffuseMap;\n        uniform sampler2D uDiffuseMap;\n        uniform vec3 uColor;\n        uniform float uFadeHeight;\n        uniform float uTerrainHeight;\n        uniform float uBrightness;\n        varying vec3 vWorldPosition;\n        varying vec2 vUv;\n\n        void main() {\n            vec4 colorDiffuse = uHasDiffuseMap ? texture2D(uDiffuseMap, vUv) : vec4(uColor, 1.0);\n\n            float fadeFactor = smoothstep(uTerrainHeight, uTerrainHeight + uFadeHeight, vWorldPosition.y);\n\n            colorDiffuse.rgb *= fadeFactor * uBrightness;\n\n            csm_DiffuseColor = colorDiffuse;\n        }";
+
+},{}],"9SL6m":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "createHorizonHazeMaterial", ()=>createHorizonHazeMaterial);
+var _three = require("three");
+var _horizonHazeJs = require("../shaders/horizonHaze.js");
+var _horizonHazeJsDefault = parcelHelpers.interopDefault(_horizonHazeJs);
+function createHorizonHazeMaterial(options = {}) {
+    const { baseColor = new _three.Color(0x000000), envMap = envMap, hazeStart = 100, hazeEnd = 500, horizonHeight = 0.05, hazeIntensity = 1.0 // overall haze strength (0-1)
+     } = options;
+    const material = new _three.ShaderMaterial({
+        uniforms: {
+            uBaseColor: {
+                value: baseColor
+            },
+            uEnvMap: {
+                value: envMap
+            },
+            uCameraPosition: {
+                value: new _three.Vector3()
+            },
+            uHazeStart: {
+                value: hazeStart
+            },
+            uHazeEnd: {
+                value: hazeEnd
+            },
+            uHorizonHeight: {
+                value: horizonHeight
+            },
+            uHazeIntensity: {
+                value: hazeIntensity
+            }
+        },
+        vertexShader: (0, _horizonHazeJsDefault.default).vert,
+        fragmentShader: (0, _horizonHazeJsDefault.default).frag,
+        side: _three.FrontSide
+    });
+    return material;
+}
+
+},{"three":"ktPTu","../shaders/horizonHaze.js":"iM9hs","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"iM9hs":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _horizonHazeVertGlsl = require("./glsl/horizonHaze.vert.glsl");
+var _horizonHazeVertGlslDefault = parcelHelpers.interopDefault(_horizonHazeVertGlsl);
+var _horizonHazeFragGlsl = require("./glsl/horizonHaze.frag.glsl");
+var _horizonHazeFragGlslDefault = parcelHelpers.interopDefault(_horizonHazeFragGlsl);
+exports.default = {
+    frag: (0, _horizonHazeFragGlslDefault.default),
+    vert: (0, _horizonHazeVertGlslDefault.default)
+};
+
+},{"./glsl/horizonHaze.vert.glsl":"998J4","./glsl/horizonHaze.frag.glsl":"5qECw","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"998J4":[function(require,module,exports) {
+module.exports = "#define GLSLIFY 1\nvarying vec3 vWorldPosition;\nvarying float vDistanceFromCamera;\n\nuniform vec3 uCameraPosition;\n\nvoid main() {\n    vec4 worldPosition = modelMatrix * vec4(position, 1.0);\n    vWorldPosition = worldPosition.xyz;\n\n    // Calculate distance from camera (horizontal only, ignore Y)\n    vec2 horizontalDist = worldPosition.xz - uCameraPosition.xz;\n    vDistanceFromCamera = length(horizontalDist);\n\n    gl_Position = projectionMatrix * viewMatrix * worldPosition;\n}\n";
+
+},{}],"5qECw":[function(require,module,exports) {
+module.exports = "#define GLSLIFY 1\n\n// uniform vec3 uBaseColor;\n// uniform sampler2D uEnvMap;\n// uniform vec3 uCameraPosition;\n// uniform float uHazeStart;\n// uniform float uHazeEnd;\n// uniform float uHazeIntensity;\n\n// void main() {\n//     // Direction from camera to fragment\n//     vec3 viewDir = normalize(vWorldPosition - uCameraPosition);\n\n//     // Horizon direction (force horizontal)\n//     vec3 horizonDir = normalize(vec3(viewDir.x, 0.0, viewDir.z));\n\n//     // Convert to equirectangular UV\n//     float u = atan(horizonDir.z, horizonDir.x) / (2.0 * 3.14159265) + 0.5;\n//     float v = asin(clamp(horizonDir.y, -1.0, 1.0)) / 3.14159265 + 0.5;\n\n//     // Sample HDRI\n//     vec3 horizonColor = texture2D(uEnvMap, vec2(u, v)).rgb;\n\n//     // Distance-based haze\n//     float hazeFactor = smoothstep(uHazeStart, uHazeEnd, vDistanceFromCamera) * uHazeIntensity;\n\n//     // Final color\n//     vec3 finalColor = mix(uBaseColor, horizonColor, hazeFactor);\n\n//     gl_FragColor = vec4(finalColor, 1.0);\n// }\n\n// uniform vec3 uBaseColor;\n// uniform sampler2D uEnvMap;\n// uniform vec3 uCameraPosition;\n// uniform float uHazeStart;\n// uniform float uHazeEnd;\n// uniform float uHazeIntensity;\n\n// void main() {\n//     // Direction from camera to fragment\n//     vec3 viewDir = normalize(vWorldPosition - uCameraPosition);\n\n//     // Force horizontal direction for horizon\n//     vec3 horizonDir = normalize(vec3(viewDir.x, 0.0, viewDir.z));\n\n//     // Convert to equirectangular UV\n//     float u = atan(horizonDir.z, horizonDir.x) / (2.0 * 3.14159265) + 0.5;\n//     float v = asin(clamp(horizonDir.y, -1.0, 1.0)) / 3.14159265 + 0.5;\n\n//     // Apply optional vertical offset to align HDRI horizon\n//     v += 0.05;\n//     v = clamp(v, 0.0, 1.0);\n\n//     // Sample HDRI for horizon color\n//     vec3 horizonColor = texture2D(uEnvMap, vec2(u, v)).rgb;\n//     horizonColor = pow(horizonColor, vec3(1.0/2.2));\n\n//     // Distance-based haze factor\n//     float hazeFactor = smoothstep(uHazeStart, uHazeEnd, vDistanceFromCamera) * uHazeIntensity;\n\n//     // Blend base color (black) with horizon color\n//     vec3 finalColor = mix(uBaseColor, horizonColor, hazeFactor);\n\n//     gl_FragColor = vec4(finalColor, 1.0);\n// }\n\nvarying vec3 vWorldPosition;\nvarying float vDistanceFromCamera;\n\nuniform vec3 uBaseColor;\nuniform sampler2D uEnvMap;          // Equirectangular HDR texture\nuniform vec3 uCameraPosition;\nuniform float uHazeStart;\nuniform float uHazeEnd;\nuniform float uHazeIntensity;\n\n#define PI 3.14159265359\n\nvoid main() {\n    // 1\uFE0F\u20E3 Direction from camera to fragment\n    vec3 viewDir = normalize(vWorldPosition - uCameraPosition);\n\n    // 2\uFE0F\u20E3 Horizon direction (force horizontal)\n    vec3 horizonDir = normalize(vec3(viewDir.x, 0.0, viewDir.z));\n\n    // 3\uFE0F\u20E3 Convert direction to equirectangular UV coordinates\n    float u = atan(horizonDir.z, horizonDir.x) / (2.0 * PI) + 0.5;\n    float v = 0.5; // Sample at horizon (middle of texture vertically)\n\n    // 4\uFE0F\u20E3 Sample HDR texture\n    vec3 horizonColor = texture2D(uEnvMap, vec2(u, v)).rgb;\n\n    // 5\uFE0F\u20E3 Distance-based haze factor\n    float hazeFactor = smoothstep(uHazeStart, uHazeEnd, vDistanceFromCamera) * uHazeIntensity;\n\n    // 6\uFE0F\u20E3 Blend base color with horizon color\n    vec3 finalColor = mix(uBaseColor, horizonColor, hazeFactor);\n\n    gl_FragColor = vec4(finalColor, 1.0);\n}";
 
 },{}],"joMhG":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
@@ -226308,237 +226539,6 @@ exports.getBundleURL = getBundleURLCached;
 exports.getBaseURL = getBaseURL;
 exports.getOrigin = getOrigin;
 
-},{}],"iyqMm":[function(require,module,exports) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-parcelHelpers.export(exports, "createVideoShaderMaterial", ()=>createVideoShaderMaterial);
-var _three = require("three");
-var _videotexture = require("../shaders/videotexture");
-var _videotextureDefault = parcelHelpers.interopDefault(_videotexture);
-function createVideoShaderMaterial(videoTexture, options = {}) {
-    const { edgeTransparency = 0.15, globalOpacity = 0.85 } = options;
-    return new _three.ShaderMaterial({
-        uniforms: {
-            videoTexture: {
-                value: videoTexture
-            },
-            edgeTransparency: {
-                value: edgeTransparency
-            },
-            uTime: {
-                value: 0.0
-            },
-            globalOpacity: {
-                value: globalOpacity
-            }
-        },
-        vertexShader: (0, _videotextureDefault.default).vert,
-        fragmentShader: (0, _videotextureDefault.default).frag,
-        transparent: true
-    });
-}
-
-},{"three":"ktPTu","../shaders/videotexture":"5S7oy","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"5S7oy":[function(require,module,exports) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-var _videotextureVertGlsl = require("./glsl/videotexture.vert.glsl");
-var _videotextureVertGlslDefault = parcelHelpers.interopDefault(_videotextureVertGlsl);
-var _videotextureFragGlsl = require("./glsl/videotexture.frag.glsl");
-var _videotextureFragGlslDefault = parcelHelpers.interopDefault(_videotextureFragGlsl);
-exports.default = {
-    frag: (0, _videotextureFragGlslDefault.default),
-    vert: (0, _videotextureVertGlslDefault.default)
-};
-
-},{"./glsl/videotexture.vert.glsl":"41TsU","./glsl/videotexture.frag.glsl":"riKA5","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"41TsU":[function(require,module,exports) {
-module.exports = "#define GLSLIFY 1\n\nvarying vec2 vUv;\nvarying float vCameraDistance;\nuniform float uTime;\n\n// Simple noise function (much lighter than Simplex)\nfloat hash(float n) {\n    return fract(sin(n) * 43758.5453);\n}\n\nfloat noise(float x) {\n    float i = floor(x);\n    float f = fract(x);\n    f = f * f * (3.0 - 2.0 * f);\n    return mix(hash(i), hash(i + 1.0), f);\n}\n\nvoid main() {\n    vUv = uv;\n    \n    vec3 pos = position;\n    \n    float n = noise(pos.x * 0.008 + uTime);\n    pos.z += n * 20.0;\n    \n    vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);\n    gl_Position = projectionMatrix * mvPosition;\n    vCameraDistance = -mvPosition.z;\n}\n\n/*\n        //precision highp float;\n\n        varying vec2 vUv;\n        varying float vCameraDistance;\n        uniform float uTime;\n\n        //\n        // Description : Array and textureless GLSL 2D/3D/4D simplex\n        //               noise functions.\n        //      Author : Ian McEwan, Ashima Arts.\n        //  Maintainer : ijm\n        //     Lastmod : 20110822 (ijm)\n        //     License : Copyright (C) 2011 Ashima Arts. All rights reserved.\n        //               Distributed under the MIT License. See LICENSE file.\n        //               https://github.com/ashima/webgl-noise\n        //\n\n        vec3 mod289(vec3 x) {\n        return x - floor(x * (1.0 / 289.0)) * 289.0;\n        }\n\n        vec4 mod289(vec4 x) {\n        return x - floor(x * (1.0 / 289.0)) * 289.0;\n        }\n\n        vec4 permute(vec4 x) {\n            return mod289(((x*34.0)+1.0)*x);\n        }\n\n        vec4 taylorInvSqrt(vec4 r)\n        {\n        return 1.79284291400159 - 0.85373472095314 * r;\n        }\n\n        float snoise(vec3 v) {\n        const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;\n        const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);\n\n        // First corner\n        vec3 i  = floor(v + dot(v, C.yyy) );\n        vec3 x0 =   v - i + dot(i, C.xxx) ;\n\n        // Other corners\n        vec3 g = step(x0.yzx, x0.xyz);\n        vec3 l = 1.0 - g;\n        vec3 i1 = min( g.xyz, l.zxy );\n        vec3 i2 = max( g.xyz, l.zxy );\n\n        //   x0 = x0 - 0.0 + 0.0 * C.xxx;\n        //   x1 = x0 - i1  + 1.0 * C.xxx;\n        //   x2 = x0 - i2  + 2.0 * C.xxx;\n        //   x3 = x0 - 1.0 + 3.0 * C.xxx;\n        vec3 x1 = x0 - i1 + C.xxx;\n        vec3 x2 = x0 - i2 + C.yyy; // 2.0*C.x = 1/3 = C.y\n        vec3 x3 = x0 - D.yyy;      // -1.0+3.0*C.x = -0.5 = -D.y\n\n        // Permutations\n        i = mod289(i);\n        vec4 p = permute( permute( permute(\n                    i.z + vec4(0.0, i1.z, i2.z, 1.0 ))\n                + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))\n                + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));\n\n        // Gradients: 7x7 points over a square, mapped onto an octahedron.\n        // The ring size 17*17 = 289 is close to a multiple of 49 (49*6 = 294)\n        float n_ = 0.142857142857; // 1.0/7.0\n        vec3  ns = n_ * D.wyz - D.xzx;\n\n        vec4 j = p - 49.0 * floor(p * ns.z * ns.z);  //  mod(p,7*7)\n\n        vec4 x_ = floor(j * ns.z);\n        vec4 y_ = floor(j - 7.0 * x_ );    // mod(j,N)\n\n        vec4 x = x_ *ns.x + ns.yyyy;\n        vec4 y = y_ *ns.x + ns.yyyy;\n        vec4 h = 1.0 - abs(x) - abs(y);\n\n        vec4 b0 = vec4( x.xy, y.xy );\n        vec4 b1 = vec4( x.zw, y.zw );\n\n        //vec4 s0 = vec4(lessThan(b0,0.0))*2.0 - 1.0;\n        //vec4 s1 = vec4(lessThan(b1,0.0))*2.0 - 1.0;\n        vec4 s0 = floor(b0)*2.0 + 1.0;\n        vec4 s1 = floor(b1)*2.0 + 1.0;\n        vec4 sh = -step(h, vec4(0.0));\n\n        vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;\n        vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;\n\n        vec3 p0 = vec3(a0.xy,h.x);\n        vec3 p1 = vec3(a0.zw,h.y);\n        vec3 p2 = vec3(a1.xy,h.z);\n        vec3 p3 = vec3(a1.zw,h.w);\n\n        // Normalise gradients\n        vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));\n        p0 *= norm.x;\n        p1 *= norm.y;\n        p2 *= norm.z;\n        p3 *= norm.w;\n\n        // Mix final noise value\n        vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);\n        m = m * m;\n        return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1),\n                                        dot(p2,x2), dot(p3,x3) ) );\n        }\n\n        void main() {\n            vUv = uv;\n\n            vec3 pos = position;\n            float noiseFreq = 0.008;\n            float noiseAmp = 5.0;\n            vec3 noisePos = vec3(pos.x * noiseFreq + uTime, pos.y, pos.z);\n            pos.z += snoise(noisePos) * noiseAmp;\n\n            vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);\n            gl_Position = projectionMatrix * mvPosition;\n\n            // Calculate distance from camera (in view space, z is negative in front of camera)\n            vCameraDistance = -mvPosition.z;\n\n            //gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.);\n        }\n\n        *//*\n        //precision highp float;\n\n        varying vec2 vUv;\n        varying float vCameraDistance;\n        uniform float uTime;\n\n        //\n        // Description : Array and textureless GLSL 2D/3D/4D simplex\n        //               noise functions.\n        //      Author : Ian McEwan, Ashima Arts.\n        //  Maintainer : ijm\n        //     Lastmod : 20110822 (ijm)\n        //     License : Copyright (C) 2011 Ashima Arts. All rights reserved.\n        //               Distributed under the MIT License. See LICENSE file.\n        //               https://github.com/ashima/webgl-noise\n        //\n\n        vec3 mod289(vec3 x) {\n        return x - floor(x * (1.0 / 289.0)) * 289.0;\n        }\n\n        vec4 mod289(vec4 x) {\n        return x - floor(x * (1.0 / 289.0)) * 289.0;\n        }\n\n        vec4 permute(vec4 x) {\n            return mod289(((x*34.0)+1.0)*x);\n        }\n\n        vec4 taylorInvSqrt(vec4 r)\n        {\n        return 1.79284291400159 - 0.85373472095314 * r;\n        }\n\n        float snoise(vec3 v) {\n        const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;\n        const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);\n\n        // First corner\n        vec3 i  = floor(v + dot(v, C.yyy) );\n        vec3 x0 =   v - i + dot(i, C.xxx) ;\n\n        // Other corners\n        vec3 g = step(x0.yzx, x0.xyz);\n        vec3 l = 1.0 - g;\n        vec3 i1 = min( g.xyz, l.zxy );\n        vec3 i2 = max( g.xyz, l.zxy );\n\n        //   x0 = x0 - 0.0 + 0.0 * C.xxx;\n        //   x1 = x0 - i1  + 1.0 * C.xxx;\n        //   x2 = x0 - i2  + 2.0 * C.xxx;\n        //   x3 = x0 - 1.0 + 3.0 * C.xxx;\n        vec3 x1 = x0 - i1 + C.xxx;\n        vec3 x2 = x0 - i2 + C.yyy; // 2.0*C.x = 1/3 = C.y\n        vec3 x3 = x0 - D.yyy;      // -1.0+3.0*C.x = -0.5 = -D.y\n\n        // Permutations\n        i = mod289(i);\n        vec4 p = permute( permute( permute(\n                    i.z + vec4(0.0, i1.z, i2.z, 1.0 ))\n                + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))\n                + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));\n\n        // Gradients: 7x7 points over a square, mapped onto an octahedron.\n        // The ring size 17*17 = 289 is close to a multiple of 49 (49*6 = 294)\n        float n_ = 0.142857142857; // 1.0/7.0\n        vec3  ns = n_ * D.wyz - D.xzx;\n\n        vec4 j = p - 49.0 * floor(p * ns.z * ns.z);  //  mod(p,7*7)\n\n        vec4 x_ = floor(j * ns.z);\n        vec4 y_ = floor(j - 7.0 * x_ );    // mod(j,N)\n\n        vec4 x = x_ *ns.x + ns.yyyy;\n        vec4 y = y_ *ns.x + ns.yyyy;\n        vec4 h = 1.0 - abs(x) - abs(y);\n\n        vec4 b0 = vec4( x.xy, y.xy );\n        vec4 b1 = vec4( x.zw, y.zw );\n\n        //vec4 s0 = vec4(lessThan(b0,0.0))*2.0 - 1.0;\n        //vec4 s1 = vec4(lessThan(b1,0.0))*2.0 - 1.0;\n        vec4 s0 = floor(b0)*2.0 + 1.0;\n        vec4 s1 = floor(b1)*2.0 + 1.0;\n        vec4 sh = -step(h, vec4(0.0));\n\n        vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;\n        vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;\n\n        vec3 p0 = vec3(a0.xy,h.x);\n        vec3 p1 = vec3(a0.zw,h.y);\n        vec3 p2 = vec3(a1.xy,h.z);\n        vec3 p3 = vec3(a1.zw,h.w);\n\n        // Normalise gradients\n        vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));\n        p0 *= norm.x;\n        p1 *= norm.y;\n        p2 *= norm.z;\n        p3 *= norm.w;\n\n        // Mix final noise value\n        vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);\n        m = m * m;\n        return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1),\n                                        dot(p2,x2), dot(p3,x3) ) );\n        }\n\n        void main() {\n            vUv = uv;\n\n            vec3 pos = position;\n            float noiseFreq = 0.008;\n            float noiseAmp = 5.0;\n            vec3 noisePos = vec3(pos.x * noiseFreq + uTime, pos.y, pos.z);\n            pos.z += snoise(noisePos) * noiseAmp;\n\n            vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);\n            gl_Position = projectionMatrix * mvPosition;\n\n            // Calculate distance from camera (in view space, z is negative in front of camera)\n            vCameraDistance = -mvPosition.z;\n\n            //gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.);\n        }\n\n        *//*\n        //precision highp float;\n\n        varying vec2 vUv;\n        varying float vCameraDistance;\n        uniform float uTime;\n\n        //\n        // Description : Array and textureless GLSL 2D/3D/4D simplex\n        //               noise functions.\n        //      Author : Ian McEwan, Ashima Arts.\n        //  Maintainer : ijm\n        //     Lastmod : 20110822 (ijm)\n        //     License : Copyright (C) 2011 Ashima Arts. All rights reserved.\n        //               Distributed under the MIT License. See LICENSE file.\n        //               https://github.com/ashima/webgl-noise\n        //\n\n        vec3 mod289(vec3 x) {\n        return x - floor(x * (1.0 / 289.0)) * 289.0;\n        }\n\n        vec4 mod289(vec4 x) {\n        return x - floor(x * (1.0 / 289.0)) * 289.0;\n        }\n\n        vec4 permute(vec4 x) {\n            return mod289(((x*34.0)+1.0)*x);\n        }\n\n        vec4 taylorInvSqrt(vec4 r)\n        {\n        return 1.79284291400159 - 0.85373472095314 * r;\n        }\n\n        float snoise(vec3 v) {\n        const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;\n        const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);\n\n        // First corner\n        vec3 i  = floor(v + dot(v, C.yyy) );\n        vec3 x0 =   v - i + dot(i, C.xxx) ;\n\n        // Other corners\n        vec3 g = step(x0.yzx, x0.xyz);\n        vec3 l = 1.0 - g;\n        vec3 i1 = min( g.xyz, l.zxy );\n        vec3 i2 = max( g.xyz, l.zxy );\n\n        //   x0 = x0 - 0.0 + 0.0 * C.xxx;\n        //   x1 = x0 - i1  + 1.0 * C.xxx;\n        //   x2 = x0 - i2  + 2.0 * C.xxx;\n        //   x3 = x0 - 1.0 + 3.0 * C.xxx;\n        vec3 x1 = x0 - i1 + C.xxx;\n        vec3 x2 = x0 - i2 + C.yyy; // 2.0*C.x = 1/3 = C.y\n        vec3 x3 = x0 - D.yyy;      // -1.0+3.0*C.x = -0.5 = -D.y\n\n        // Permutations\n        i = mod289(i);\n        vec4 p = permute( permute( permute(\n                    i.z + vec4(0.0, i1.z, i2.z, 1.0 ))\n                + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))\n                + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));\n\n        // Gradients: 7x7 points over a square, mapped onto an octahedron.\n        // The ring size 17*17 = 289 is close to a multiple of 49 (49*6 = 294)\n        float n_ = 0.142857142857; // 1.0/7.0\n        vec3  ns = n_ * D.wyz - D.xzx;\n\n        vec4 j = p - 49.0 * floor(p * ns.z * ns.z);  //  mod(p,7*7)\n\n        vec4 x_ = floor(j * ns.z);\n        vec4 y_ = floor(j - 7.0 * x_ );    // mod(j,N)\n\n        vec4 x = x_ *ns.x + ns.yyyy;\n        vec4 y = y_ *ns.x + ns.yyyy;\n        vec4 h = 1.0 - abs(x) - abs(y);\n\n        vec4 b0 = vec4( x.xy, y.xy );\n        vec4 b1 = vec4( x.zw, y.zw );\n\n        //vec4 s0 = vec4(lessThan(b0,0.0))*2.0 - 1.0;\n        //vec4 s1 = vec4(lessThan(b1,0.0))*2.0 - 1.0;\n        vec4 s0 = floor(b0)*2.0 + 1.0;\n        vec4 s1 = floor(b1)*2.0 + 1.0;\n        vec4 sh = -step(h, vec4(0.0));\n\n        vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;\n        vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;\n\n        vec3 p0 = vec3(a0.xy,h.x);\n        vec3 p1 = vec3(a0.zw,h.y);\n        vec3 p2 = vec3(a1.xy,h.z);\n        vec3 p3 = vec3(a1.zw,h.w);\n\n        // Normalise gradients\n        vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));\n        p0 *= norm.x;\n        p1 *= norm.y;\n        p2 *= norm.z;\n        p3 *= norm.w;\n\n        // Mix final noise value\n        vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);\n        m = m * m;\n        return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1),\n                                        dot(p2,x2), dot(p3,x3) ) );\n        }\n\n        void main() {\n            vUv = uv;\n\n            vec3 pos = position;\n            float noiseFreq = 0.008;\n            float noiseAmp = 5.0;\n            vec3 noisePos = vec3(pos.x * noiseFreq + uTime, pos.y, pos.z);\n            pos.z += snoise(noisePos) * noiseAmp;\n\n            vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);\n            gl_Position = projectionMatrix * mvPosition;\n\n            // Calculate distance from camera (in view space, z is negative in front of camera)\n            vCameraDistance = -mvPosition.z;\n\n            //gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.);\n        }\n\n        *//*\n        //precision highp float;\n\n        varying vec2 vUv;\n        varying float vCameraDistance;\n        uniform float uTime;\n\n        //\n        // Description : Array and textureless GLSL 2D/3D/4D simplex\n        //               noise functions.\n        //      Author : Ian McEwan, Ashima Arts.\n        //  Maintainer : ijm\n        //     Lastmod : 20110822 (ijm)\n        //     License : Copyright (C) 2011 Ashima Arts. All rights reserved.\n        //               Distributed under the MIT License. See LICENSE file.\n        //               https://github.com/ashima/webgl-noise\n        //\n\n        vec3 mod289(vec3 x) {\n        return x - floor(x * (1.0 / 289.0)) * 289.0;\n        }\n\n        vec4 mod289(vec4 x) {\n        return x - floor(x * (1.0 / 289.0)) * 289.0;\n        }\n\n        vec4 permute(vec4 x) {\n            return mod289(((x*34.0)+1.0)*x);\n        }\n\n        vec4 taylorInvSqrt(vec4 r)\n        {\n        return 1.79284291400159 - 0.85373472095314 * r;\n        }\n\n        float snoise(vec3 v) {\n        const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;\n        const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);\n\n        // First corner\n        vec3 i  = floor(v + dot(v, C.yyy) );\n        vec3 x0 =   v - i + dot(i, C.xxx) ;\n\n        // Other corners\n        vec3 g = step(x0.yzx, x0.xyz);\n        vec3 l = 1.0 - g;\n        vec3 i1 = min( g.xyz, l.zxy );\n        vec3 i2 = max( g.xyz, l.zxy );\n\n        //   x0 = x0 - 0.0 + 0.0 * C.xxx;\n        //   x1 = x0 - i1  + 1.0 * C.xxx;\n        //   x2 = x0 - i2  + 2.0 * C.xxx;\n        //   x3 = x0 - 1.0 + 3.0 * C.xxx;\n        vec3 x1 = x0 - i1 + C.xxx;\n        vec3 x2 = x0 - i2 + C.yyy; // 2.0*C.x = 1/3 = C.y\n        vec3 x3 = x0 - D.yyy;      // -1.0+3.0*C.x = -0.5 = -D.y\n\n        // Permutations\n        i = mod289(i);\n        vec4 p = permute( permute( permute(\n                    i.z + vec4(0.0, i1.z, i2.z, 1.0 ))\n                + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))\n                + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));\n\n        // Gradients: 7x7 points over a square, mapped onto an octahedron.\n        // The ring size 17*17 = 289 is close to a multiple of 49 (49*6 = 294)\n        float n_ = 0.142857142857; // 1.0/7.0\n        vec3  ns = n_ * D.wyz - D.xzx;\n\n        vec4 j = p - 49.0 * floor(p * ns.z * ns.z);  //  mod(p,7*7)\n\n        vec4 x_ = floor(j * ns.z);\n        vec4 y_ = floor(j - 7.0 * x_ );    // mod(j,N)\n\n        vec4 x = x_ *ns.x + ns.yyyy;\n        vec4 y = y_ *ns.x + ns.yyyy;\n        vec4 h = 1.0 - abs(x) - abs(y);\n\n        vec4 b0 = vec4( x.xy, y.xy );\n        vec4 b1 = vec4( x.zw, y.zw );\n\n        //vec4 s0 = vec4(lessThan(b0,0.0))*2.0 - 1.0;\n        //vec4 s1 = vec4(lessThan(b1,0.0))*2.0 - 1.0;\n        vec4 s0 = floor(b0)*2.0 + 1.0;\n        vec4 s1 = floor(b1)*2.0 + 1.0;\n        vec4 sh = -step(h, vec4(0.0));\n\n        vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;\n        vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;\n\n        vec3 p0 = vec3(a0.xy,h.x);\n        vec3 p1 = vec3(a0.zw,h.y);\n        vec3 p2 = vec3(a1.xy,h.z);\n        vec3 p3 = vec3(a1.zw,h.w);\n\n        // Normalise gradients\n        vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));\n        p0 *= norm.x;\n        p1 *= norm.y;\n        p2 *= norm.z;\n        p3 *= norm.w;\n\n        // Mix final noise value\n        vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);\n        m = m * m;\n        return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1),\n                                        dot(p2,x2), dot(p3,x3) ) );\n        }\n\n        void main() {\n            vUv = uv;\n\n            vec3 pos = position;\n            float noiseFreq = 0.008;\n            float noiseAmp = 5.0;\n            vec3 noisePos = vec3(pos.x * noiseFreq + uTime, pos.y, pos.z);\n            pos.z += snoise(noisePos) * noiseAmp;\n\n            vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);\n            gl_Position = projectionMatrix * mvPosition;\n\n            // Calculate distance from camera (in view space, z is negative in front of camera)\n            vCameraDistance = -mvPosition.z;\n\n            //gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.);\n        }\n\n        */";
-
-},{}],"riKA5":[function(require,module,exports) {
-module.exports = "#define GLSLIFY 1\nuniform sampler2D videoTexture;\nuniform float edgeTransparency;\nuniform float globalOpacity;\n\nvarying vec2 vUv;\nvarying float vCameraDistance;\n\nconst float minDistance = 400.0;\nconst float maxDistance = 1400.0;\n\nvoid main() {\n    vec4 color = texture2D(videoTexture, vUv);\n    \n    // Edge transparency (simplified)\n    vec2 edgeDist = min(vUv, 1.0 - vUv);\n    float minEdgeDist = min(edgeDist.x, edgeDist.y);\n    float edgeAlpha = smoothstep(0.0, edgeTransparency, minEdgeDist);\n    \n    // Distance attenuation\n    float distanceAttenuation = 1.0 - smoothstep(minDistance, maxDistance, vCameraDistance);\n    \n    // Final alpha\n    float finalAlpha = edgeAlpha * globalOpacity * distanceAttenuation;\n    \n    // Apply distance fading to color (fade to darker/transparent instead of white)\n    vec3 finalColor = color.rgb * distanceAttenuation;\n    \n    gl_FragColor = vec4(finalColor, finalAlpha);\n}\n\n//precision highp float;\n/*\nuniform sampler2D videoTexture;\nuniform float edgeTransparency;\nuniform float globalOpacity; // Add this new uniform - value between 0.0 and 1.0\n\nvarying vec2 vUv;\nvarying float vCameraDistance;\nfloat attenuationStrength = 3.0;\nfloat minDistance = 800.0;\nfloat maxDistance = 1800.0;\n\n// Function to calculate alpha based on distance from edges\nfloat getAlpha(vec2 uv) {\n    float distFromEdge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));\n    return 1.0 - smoothstep(0.1, 0.0, distFromEdge / edgeTransparency);\n}\n\n// Function to calculate attenuation based on camera distance\nfloat getCameraDistanceAttenuation() {\n    // Linear interpolation between min and max distance\n    return 1.0 - clamp((vCameraDistance - minDistance) / (maxDistance - minDistance), 0.0, 1.0);\n}\n\n\nvoid main() {\n    vec4 color = texture2D(videoTexture, vUv);\n    float edgeAlpha = getAlpha(vUv);\n    float distanceAttenuation = getCameraDistanceAttenuation();\n    \n    // Multiply by the global opacity factor\n    float finalAlpha = edgeAlpha * globalOpacity * distanceAttenuation;\n\n    // Fade the colors as distance increases\n    vec3 fadedColor = mix(color.rgb, vec3(1.0, 1.0, 1.0), 1.0 - distanceAttenuation);\n    \n    gl_FragColor = vec4(fadedColor, finalAlpha);\n}\n*//*\nuniform sampler2D videoTexture;\nuniform float edgeTransparency;\nuniform float globalOpacity; // Add this new uniform - value between 0.0 and 1.0\n\nvarying vec2 vUv;\nvarying float vCameraDistance;\nfloat attenuationStrength = 3.0;\nfloat minDistance = 800.0;\nfloat maxDistance = 1800.0;\n\n// Function to calculate alpha based on distance from edges\nfloat getAlpha(vec2 uv) {\n    float distFromEdge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));\n    return 1.0 - smoothstep(0.1, 0.0, distFromEdge / edgeTransparency);\n}\n\n// Function to calculate attenuation based on camera distance\nfloat getCameraDistanceAttenuation() {\n    // Linear interpolation between min and max distance\n    return 1.0 - clamp((vCameraDistance - minDistance) / (maxDistance - minDistance), 0.0, 1.0);\n}\n\n\nvoid main() {\n    vec4 color = texture2D(videoTexture, vUv);\n    float edgeAlpha = getAlpha(vUv);\n    float distanceAttenuation = getCameraDistanceAttenuation();\n    \n    // Multiply by the global opacity factor\n    float finalAlpha = edgeAlpha * globalOpacity * distanceAttenuation;\n\n    // Fade the colors as distance increases\n    vec3 fadedColor = mix(color.rgb, vec3(1.0, 1.0, 1.0), 1.0 - distanceAttenuation);\n    \n    gl_FragColor = vec4(fadedColor, finalAlpha);\n}\n*//*\nuniform sampler2D videoTexture;\nuniform float edgeTransparency;\nuniform float globalOpacity; // Add this new uniform - value between 0.0 and 1.0\n\nvarying vec2 vUv;\nvarying float vCameraDistance;\nfloat attenuationStrength = 3.0;\nfloat minDistance = 800.0;\nfloat maxDistance = 1800.0;\n\n// Function to calculate alpha based on distance from edges\nfloat getAlpha(vec2 uv) {\n    float distFromEdge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));\n    return 1.0 - smoothstep(0.1, 0.0, distFromEdge / edgeTransparency);\n}\n\n// Function to calculate attenuation based on camera distance\nfloat getCameraDistanceAttenuation() {\n    // Linear interpolation between min and max distance\n    return 1.0 - clamp((vCameraDistance - minDistance) / (maxDistance - minDistance), 0.0, 1.0);\n}\n\n\nvoid main() {\n    vec4 color = texture2D(videoTexture, vUv);\n    float edgeAlpha = getAlpha(vUv);\n    float distanceAttenuation = getCameraDistanceAttenuation();\n    \n    // Multiply by the global opacity factor\n    float finalAlpha = edgeAlpha * globalOpacity * distanceAttenuation;\n\n    // Fade the colors as distance increases\n    vec3 fadedColor = mix(color.rgb, vec3(1.0, 1.0, 1.0), 1.0 - distanceAttenuation);\n    \n    gl_FragColor = vec4(fadedColor, finalAlpha);\n}\n*//*\nuniform sampler2D videoTexture;\nuniform float edgeTransparency;\nuniform float globalOpacity; // Add this new uniform - value between 0.0 and 1.0\n\nvarying vec2 vUv;\nvarying float vCameraDistance;\nfloat attenuationStrength = 3.0;\nfloat minDistance = 800.0;\nfloat maxDistance = 1800.0;\n\n// Function to calculate alpha based on distance from edges\nfloat getAlpha(vec2 uv) {\n    float distFromEdge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));\n    return 1.0 - smoothstep(0.1, 0.0, distFromEdge / edgeTransparency);\n}\n\n// Function to calculate attenuation based on camera distance\nfloat getCameraDistanceAttenuation() {\n    // Linear interpolation between min and max distance\n    return 1.0 - clamp((vCameraDistance - minDistance) / (maxDistance - minDistance), 0.0, 1.0);\n}\n\n\nvoid main() {\n    vec4 color = texture2D(videoTexture, vUv);\n    float edgeAlpha = getAlpha(vUv);\n    float distanceAttenuation = getCameraDistanceAttenuation();\n    \n    // Multiply by the global opacity factor\n    float finalAlpha = edgeAlpha * globalOpacity * distanceAttenuation;\n\n    // Fade the colors as distance increases\n    vec3 fadedColor = mix(color.rgb, vec3(1.0, 1.0, 1.0), 1.0 - distanceAttenuation);\n    \n    gl_FragColor = vec4(fadedColor, finalAlpha);\n}\n*/";
-
-},{}],"9kv9Y":[function(require,module,exports) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-parcelHelpers.export(exports, "createFadeShaderMaterial", ()=>createFadeShaderMaterial);
-var _three = require("three");
-var _vanilla = require("three-custom-shader-material/vanilla");
-var _vanillaDefault = parcelHelpers.interopDefault(_vanilla);
-var _fadeJs = require("../shaders/fade.js");
-var _fadeJsDefault = parcelHelpers.interopDefault(_fadeJs);
-function createFadeShaderMaterial(options = {}) {
-    const { fadeHeight = 5.5, brightness = 1.0, side = _three.FrontSide } = options;
-    return new (0, _vanillaDefault.default)({
-        baseMaterial: _three.MeshStandardMaterial,
-        uniforms: {
-            uDiffuseMap: {
-                value: null
-            },
-            uHasDiffuseMap: {
-                value: true
-            },
-            uColor: {
-                value: null
-            },
-            uTerrainHeight: {
-                value: null
-            },
-            uFadeHeight: {
-                value: fadeHeight
-            },
-            uMeshPosition: {
-                value: null
-            },
-            uBrightness: {
-                value: brightness
-            }
-        },
-        vertexShader: (0, _fadeJsDefault.default).vert,
-        fragmentShader: (0, _fadeJsDefault.default).frag,
-        side: side
-    });
-}
-
-},{"three":"ktPTu","three-custom-shader-material/vanilla":"7rL7K","../shaders/fade.js":"gb4bA","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"gb4bA":[function(require,module,exports) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-var _fadeVertGlsl = require("./glsl/fade.vert.glsl");
-var _fadeVertGlslDefault = parcelHelpers.interopDefault(_fadeVertGlsl);
-var _fadeFragGlsl = require("./glsl/fade.frag.glsl");
-var _fadeFragGlslDefault = parcelHelpers.interopDefault(_fadeFragGlsl);
-exports.default = {
-    frag: (0, _fadeFragGlslDefault.default),
-    vert: (0, _fadeVertGlslDefault.default)
-};
-
-},{"./glsl/fade.vert.glsl":"ddl6j","./glsl/fade.frag.glsl":"7eI8B","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"ddl6j":[function(require,module,exports) {
-module.exports = "#define GLSLIFY 1\n        varying vec3 vWorldPosition;\n        varying vec2 vUv;\n        void main() {\n            vUv = uv;\n            vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;\n            csm_PositionRaw = projectionMatrix * modelViewMatrix * vec4(position, 1.0);\n        }";
-
-},{}],"7eI8B":[function(require,module,exports) {
-module.exports = "#define GLSLIFY 1\n        uniform bool uHasDiffuseMap;\n        uniform sampler2D uDiffuseMap;\n        uniform vec3 uColor;\n        uniform float uFadeHeight;\n        uniform float uTerrainHeight;\n        uniform float uBrightness;\n        varying vec3 vWorldPosition;\n        varying vec2 vUv;\n\n        void main() {\n            vec4 colorDiffuse = uHasDiffuseMap ? texture2D(uDiffuseMap, vUv) : vec4(uColor, 1.0);\n\n            float fadeFactor = smoothstep(uTerrainHeight, uTerrainHeight + uFadeHeight, vWorldPosition.y);\n\n            colorDiffuse.rgb *= fadeFactor * uBrightness;\n\n            csm_DiffuseColor = colorDiffuse;\n        }";
-
-},{}],"9SL6m":[function(require,module,exports) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-parcelHelpers.export(exports, "createHorizonHazeMaterial", ()=>createHorizonHazeMaterial);
-var _three = require("three");
-var _horizonHazeJs = require("../shaders/horizonHaze.js");
-var _horizonHazeJsDefault = parcelHelpers.interopDefault(_horizonHazeJs);
-function createHorizonHazeMaterial(options = {}) {
-    const { baseColor = new _three.Color(0x000000), envMap = envMap, hazeStart = 100, hazeEnd = 500, horizonHeight = 0.05, hazeIntensity = 1.0 // overall haze strength (0-1)
-     } = options;
-    const material = new _three.ShaderMaterial({
-        uniforms: {
-            uBaseColor: {
-                value: baseColor
-            },
-            uEnvMap: {
-                value: envMap
-            },
-            uCameraPosition: {
-                value: new _three.Vector3()
-            },
-            uHazeStart: {
-                value: hazeStart
-            },
-            uHazeEnd: {
-                value: hazeEnd
-            },
-            uHorizonHeight: {
-                value: horizonHeight
-            },
-            uHazeIntensity: {
-                value: hazeIntensity
-            }
-        },
-        vertexShader: (0, _horizonHazeJsDefault.default).vert,
-        fragmentShader: (0, _horizonHazeJsDefault.default).frag,
-        side: _three.FrontSide
-    });
-    return material;
-}
-
-},{"three":"ktPTu","../shaders/horizonHaze.js":"iM9hs","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"iM9hs":[function(require,module,exports) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-var _horizonHazeVertGlsl = require("./glsl/horizonHaze.vert.glsl");
-var _horizonHazeVertGlslDefault = parcelHelpers.interopDefault(_horizonHazeVertGlsl);
-var _horizonHazeFragGlsl = require("./glsl/horizonHaze.frag.glsl");
-var _horizonHazeFragGlslDefault = parcelHelpers.interopDefault(_horizonHazeFragGlsl);
-exports.default = {
-    frag: (0, _horizonHazeFragGlslDefault.default),
-    vert: (0, _horizonHazeVertGlslDefault.default)
-};
-
-},{"./glsl/horizonHaze.vert.glsl":"998J4","./glsl/horizonHaze.frag.glsl":"5qECw","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"998J4":[function(require,module,exports) {
-module.exports = "#define GLSLIFY 1\nvarying vec3 vWorldPosition;\nvarying float vDistanceFromCamera;\n\nuniform vec3 uCameraPosition;\n\nvoid main() {\n    vec4 worldPosition = modelMatrix * vec4(position, 1.0);\n    vWorldPosition = worldPosition.xyz;\n\n    // Calculate distance from camera (horizontal only, ignore Y)\n    vec2 horizontalDist = worldPosition.xz - uCameraPosition.xz;\n    vDistanceFromCamera = length(horizontalDist);\n\n    gl_Position = projectionMatrix * viewMatrix * worldPosition;\n}\n";
-
-},{}],"5qECw":[function(require,module,exports) {
-module.exports = "#define GLSLIFY 1\n\n// uniform vec3 uBaseColor;\n// uniform sampler2D uEnvMap;\n// uniform vec3 uCameraPosition;\n// uniform float uHazeStart;\n// uniform float uHazeEnd;\n// uniform float uHazeIntensity;\n\n// void main() {\n//     // Direction from camera to fragment\n//     vec3 viewDir = normalize(vWorldPosition - uCameraPosition);\n\n//     // Horizon direction (force horizontal)\n//     vec3 horizonDir = normalize(vec3(viewDir.x, 0.0, viewDir.z));\n\n//     // Convert to equirectangular UV\n//     float u = atan(horizonDir.z, horizonDir.x) / (2.0 * 3.14159265) + 0.5;\n//     float v = asin(clamp(horizonDir.y, -1.0, 1.0)) / 3.14159265 + 0.5;\n\n//     // Sample HDRI\n//     vec3 horizonColor = texture2D(uEnvMap, vec2(u, v)).rgb;\n\n//     // Distance-based haze\n//     float hazeFactor = smoothstep(uHazeStart, uHazeEnd, vDistanceFromCamera) * uHazeIntensity;\n\n//     // Final color\n//     vec3 finalColor = mix(uBaseColor, horizonColor, hazeFactor);\n\n//     gl_FragColor = vec4(finalColor, 1.0);\n// }\n\n// uniform vec3 uBaseColor;\n// uniform sampler2D uEnvMap;\n// uniform vec3 uCameraPosition;\n// uniform float uHazeStart;\n// uniform float uHazeEnd;\n// uniform float uHazeIntensity;\n\n// void main() {\n//     // Direction from camera to fragment\n//     vec3 viewDir = normalize(vWorldPosition - uCameraPosition);\n\n//     // Force horizontal direction for horizon\n//     vec3 horizonDir = normalize(vec3(viewDir.x, 0.0, viewDir.z));\n\n//     // Convert to equirectangular UV\n//     float u = atan(horizonDir.z, horizonDir.x) / (2.0 * 3.14159265) + 0.5;\n//     float v = asin(clamp(horizonDir.y, -1.0, 1.0)) / 3.14159265 + 0.5;\n\n//     // Apply optional vertical offset to align HDRI horizon\n//     v += 0.05;\n//     v = clamp(v, 0.0, 1.0);\n\n//     // Sample HDRI for horizon color\n//     vec3 horizonColor = texture2D(uEnvMap, vec2(u, v)).rgb;\n//     horizonColor = pow(horizonColor, vec3(1.0/2.2));\n\n//     // Distance-based haze factor\n//     float hazeFactor = smoothstep(uHazeStart, uHazeEnd, vDistanceFromCamera) * uHazeIntensity;\n\n//     // Blend base color (black) with horizon color\n//     vec3 finalColor = mix(uBaseColor, horizonColor, hazeFactor);\n\n//     gl_FragColor = vec4(finalColor, 1.0);\n// }\n\nvarying vec3 vWorldPosition;\nvarying float vDistanceFromCamera;\n\nuniform vec3 uBaseColor;\nuniform sampler2D uEnvMap;          // Equirectangular HDR texture\nuniform vec3 uCameraPosition;\nuniform float uHazeStart;\nuniform float uHazeEnd;\nuniform float uHazeIntensity;\n\n#define PI 3.14159265359\n\nvoid main() {\n    // 1\uFE0F\u20E3 Direction from camera to fragment\n    vec3 viewDir = normalize(vWorldPosition - uCameraPosition);\n\n    // 2\uFE0F\u20E3 Horizon direction (force horizontal)\n    vec3 horizonDir = normalize(vec3(viewDir.x, 0.0, viewDir.z));\n\n    // 3\uFE0F\u20E3 Convert direction to equirectangular UV coordinates\n    float u = atan(horizonDir.z, horizonDir.x) / (2.0 * PI) + 0.5;\n    float v = 0.5; // Sample at horizon (middle of texture vertically)\n\n    // 4\uFE0F\u20E3 Sample HDR texture\n    vec3 horizonColor = texture2D(uEnvMap, vec2(u, v)).rgb;\n\n    // 5\uFE0F\u20E3 Distance-based haze factor\n    float hazeFactor = smoothstep(uHazeStart, uHazeEnd, vDistanceFromCamera) * uHazeIntensity;\n\n    // 6\uFE0F\u20E3 Blend base color with horizon color\n    vec3 finalColor = mix(uBaseColor, horizonColor, hazeFactor);\n\n    gl_FragColor = vec4(finalColor, 1.0);\n}";
-
-},{}],"hE4Kl":[function(require,module,exports) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-parcelHelpers.export(exports, "TERRAIN_SEED", ()=>TERRAIN_SEED);
-parcelHelpers.export(exports, "NOISE_SCALE", ()=>NOISE_SCALE);
-parcelHelpers.export(exports, "NOISE_AMPLITUDE", ()=>NOISE_AMPLITUDE);
-parcelHelpers.export(exports, "GRASS_Y_OFFSET", ()=>GRASS_Y_OFFSET);
-parcelHelpers.export(exports, "flatAreas", ()=>flatAreas);
-parcelHelpers.export(exports, "simplex", ()=>simplex);
-// ============ SHARED FUNCTIONS ============
-parcelHelpers.export(exports, "smoothstep", ()=>smoothstep);
-parcelHelpers.export(exports, "getHeight", ()=>getHeight);
-var _simplexNoise = require("three/examples/jsm/math/SimplexNoise");
-// Seeded PRNG (mulberry32) - produces same sequence given same seed
-function mulberry32(seed) {
-    return function() {
-        let t = seed += 0x6D2B79F5;
-        t = Math.imul(t ^ t >>> 15, t | 1);
-        t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-        return ((t ^ t >>> 14) >>> 0) / 4294967296;
-    };
-}
-const TERRAIN_SEED = 12345;
-const NOISE_SCALE = 400;
-const NOISE_AMPLITUDE = 12.5;
-const GRASS_Y_OFFSET = -0.2;
-const flatAreas = [
-    {
-        x: 1200,
-        z: 950,
-        size: 250
-    },
-    {
-        x: 385,
-        z: -300,
-        size: 120
-    }
-];
-// ============ SHARED SIMPLEX INSTANCE ============
-// SimplexNoise expects an object with .random() method (like Math)
-const seededRandom = {
-    random: mulberry32(TERRAIN_SEED)
-};
-const simplex = new (0, _simplexNoise.SimplexNoise)(seededRandom);
-function smoothstep(edge0, edge1, x) {
-    let t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
-    return t * t * (3 - 2 * t);
-}
-function getHeight(x, z) {
-    let roughTerrain = NOISE_AMPLITUDE * simplex.noise(x / NOISE_SCALE, z / NOISE_SCALE);
-    let smoothTerrain = 0.0;
-    let blendFactor = 1;
-    for (let area of flatAreas){
-        let distanceX = Math.abs(x - area.x);
-        let distanceZ = Math.abs(z - area.z);
-        let transitionSize = area.size * 0.25;
-        let factorX = smoothstep(area.size - transitionSize, area.size + transitionSize, distanceX);
-        let factorZ = smoothstep(area.size - transitionSize, area.size + transitionSize, distanceZ);
-        let areaBlend = Math.min(factorX, factorZ);
-        blendFactor = Math.min(blendFactor, areaBlend);
-    }
-    return roughTerrain * blendFactor + smoothTerrain * (1 - blendFactor);
-}
-
-},{"three/examples/jsm/math/SimplexNoise":"4r7fB","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}]},["l9Mez","ebWYT"], "ebWYT", "parcelRequire2041")
+},{}]},["l9Mez","ebWYT"], "ebWYT", "parcelRequire2041")
 
 //# sourceMappingURL=index.739bf03c.js.map
