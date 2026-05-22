@@ -628,8 +628,6 @@ var _patchProjectorMaterialJs = require("./patchProjectorMaterial.js");
 var _patchProjectorMaterialJsDefault = parcelHelpers.interopDefault(_patchProjectorMaterialJs);
 var _contentJson = require("./content.json");
 var _contentJsonDefault = parcelHelpers.interopDefault(_contentJson);
-var _grassSceneJs = require("./GrassScene.js");
-var _grassSceneJsDefault = parcelHelpers.interopDefault(_grassSceneJs);
 var _worldSceneJs = require("./WorldScene.js");
 var _worldSceneJsDefault = parcelHelpers.interopDefault(_worldSceneJs);
 var _modelLoaderJs = require("./ModelLoader.js");
@@ -648,10 +646,7 @@ function isMobileDevice() {
 }
 if (isMobileDevice()) visitedFromMobileDevice = true;
 else visitedFromMobileDevice = false;
-/********************************************************************
- // Instanciate Grass at Contact Scene
-********************************************************************/ const grassContainer = document.getElementById("container-contact");
-const grassScene = new (0, _grassSceneJsDefault.default)(grassContainer, visitedFromMobileDevice);
+const grassContainer = document.getElementById("container-contact");
 /********************************************************************
 // Intersection Observer(s) for Canvas
 ********************************************************************/ // Intersection Observer setup for opening scene
@@ -676,10 +671,16 @@ observer.observe(targetElement);
 //intersection observer for detecting opening scene out of view
 const observerContactSceneCallback = (entries)=>{
     entries.forEach((entry)=>{
-        if (entry.isIntersecting) // Start or resume animation
-        grassScene.startRendering();
-        else // Pause animation
-        grassScene.stopRendering();
+        if (entry.isIntersecting) {
+            if (grassScene) grassScene.startRendering();
+            else if (!grassSceneInitializing) {
+                grassSceneInitializing = true;
+                require("d9e2715bded666eb").then(({ default: GrassScene })=>{
+                    grassScene = new GrassScene(grassContainer, visitedFromMobileDevice, modelLoader);
+                    if (storedSkyboxPromise) grassScene.setEnvMapFromPromise(storedSkyboxPromise);
+                });
+            }
+        } else if (grassScene) grassScene.stopRendering();
     });
 };
 const observerContactScene = new IntersectionObserver(observerContactSceneCallback, observerOptions);
@@ -902,7 +903,6 @@ const contentTech = document.getElementById("content-tech");
 const headingLink = document.getElementById("heading-link");
 const contentLink = document.getElementById("external-link");
 const colorTxt = document.getElementsByClassName("txt-color");
-//https://www.youtube.com/watch?v=_bOoM0S7zF8&ab_channel=Coding2GO
 imageContainers.forEach((container)=>{
     container.addEventListener("click", async (e)=>{
         const id = e.currentTarget.dataset.id;
@@ -1011,6 +1011,9 @@ const GRASS_MESH_ENVMAP_INTENSITY = 0.35;
 // Scene Setup
 ********************************************************************/ const canvasContainer = document.querySelector("#container-opening-scene");
 const worldScene = new (0, _worldSceneJsDefault.default)(canvasContainer, visitedFromMobileDevice);
+let grassScene = null;
+let grassSceneInitializing = false;
+let storedSkyboxPromise = null;
 const renderer = worldScene.getRenderer();
 const camera = worldScene.getCamera();
 //const axesHelper = new THREE.AxesHelper(1000);
@@ -1031,14 +1034,16 @@ soundToggleBtn.addEventListener("click", ()=>{
     soundOn = !soundOn;
     // Update the icon based on state
     if (soundOn) {
-        soundToggleBtn.innerHTML = '<i class="fas fa-volume-high"></i>';
+        soundToggleBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" width="1em" height="1em" fill="currentColor"><path d="M533.6 32.5C598.5 85.2 640 165.8 640 256s-41.5 170.7-106.4 223.5c-10.3 8.4-25.4 6.8-33.8-3.5s-6.8-25.4 3.5-33.8C557.5 398.2 592 331.2 592 256s-34.5-142.2-88.7-186.3c-10.3-8.4-11.8-23.5-3.5-33.8s23.5-11.8 33.8-3.5zM473.1 107c43.2 35.2 70.9 88.9 70.9 149s-27.7 113.8-70.9 149c-10.3 8.4-25.4 6.8-33.8-3.5s-6.8-25.4 3.5-33.8C475.3 341.3 496 301.1 496 256s-20.7-85.3-53.2-111.8c-10.3-8.4-11.8-23.5-3.5-33.8s23.5-11.8 33.8-3.5zm-60.5 74.5C434.1 199.1 448 225.9 448 256s-13.9 56.9-35.4 74.5c-10.3 8.4-25.4 6.8-33.8-3.5s-6.8-25.4 3.5-33.8C393.1 284.4 400 271 400 256s-6.9-28.4-17.7-37.3c-10.3-8.4-11.8-23.5-3.5-33.8s23.5-11.8 33.8-3.5zM301.1 34.8C312.6 40 320 51.4 320 64l0 384c0 12.6-7.4 24-18.9 29.2s-25 3.1-34.4-5.3L131.8 352 64 352c-35.3 0-64-28.7-64-64l0-64c0-35.3 28.7-64 64-64l67.8 0L266.7 40.1c9.4-8.4 22.9-10.4 34.4-5.3z"/></svg>';
         soundToggleBtn.classList.add("active");
         // Code to turn sound on
         //soundManager.resumeAll();
-        if (!soundsAreloaded) fnLoadSoundFiles();
-        else soundManager.resumeAll();
+        if (!soundsAreloaded) {
+            soundManager.resumeAll();
+            fnLoadSoundFiles();
+        } else soundManager.resumeAll();
     } else {
-        soundToggleBtn.innerHTML = '<i class="fas fa-volume-xmark"></i>';
+        soundToggleBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512" width="1em" height="1em" fill="currentColor"><path d="M301.1 34.8C312.6 40 320 51.4 320 64l0 384c0 12.6-7.4 24-18.9 29.2s-25 3.1-34.4-5.3L131.8 352 64 352c-35.3 0-64-28.7-64-64l0-64c0-35.3 28.7-64 64-64l67.8 0L266.7 40.1c9.4-8.4 22.9-10.4 34.4-5.3zM425 167l55 55 55-55c9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9l-55 55 55 55c9.4 9.4 9.4 24.6 0 33.9s-24.6 9.4-33.9 0l-55-55-55 55c-9.4 9.4-24.6 9.4-33.9 0s-9.4-24.6 0-33.9l55-55-55-55c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0z"/></svg>';
         soundToggleBtn.classList.remove("active");
         // Code to turn sound off
         soundManager.pauseAll();
@@ -1110,7 +1115,7 @@ function fnStartRendering() {
     soundToggleBtn.classList.remove("hide");
     if (soundOn) {
         soundManager.resumeAll();
-        soundToggleBtn.innerHTML = '<i class="fas fa-volume-high"></i>';
+        soundToggleBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" width="1em" height="1em" fill="currentColor"><path d="M533.6 32.5C598.5 85.2 640 165.8 640 256s-41.5 170.7-106.4 223.5c-10.3 8.4-25.4 6.8-33.8-3.5s-6.8-25.4 3.5-33.8C557.5 398.2 592 331.2 592 256s-34.5-142.2-88.7-186.3c-10.3-8.4-11.8-23.5-3.5-33.8s23.5-11.8 33.8-3.5zM473.1 107c43.2 35.2 70.9 88.9 70.9 149s-27.7 113.8-70.9 149c-10.3 8.4-25.4 6.8-33.8-3.5s-6.8-25.4 3.5-33.8C475.3 341.3 496 301.1 496 256s-20.7-85.3-53.2-111.8c-10.3-8.4-11.8-23.5-3.5-33.8s23.5-11.8 33.8-3.5zm-60.5 74.5C434.1 199.1 448 225.9 448 256s-13.9 56.9-35.4 74.5c-10.3 8.4-25.4 6.8-33.8-3.5s-6.8-25.4 3.5-33.8C393.1 284.4 400 271 400 256s-6.9-28.4-17.7-37.3c-10.3-8.4-11.8-23.5-3.5-33.8s23.5-11.8 33.8-3.5zM301.1 34.8C312.6 40 320 51.4 320 64l0 384c0 12.6-7.4 24-18.9 29.2s-25 3.1-34.4-5.3L131.8 352 64 352c-35.3 0-64-28.7-64-64l0-64c0-35.3 28.7-64 64-64l67.8 0L266.7 40.1c9.4-8.4 22.9-10.4 34.4-5.3z"/></svg>';
         soundToggleBtn.classList.add("active");
     }
 }
@@ -1119,7 +1124,7 @@ function fnStopRendering() {
     gameIsActive = false;
     soundManager.pauseAll();
     //soundOn = false;
-    soundToggleBtn.innerHTML = '<i class="fas fa-volume-xmark"></i>';
+    soundToggleBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512" width="1em" height="1em" fill="currentColor"><path d="M301.1 34.8C312.6 40 320 51.4 320 64l0 384c0 12.6-7.4 24-18.9 29.2s-25 3.1-34.4-5.3L131.8 352 64 352c-35.3 0-64-28.7-64-64l0-64c0-35.3 28.7-64 64-64l67.8 0L266.7 40.1c9.4-8.4 22.9-10.4 34.4-5.3zM425 167l55 55 55-55c9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9l-55 55 55 55c9.4 9.4 9.4 24.6 0 33.9s-24.6 9.4-33.9 0l-55-55-55 55c-9.4 9.4-24.6 9.4-33.9 0s-9.4-24.6 0-33.9l55-55-55-55c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0z"/></svg>';
     soundToggleBtn.classList.remove("active");
     soundToggleBtn.classList.add("hide");
 }
@@ -1135,29 +1140,10 @@ const textureLoader = new _three.TextureLoader();
 const grassDiffuseMap = textureLoader.load("./assets/grassColor.png");
 /********************************************************************
 // Skybox loading
-********************************************************************/ // Create a PMREMGenerator
-const pmremGenerator = new _three.PMREMGenerator(renderer);
-pmremGenerator.compileEquirectangularShader();
-//let skyboxToLoad = visitedFromMobileDevice ? 'belfast_sunset_puresky_1k' : 'belfast_sunset_puresky_1k';
-let skyboxToLoad = visitedFromMobileDevice ? "belfast_sunset_puresky_1k" : "belfast_sunset_puresky_2k";
-let envMap = null;
-// Load the HDR texture
-const rgbeLoader = new (0, _rgbeloader.RGBELoader)();
-rgbeLoader.load(`./assets/${skyboxToLoad}.hdr`, function(texture) {
-    texture.mapping = _three.EquirectangularReflectionMapping; // Use equirectangular mapping
-    // Convert the HDR texture to a cubemap for scene background
-    envMap = pmremGenerator.fromEquirectangular(texture).texture;
-    worldScene.scene.background = envMap;
-    // Update ground material with original equirectangular texture (not PMREM)
-    if (groundMaterial && groundMaterial.uniforms) {
-        groundMaterial.uniforms.uEnvMap.value = texture; // Use original equirectangular texture
-        groundMaterial.needsUpdate = true;
-    //console.log('Ground material envMap updated with equirectangular texture');
-    } else console.warn("Ground material not ready for envMap update");
-    // Dispose of the PMREMGenerator to free up resources
-    pmremGenerator.dispose();
-// Note: Do NOT dispose of the original texture - it's used by the ground material
-});
+********************************************************************/ // Skybox loading (handled by WorldScene)
+worldScene.loadSkybox();
+storedSkyboxPromise = worldScene.skyboxPromise;
+if (grassScene) grassScene.setEnvMapFromPromise(storedSkyboxPromise);
 /********************************************************************
 // Landscape : Simplex Noise
 // Now imported from terrainConfig.js (shared with grassWorker.js)
@@ -1537,7 +1523,7 @@ async function fnLoadRockVideoProjectionModel(url, scaleFactor) {
     videoFadeShaderMaterial.uniforms.uTerrainHeight.value = (0, _terrainConfigJs.getHeight)(position.x, position.z);
     videoFadeShaderMaterial.uniforms.uFadeHeight.value = 10.0;
     mesh.material = videoFadeShaderMaterial;
-    videoFadeShaderMaterial.envMap = envMap;
+    videoFadeShaderMaterial.envMap = worldScene.envMap;
     videoFadeShaderMaterial.envMapIntensity = 0.20;
     // Ensure world matrix is updated before applying it to geometry
     //collider.updateMatrixWorld(true);
@@ -1575,7 +1561,7 @@ async function fnLoadPowerlinesModel(url) {
     powerlinesMaterial.uniforms.uTerrainHeight.value = (0, _terrainConfigJs.getHeight)(position.x, position.z);
     powerlinesMaterial.uniforms.uFadeHeight.value = 5.0;
     powerlinesMaterial.uniforms.uHasDiffuseMap.value = false;
-    powerlinesMaterial.envMap = envMap;
+    powerlinesMaterial.envMap = worldScene.envMap;
     powerlinesMaterial.envMapIntensity = 0.4;
     powerlinesMaterial.fog = false;
     powerlinesMaterial.metalness = 1.0;
@@ -1636,11 +1622,12 @@ async function fnLoadFactoryModel(url) {
     material.uniforms.uFadeHeight.value = 30.0;
     material.uniforms.uTerrainHeight.value = (0, _terrainConfigJs.getHeight)(1200, 1200);
     material.uniforms.uMeshPosition.value = new _three.Vector3(1200, (0, _terrainConfigJs.getHeight)(1200, 1200), 1200);
-    const LOD1Material = new _three.MeshStandardMaterial({
-        color: 0x000000,
-        map: diffuseMap
-    });
-    material.envMap = envMap;
+    // const LOD1Material = new THREE.MeshStandardMaterial({
+    //     color: 0xFF0000,
+    //     map: diffuseMap,
+    //     fog: true,
+    // });
+    material.envMap = worldScene.envMap;
     material.envMapIntensity = 1.5;
     windowMaterial.map = diffuseMap;
     // Apply material to window meshes
@@ -1649,16 +1636,16 @@ async function fnLoadFactoryModel(url) {
     windowMeshLOD0.material = windowMaterial;
     windowMeshLOD1.material = windowMaterial;
     // Set environment map properties
-    windowMeshLOD0.material.envMap = envMap;
-    windowMeshLOD1.material.envMap = envMap;
+    windowMeshLOD0.material.envMap = worldScene.envMap;
+    windowMeshLOD1.material.envMap = worldScene.envMap;
     windowMeshLOD0.material.envMapIntensity = 1.5;
     windowMeshLOD1.material.envMapIntensity = 1.5;
     //windowMeshLOD0.visible = false;
     /*
         model.children[0].children[1].material = windowMaterial;
         model.children[2].children[1].material = windowMaterial;
-        model.children[0].children[1].material.envMap = envMap;
-        model.children[2].children[1].material.envMap = envMap;
+        model.children[0].children[1].material.envMap = worldScene.envMap;
+        model.children[2].children[1].material.envMap = worldScene.envMap;
         model.children[0].children[1].material.envMapIntensity = 0.5; //1.2
         model.children[2].children[1].material.envMapIntensity = 0.5; //1.2
     */ //model.children[0].children[1].visible = false;
@@ -1670,7 +1657,7 @@ async function fnLoadFactoryModel(url) {
     //console.log(LOD1.children[1].material)
     //LOD1.children[1].material = LOD1Material;
     //LOD 1 mesh material
-    LOD1.children[1].material.envMap = envMap;
+    LOD1.children[1].material.envMap = worldScene.envMap;
     LOD1.children[1].material.envMapIntensity = 1.2;
     const lod = new _three.LOD();
     lod.addLevel(LOD0, 900);
@@ -1718,7 +1705,7 @@ async function fnLoadFactoryInteriorModel(url) {
     // Basic red material for LOD1 testing
     LOD1.material = new _three.MeshStandardMaterial({
         map: mesh.material.map,
-        envMap: envMap,
+        envMap: worldScene.envMap,
         envMapIntensity: 1.5
     });
     //create LOD - position goes HERE, not on children
@@ -1807,7 +1794,7 @@ async function fnLoadFactoryInteriorModel(url) {
     material.uniforms.uMinZDistance.value = position.z + 500; //500
     material.uniforms.uTerrainHeight.value = (0, _terrainConfigJs.getHeight)(1200, 1200);
     material.uniforms.uFadeHeight.value = 2.5;
-    material.envMap = envMap;
+    material.envMap = worldScene.envMap;
     material.envMapIntensity = 2.10;
     (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, mesh, position, diffuseMap, true, true, 700, false, colliderBVH, collisionRadius);
     worldScene.scene.add(lod);
@@ -1860,7 +1847,7 @@ async function fnLoadFactoryInteriorModel(url) {
         map: diffuseMap,
         roughness: 0.9,
         side: _three.FrontSide,
-        envMap: envMap,
+        envMap: worldScene.envMap,
         envMapIntensity: envMapIntensity,
         fog: true,
         opacity: 1.0,
@@ -1868,21 +1855,11 @@ async function fnLoadFactoryInteriorModel(url) {
         fadeHeight: fadeHeight,
         terrainHeight: height
     });
-    const LOD2Material = fadeShaderMaterial.clone();
-    LOD2Material.uniforms.uDiffuseMap.value = diffuseMap;
-    LOD2Material.uniforms.uHasDiffuseMap.value = true;
-    LOD2Material.uniforms.uColor.value = new _three.Color(1, 1, 1);
-    LOD2Material.uniforms.uTerrainHeight.value = height;
-    LOD2Material.uniforms.uFadeHeight.value = fadeHeight;
-    LOD2Material.uniforms.uMeshPosition.value = new _three.Vector3(position.x, height, position.y);
-    LOD2Material.envMap = envMap;
-    LOD2Material.envMapIntensity = envMapIntensity;
-    LOD2Material.roughness = 0.9;
-    LOD2Material.fog = true;
     lod1.material = videoProjectionMaterial;
-    lod2.material = LOD2Material;
+    lod2.material = videoProjectionMaterial;
     // and when you're ready project the texture on the box!
     videoProjectionMaterial.project(lod1);
+    videoProjectionMaterial.project(lod2);
     worldScene.scene.add(lod);
     (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, lod1, new _three.Vector3(position.x, 0, position.y), diffuseMap, true, true, DISTANCE_TEXTURE_SWAP, false, colliderBVH, collisionRadius);
 }
@@ -1891,7 +1868,7 @@ fnLoadStoneModelWithProjection({
     name: "video_rock",
     position: new _three.Vector2(-400, 200),
     scale: 10,
-    envMapIntensity: 0.5,
+    envMapIntensity: 0.25,
     isFaded: true,
     fadeHeight: 18.5
 });
@@ -1940,7 +1917,7 @@ async function fnLoadRockModels() {
         model.scale.set(45, 45, 45);
         model.position.set(100, (0, _terrainConfigJs.getHeight)(100, 800) - 15, 800);
         model.children[0].material.color = new _three.Color(0.8, 0.8, 0.8);
-        model.children[0].material.envMap = envMap;
+        model.children[0].material.envMap = worldScene.envMap;
         model.children[0].material.envMapIntensity = 0.35;
         model.children[0].material.roughness = 1.0;
         model.children[0].material.side = _three.FrontSide;
@@ -1949,7 +1926,7 @@ async function fnLoadRockModels() {
             const clonedMesh = child.clone();
             clonedMesh.position.set(0, (0, _terrainConfigJs.getHeight)(0, 0) - 2, 0);
             clonedMesh.scale.set(2.45, 2.45, 2.45);
-            clonedMesh.material.envMap = envMap;
+            clonedMesh.material.envMap = worldScene.envMap;
             clonedMesh.material.envMapIntensity = 0.35;
         /*
                         if (child.name === 'LOD0') {
@@ -2101,7 +2078,7 @@ async function fnLoadStoneFigureModel(url, name, position, scale, rotation, mate
     material.uniforms.uFadeHeight.value = 8.0;
     material.uniforms.uBrightness.value = 0.75;
     material.uniforms.hologramColor.value = color;
-    material.envMap = envMap;
+    material.envMap = worldScene.envMap;
     material.envMapIntensity = 0.45;
     const LOD1 = model.children.find((child)=>child.isMesh && child.name === "LOD1");
     const LOD2 = model.children.find((child)=>child.isMesh && child.name === "LOD2");
@@ -2523,7 +2500,7 @@ for(let i = 0; i < workerPoolSize; i++){
         //grassMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
         // Set bounding sphere for frustum culling
         grassMesh.geometry.boundingSphere = grassGeometryData.boundingSphere;
-        grassMesh.material.envMap = envMap;
+        grassMesh.material.envMap = worldScene.envMap;
         grassMesh.material.envMapIntensity = GRASS_MESH_ENVMAP_INTENSITY;
         // Add grass to the scene
         worldScene.scene.add(grassMesh);
@@ -2551,7 +2528,7 @@ function postToGrassWorker(task) {
 // NEW TERRAIN GENERATION
 ********************************************************************/ // const groundMaterial = new THREE.MeshBasicMaterial({
 //     color: 0x000000, // Use the specified material color
-//     //envMap: envMap,
+//     //envMap: worldScene.envMap,
 //     //envMapIntensity: 500.0
 //     //transparent: true, // Enable transparency
 //     //opacity: 0.0 // Adjust transparency (1 = fully opaque, 0 = fully transparent)
@@ -2560,11 +2537,18 @@ function postToGrassWorker(task) {
 // Horizon haze ground material - blends with skybox color at distance
 const groundMaterial = (0, _horizonHazeMaterialJs.createHorizonHazeMaterial)({
     baseColor: new _three.Color(0x000000),
-    envMap: envMap,
+    envMap: worldScene.envMap,
     hazeStart: 1300,
     hazeEnd: 1700,
     horizonHeight: 0.5,
     hazeIntensity: 0.65 // full haze strength
+});
+// Update ground material when skybox finishes loading
+worldScene.skyboxPromise.then((texture)=>{
+    if (groundMaterial && groundMaterial.uniforms) {
+        groundMaterial.uniforms.uEnvMap.value = texture;
+        groundMaterial.needsUpdate = true;
+    }
 });
 function fnGenerateChunk(x, z) {
     const offsetX = x * chunkSize;
@@ -2916,7 +2900,7 @@ const TEXTURE_SWAP_CHECK_INTERVAL = 100;
     videoTexture.needsUpdate = true;
 }
 
-},{"three":"ktPTu","./terrainConfig.js":"hE4Kl","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/Addons.js":"iBAni","three/examples/jsm/math/Octree.js":"iwBOl","three/examples/jsm/helpers/OctreeHelper.js":"70dYF","three-mesh-bvh":"6y2ur","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./Utils.js":"c7A1Q","./shaders/grass.js":"cNzyR","./shaders/powerlines.js":"gJXUV","./materials/videoShaderMaterial.js":"iyqMm","./shaders/stonefigure.js":"e77je","./shaders/videoFade.js":"2lLRY","./materials/fadeShaderMaterial.js":"9kv9Y","./materials/horizonHazeMaterial.js":"9SL6m","./patchProjectorMaterial.js":"joMhG","./content.json":"24cue","./GrassScene.js":"a5jmZ","./WorldScene.js":"5ZFD0","./ModelLoader.js":"5o86C","./LODManager.js":"3L9vB","./SoundManager.js":"70lfs","cdb16b6f1235a7ac":"9rntO","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"ktPTu":[function(require,module,exports) {
+},{"three":"ktPTu","./terrainConfig.js":"hE4Kl","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/Addons.js":"iBAni","three/examples/jsm/math/Octree.js":"iwBOl","three/examples/jsm/helpers/OctreeHelper.js":"70dYF","three-mesh-bvh":"6y2ur","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./Utils.js":"c7A1Q","./shaders/grass.js":"cNzyR","./shaders/powerlines.js":"gJXUV","./materials/videoShaderMaterial.js":"iyqMm","./shaders/stonefigure.js":"e77je","./shaders/videoFade.js":"2lLRY","./materials/fadeShaderMaterial.js":"9kv9Y","./materials/horizonHazeMaterial.js":"9SL6m","./patchProjectorMaterial.js":"joMhG","./content.json":"24cue","./WorldScene.js":"5ZFD0","./ModelLoader.js":"5o86C","./LODManager.js":"3L9vB","./SoundManager.js":"70lfs","cdb16b6f1235a7ac":"9rntO","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","d9e2715bded666eb":"lO5cP"}],"ktPTu":[function(require,module,exports) {
 /**
  * @license
  * Copyright 2010-2024 Three.js Authors
@@ -210404,271 +210388,12 @@ function addLoadListener(texture, callback) {
 },{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"24cue":[function(require,module,exports) {
 module.exports = JSON.parse('{"glass":{"title":"The Virtual Glass Harmonica","video_ref":"./assets/glass/video.webm","main_txt":"Together with a fellow peer, the design and development of the virtual glass harmonica was a project completed for the <span class=\'color-glass\'>Danish Music Museum</span>. As part of the <i>Music History - Taken out of the Box</i> project, funded by the Augustinus Foundation, it explores the use of <span class=\'color-glass\'>Virtual Reality</span> to resurrect a forgotten instrument and present its history, sound, and interaction through an immersive virtual environment. The installation can be experienced at the Music Museum, where qualitative evaluations have shown that it establishes a good connection between the virtual instrument and the physical 1780-era glass harmonica on display.","client":"Danish Music Museum","tech":"Unity-C# | Blender | Meta Quest 2 Standalone | Handtracking | Shadergraph","publications":"<h4><a href=\'https://link.springer.com/chapter/10.1007/978-3-031-55312-7_16\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>ArtsIT, Interactivity and Game Creation 2023</a></h4> <h4><a href=\'https://doi.org/10.5281/zenodo.6822203\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>Sound and Music Computing Conference 2022</a></h4>","images":["./assets/glass/showcase-img1.webp","./assets/glass/showcase-img2.webp","./assets/glass/showcase-img3.webp"],"images_alt":["The virtual reality experience leverages the handtracking capabilities of the meta quest 2 device. Virtual environment capture.","Virtual environemnt capture showing interactive buttons for initiating tutorial and storytelling by Benjamin Franklin.","Photograph of excited visitor trying the virtual reality experience, at the Danish Music Museum."]},"nature":{"title":"Through the Eyes of Nature","video_ref":"./assets/nature/video.webm","main_txt":"In collaboration with Gehl Architects, this master\u2019s thesis explores the potential impact of integrating Virtual Reality into participatory workshops focused on urban biodiversity. The case study involved the urban greenspace development of Nordhavn in Copenhagen, with an immersive narrative that takes the user on a journey where the story is told through the perspective of nature at the site. The Virtual Reality experience was evaluated through a participatory workshop and expert interviews conducted within Gehl\'s R&D department. The findings showed that immersive storytelling in Virtual Reality can be a powerful tool to elicit empathy and foster emotionally engaged discussions on complex topics. This project serves as a pilot in Gehl Architects\u2019 exploration of integrating XR media into their urban planning processes.","client":"Gehl Architects","tech":"Unity | Blender | Meta Quest 3 Standalone | Handtracking | Shadergraph | Spatial Sounds","images":["./assets/nature/showcase-img1.webp","./assets/nature/showcase-img2.webp","./assets/nature/showcase-img3.webp"],"images_alt":["The three-stages of the virtual experience, showing the colour mood journey.","Exited users testing the experience, at the collaborative workshop held at Gehl Architects offices.","The core project team, at the Nordhavn site."]},"dad":{"title":"Denmark After Dark","video_ref":"./assets/dad/video.webm","main_txt":"As part of the Denmark After Dark exhibition, the Danish National Museum aimed to integrate interactivity into the installation. Together with a fellow student, I was part of the project team and worked on the rehearsal and recording studio for the exhibition. With the band D-A-D as the focus, we aimed to create a social space where visitors could unleash their inner rockstar by playing instruments and mixing a track. The main challenge in the process was to develop solutions that offered the robustness and usability required for a daily visited exhibition. Video credits: Natmus. Cover photo credits: Anders Groos Mikkelsen ","client":"Danish National Museum","link":"<h4><a href=\'https://www.dad.natmus.dk/\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>DAD - Natmus</a></h4>","tech":"Touch Designer | Ableton Live | Max4Live | Blender","images":["./assets/dad/showcase-img1.webp","./assets/dad/showcase-img2.webp"],"images_alt":["Excited user trying the interactive studio installation, where a DAD song can be mixed in real time. The backend was created using Max4Live and TouchDesigner. Photo credit: NatMus","An early project render of a studio installation suggestion, created in Blender 3D"]},"fragments":{"title":"Fragments of Fungi","video_ref":"./assets/fragments/video.webm","main_txt":"In this project, our group of four explored the relationship between art, nature, and technology to design and develop an interactive, immersive Virtual Reality experience centered around the phenomenon of Mycelium networks. The experience was conceptualized and designed through participatory workshops involving creative activities. The final evaluation aimed to create a shared experience in a physical forest setting that would enhance the immersive aspect. This evaluation highlighted the potential of Virtual Reality to elicit feelings of awe and emphasized the benefits of collective spaces for reflection and dialogue when presenting self-contained, emotional experiences inherent in Virtual Reality.","client":"Multisensory Experience Lab","publications":"<h4><a href=\'https://link.springer.com/chapter/10.1007/978-3-031-55312-7_6\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>Springer Link</a></h4>","tech":"Unity | Blender | Meta Quest 2 Standalone | AppSW | Handtracking | Shadergraph | Spatial Sounds","images":["./assets/fragments/showcase-img1.webp","./assets/fragments/showcase-img2.webp","./assets/fragments/showcase-img3.webp"],"images_alt":["Excited user immersed in the Hareskov forest, at the collective experiences VR workshop.","The Fragments of Fungi virtual experience.","Designing the virtual experience narrative journey."]},"mizwak":{"title":"Mizwak","video_ref":"./assets/mizwak/video.webm","main_txt":"As part of the EU-funded cooperation project Taking Care: Ethnographic and World Cultures Museums as Spaces of Care, the aim was to explore new and experimental ways of exhibiting in the context of ethnographic and world cultures. In collaboration with the Danish National Museum and the Multisensory Experience Lab, the story behind the world\u2019s oldest toothbrush, the Miswak, was designed and implemented over the course of a semester. The final installation was developed through co-creation workshops with museum staff and leveraged sensor technology alongside a 3D-printed tangible user interface that unlocked the stories behind the Miswak through physical interactions. The design, implementation, and user testing were conducted at the PlayLab at the Danish National Museum. The installation was on display throughout 2023.","client":"Danish National Museum","link":"<h4><a href=\'https://takingcareproject.eu/article/miswak-exhibition-at-the-nationalmuseet\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>Taking Care EU Project</a></h4> <h4><a href=\'https://natmus.dk/nyhed/verdens-aeldste-tandboerste-vokser-paa-et-trae/\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>National Museet - Mizwak</a></h4>","tech":"Blender | QLab | Ultimaker Cura","images":["./assets/mizwak/showcase-img1.webp","./assets/mizwak/showcase-img2.webp","./assets/mizwak/showcase-img3.webp"],"images_alt":["Mizwak installation at Nationalmuseet. The exhibited mizwaks.","Mizwak installation, at Nationalmuseet, with the 3D printed interactive objects.","Mizwak installation work in progress, at Nationalmuseet."]},"spaceshooter":{"title":"Embodied Spaceshooter","video_ref":"./assets/spaceshooter/video.webm","main_txt":"Work in progress.. A browser based mini game that explores the use of embodied interaction in gaming. Allowing the user to control a player through head- and body movement tracked by the webcam utilizing the Google MediaPipe framework. ","client":"AAU Exam Project","link":"<h4><a href=\'https://getelementsbyclassname.github.io/embodied_interaction_course/\' style=\'text-decoration: none; color: white; font-weight: 100\' target=\'_blank\'>Demo</a></h4>","tech":"ThreeJS | Google MediaPipe | Blender","images":[],"images_alt":[]}}');
 
-},{}],"a5jmZ":[function(require,module,exports) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-var _three = require("three");
-var _gltfloaderJs = require("three/examples/jsm/loaders/GLTFLoader.js");
-var _rgbeloaderJs = require("three/examples/jsm/loaders/RGBELoader.js");
-var _dracoloaderJs = require("three/examples/jsm/loaders/DRACOLoader.js");
-var _vanilla = require("three-custom-shader-material/vanilla");
-var _vanillaDefault = parcelHelpers.interopDefault(_vanilla);
-var _rectAreaLightHelperJs = require("three/examples/jsm/helpers/RectAreaLightHelper.js");
-var _statsModule = require("three/examples/jsm/libs/stats.module");
-var _statsModuleDefault = parcelHelpers.interopDefault(_statsModule);
-class GrassScene {
-    constructor(container, visitedFromMobileDevice){
-        this.container = container;
-        this.visitedFromMobileDevice = visitedFromMobileDevice;
-        this.width = container.clientWidth;
-        this.height = container.clientHeight;
-        this.scene = new _three.Scene();
-        this.clock = new _three.Clock();
-        this.camera = new _three.PerspectiveCamera(75, this.width / this.height, 0.1, 1000);
-        this.renderer = new _three.WebGLRenderer({
-            antialias: true,
-            alpha: true
-        });
-        this.renderer.setSize(this.width, this.height);
-        this.container.appendChild(this.renderer.domElement);
-        this.mouse = new _three.Vector2(); // Store mouse position in normalized coordinates (-1 to 1)
-        this.envMap = null;
-        this.mesh = null;
-        this.container.addEventListener("visibilitychange", ()=>{
-            if (document.hidden) this.stopRendering();
-            else this.startRendering();
-        });
-        let pixelRatio = window.devicePixelRatio;
-        if (pixelRatio > 2) pixelRatio = 1.5;
-        this.renderer.setPixelRatio(pixelRatio);
-        this.renderer.outputEncoding = _three.SRGBColorSpace;
-        this.renderer.toneMapping = _three.ACESFilmicToneMapping;
-        //this.renderer.toneMapping = THREE.ReinhardToneMapping;
-        this.renderer.toneMappingExposure = 0.45;
-        //this.stats = Stats();
-        //this.stats.showPanel(0);
-        this.setupHDR();
-        const directionalLight = new _three.DirectionalLight(0xffffff, 2.0);
-        directionalLight.position.set(10, 10, 10);
-        //this.scene.add(directionalLight);
-        const width = 25;
-        const height = 25;
-        const intensity = 0.15;
-        const rectLight = new _three.RectAreaLight(0xf7e3ab, intensity, width, height);
-        //
-        rectLight.position.set(-5, 5, 0);
-        rectLight.lookAt(0, 0, 0);
-        //this.scene.add(rectLight)
-        this.pointLight = new _three.PointLight(0xfcb43a, 2.0, 2);
-        //fcb43a
-        this.pointLight.position.set(0.0, 0.0, 5.0);
-        this.scene.add(this.pointLight);
-        // Camera position
-        this.camera.position.set(0, 0, 5);
-        //this.camera.lookAt(0, 3, 0)
-        // Load the textures
-        this.loadTextures();
-        // Load the grass model
-        this.loadModel();
-        this.setupResizeObserver();
-        // Start animation loop
-        this.animate();
-        this.addEventListeners();
-    }
-    setupResizeObserver() {
-        const resizeObserver = new ResizeObserver((entries)=>{
-            for (let entry of entries){
-                const { width, height } = entry.contentRect;
-                // Update canvas size and camera aspect ratio
-                this.renderer.setSize(width, height);
-                this.camera.aspect = width / height;
-                this.camera.updateProjectionMatrix();
-            }
-        });
-        // Observe the canvas container for size changes
-        resizeObserver.observe(this.container);
-    }
-    onMouseMove(e) {
-        //console.log('this runs');
-        // Calculate mouse position in normalized device coordinates (-1 to +1) for both components
-        this.mouse.x = e.clientX / window.innerWidth * 2 - 1;
-        this.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-        // Use a raycaster to project the mouse position into 3D space
-        const raycaster = new _three.Raycaster();
-        raycaster.setFromCamera(this.mouse, this.camera);
-        // Set the distance at which the light should move (adjust as needed)
-        const targetDistance = 1;
-        const intersectPoint = raycaster.ray.origin.clone().add(raycaster.ray.direction.multiplyScalar(targetDistance));
-        // Update the point light position
-        this.pointLight.position.copy(intersectPoint);
-    }
-    addEventListeners() {
-        // Event listener for mouse movement
-        this.container.addEventListener("mousemove", (event)=>this.onMouseMove(event));
-    }
-    setupHDR() {
-        const loader = new (0, _rgbeloaderJs.RGBELoader)();
-        let skyboxToLoad = this.visitedFromMobileDevice ? "belfast_sunset_puresky_1k" : "belfast_sunset_puresky_2k";
-        loader.load(`./assets/${skyboxToLoad}.hdr`, (texture)=>{
-            texture.mapping = _three.EquirectangularReflectionMapping; // Set mapping for environment
-            this.envMap = texture;
-            this.scene.environment = texture; // Apply the HDR as the scene environment
-        });
-    }
-    // Load the .glb model and apply shader material
-    loadModel() {
-        const loader = new (0, _gltfloaderJs.GLTFLoader)();
-        const dracoLoader = new (0, _dracoloaderJs.DRACOLoader)();
-        // Set the path to the Draco decoder files
-        dracoLoader.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.4.3/"); // Or your local path
-        dracoLoader.preload();
-        loader.setDRACOLoader(dracoLoader);
-        loader.load("./assets/models/grass/grass_test.glb", (gltf)=>{
-            const grassModel = gltf.scene;
-            // Apply shader material to the grass mesh
-            grassModel.traverse((child)=>{
-                if (child.isMesh && child.name === "grass") {
-                    child.material = this.createShaderMaterial();
-                    child.material.envMap = this.envMap;
-                    child.material.map = this.textures.diffuse;
-                    child.material.normalMap = this.textures.normal;
-                    child.material.envMapIntensity = 0.15;
-                    // Store reference to the mesh
-                    //this.animatedMeshes.push(child);
-                    this.mesh = child;
-                }
-            });
-            if (this.visitedFromMobileDevice) {
-                grassModel.scale.set(1.5, 1.5, 1.5);
-                grassModel.position.set(0.2, -0.8, 4);
-            } else {
-                grassModel.scale.set(1.9, 1.9, 1.9);
-                grassModel.position.set(0.3, -0.8, 4);
-            }
-            //grassModel.rotateY(Math.PI / 2);
-            this.scene.add(grassModel);
-        });
-    }
-    // Load textures (diffuse, normal, alpha map, etc.)
-    loadTextures() {
-        const textureLoader = new _three.TextureLoader();
-        this.textures = {
-            diffuse: textureLoader.load("./assets/models/grass/Albedo.webp"),
-            normal: textureLoader.load("./assets/models/grass/Normal.webp")
-        };
-    }
-    // Create a shader material with vertex animation and texture support
-    createShaderMaterial() {
-        return new (0, _vanillaDefault.default)({
-            baseMaterial: _three.MeshStandardMaterial,
-            uniforms: {
-                uTime: {
-                    value: 0
-                },
-                windStrength: {
-                    value: 1.0
-                },
-                windDirection: {
-                    value: new _three.Vector2(1.0, 0.0)
-                },
-                diffuseTexture: {
-                    value: this.textures.diffuse
-                }
-            },
-            vertexShader: `
-
-            float hash(vec2 p) {
-                p = 50.0 * fract(p * 0.3183099 + vec2(0.71));
-                return -1.0 + 2.0 * fract(p.x * p.y * (p.x + p.y));
-            }
-
-            float noise(vec2 p) {
-                vec2 i = floor(p);
-                vec2 f = fract(p);
-                vec2 u = f * f * (3.0 - 2.0 * f);
-
-                return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),
-                        mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
-            }
-
-
-            uniform float uTime;
-            uniform float windStrength;
-            uniform vec2 windDirection; // The XZ direction of the wind
-
-            varying vec2 vUv;
-
-            void main() {
-                vUv = uv;
-
-                // Get the world position of the vertex
-                vec4 worldP = modelMatrix * vec4(position, 1.0);
-
-                vec3 pos = position;
-
-                // Use time and some arbitrary values to generate noise
-                float n = noise(vec2(uTime * 0.67, pos.x * 0.15));
-
-                // Scale the noise value to be in the range [0.0, 0.2]
-                float varyingValue = n * 0.65;
-
-                // Use the Y component of the world position to control the wind influence
-                float influence = smoothstep(0.0, 1.5, worldP.y + 0.75);  // Adjust based on world Y position
-
-                // Apply wind movement in the XZ plane, using a sin wave for periodic motion
-
-                float wind1 = sin(vUv.y * 1.0 + (uTime) * windStrength) * 2.5 * influence * varyingValue;
-                float wind2 = sin(worldP.z * 1.0 + (uTime) * windStrength) * 1.25 * influence * varyingValue;
-                
-
-                pos.x += wind1 * windDirection.x;
-                pos.z += wind2 * windDirection.y * varyingValue;
-
-                // Standard transformation
-                csm_Position = pos;
-                //gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-            }
-            `,
-            fragmentShader: `
-                uniform sampler2D diffuseTexture; // Diffuse texture (color)
-                varying vec2 vUv;
-
-                void main() {
-                    // Sample the diffuse texture for the grass color
-                    vec3 texColor = texture2D(diffuseTexture, vUv).rgb;
-                    csm_DiffuseColor = vec4(texColor, 1.0);
-                }
-            `,
-            transparent: false,
-            fog: false
-        });
-    }
-    // Animation loop
-    animate() {
-        this.renderer.setAnimationLoop(()=>this.animate());
-        const deltaTime = this.clock.getDelta();
-        // Only update stored animated meshes
-        // this.animatedMeshes.forEach(mesh => {
-        //    if (mesh.material.uniforms) {
-        if (this.mesh) this.mesh.material.uniforms.uTime.value += deltaTime * 0.65;
-        //  }
-        //});
-        this.renderer.render(this.scene, this.camera);
-    }
-    startRendering() {
-        this.renderer.setAnimationLoop(()=>this.animate());
-    }
-    stopRendering() {
-        this.renderer.setAnimationLoop(null);
-    }
-}
-exports.default = GrassScene;
-
-},{"three":"ktPTu","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/RGBELoader.js":"cfP3d","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three/examples/jsm/libs/stats.module":"6xUSB","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"5ZFD0":[function(require,module,exports) {
+},{}],"5ZFD0":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 var _three = require("three");
 var _rgbeloader = require("three/examples/jsm/loaders/RGBELoader"); //loader for RGBE format (Radiance HDR)
+var _ultraHDRLoaderJs = require("three/examples/jsm/loaders/UltraHDRLoader.js");
 var _postprocessing = require("postprocessing");
 var _threeGoodGodrays = require("three-good-godrays");
 var _redScreenEffect = require("./RedScreenEffect");
@@ -210844,32 +210569,43 @@ class WorldScene {
         this.composerFactoryInterior.addPass(godraysPass);
     //this.composerFactoryInterior.addPass(new EffectPass(this.camera, smaaEffect));
     }
-    addSkybox(visitedFromMobileDevice) {
-        // Create a PMREMGenerator
+    loadSkybox() {
         const pmremGenerator = new _three.PMREMGenerator(this.renderer);
         pmremGenerator.compileEquirectangularShader();
-        //let skyboxToLoad = visitedFromMobileDevice ? 'belfast_sunset_puresky_1k' : 'belfast_sunset_puresky_1k';
-        let skyboxToLoad = visitedFromMobileDevice ? "belfast_sunset_puresky_1k" : "belfast_sunset_puresky_2k";
-        //let envMap = null;
-        // Load the HDR texture
-        const rgbeLoader = new (0, _rgbeloader.RGBELoader)();
-        rgbeLoader.load(`./assets/${skyboxToLoad}.hdr`, function(texture) {
-            texture.mapping = _three.EquirectangularReflectionMapping; // Use equirectangular mapping
-            // Convert the HDR texture to a cubemap
-            if (this.envMap) {
+        this.skyboxPromise = new Promise((resolve)=>{
+            const ultraHDRLoader = new (0, _ultraHDRLoaderJs.UltraHDRLoader)();
+            ultraHDRLoader.setDataType(_three.HalfFloatType);
+            ultraHDRLoader.load("./assets/envMap.jpg", (texture)=>{
+                texture.mapping = _three.EquirectangularReflectionMapping;
                 this.envMap = pmremGenerator.fromEquirectangular(texture).texture;
                 this.scene.background = this.envMap;
-            }
-            // Dispose of the PMREMGenerator to free up resources
-            pmremGenerator.dispose();
-            // Dispose of the original HDR texture
-            texture.dispose();
+                pmremGenerator.dispose();
+                // Resolve with original equirectangular texture (for ground material etc.)
+                resolve(texture);
+            });
         });
     }
-    getEnvMap() {
-        return this.envMap;
+    /* --- ORIGINAL RGBELoader skybox method (revert by swapping with loadSkybox above) ---
+    loadSkybox(visitedFromMobileDevice) {
+        const pmremGenerator = new THREE.PMREMGenerator(this.renderer);
+        pmremGenerator.compileEquirectangularShader();
+
+        const skyboxToLoad = visitedFromMobileDevice ? 'belfast_sunset_puresky_1k' : 'belfast_sunset_puresky_1k';
+
+        this.skyboxPromise = new Promise((resolve) => {
+            const rgbeLoader = new RGBELoader();
+            rgbeLoader.load(`./assets/${skyboxToLoad}.hdr`, (texture) => {
+                texture.mapping = THREE.EquirectangularReflectionMapping;
+
+                this.envMap = pmremGenerator.fromEquirectangular(texture).texture;
+                this.scene.background = this.envMap;
+
+                pmremGenerator.dispose();
+                resolve(texture);
+            });
+        });
     }
-    getRenderer() {
+    --- END ORIGINAL RGBELoader skybox method --- */ getRenderer() {
         return this.renderer;
     }
     getCamera() {
@@ -210884,7 +210620,7 @@ class WorldScene {
 }
 exports.default = WorldScene;
 
-},{"three":"ktPTu","three/examples/jsm/loaders/RGBELoader":"cfP3d","postprocessing":"bM81O","three-good-godrays":"j7KiZ","./RedScreenEffect":"1QX1A","./FogEffect":"d8om8","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"bM81O":[function(require,module,exports) {
+},{"three":"ktPTu","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/loaders/UltraHDRLoader.js":"8vgZH","postprocessing":"bM81O","three-good-godrays":"j7KiZ","./RedScreenEffect":"1QX1A","./FogEffect":"d8om8","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"bM81O":[function(require,module,exports) {
 /**
  * postprocessing v6.36.3 build Thu Sep 26 2024
  * https://github.com/pmndrs/postprocessing
@@ -226538,6 +226274,74 @@ function getOrigin(url) {
 exports.getBundleURL = getBundleURLCached;
 exports.getBaseURL = getBaseURL;
 exports.getOrigin = getOrigin;
+
+},{}],"lO5cP":[function(require,module,exports) {
+module.exports = require("dd222b79712c52e8")(require("d0c08065803cb1").getBundleURL("g05j8") + "GrassScene.ebc2bef3.js" + "?" + Date.now()).catch((err)=>{
+    delete module.bundle.cache[module.id];
+    throw err;
+}).then(()=>module.bundle.root("a5jmZ"));
+
+},{"dd222b79712c52e8":"61B45","d0c08065803cb1":"lgJ39"}],"61B45":[function(require,module,exports) {
+"use strict";
+var cacheLoader = require("ca2a84f7fa4a3bb0");
+module.exports = cacheLoader(function(bundle) {
+    return new Promise(function(resolve, reject) {
+        // Don't insert the same script twice (e.g. if it was already in the HTML)
+        var existingScripts = document.getElementsByTagName("script");
+        if ([].concat(existingScripts).some(function isCurrentBundle(script) {
+            return script.src === bundle;
+        })) {
+            resolve();
+            return;
+        }
+        var preloadLink = document.createElement("link");
+        preloadLink.href = bundle;
+        preloadLink.rel = "preload";
+        preloadLink.as = "script";
+        document.head.appendChild(preloadLink);
+        var script = document.createElement("script");
+        script.async = true;
+        script.type = "text/javascript";
+        script.src = bundle;
+        script.onerror = function(e) {
+            var error = new TypeError("Failed to fetch dynamically imported module: ".concat(bundle, ". Error: ").concat(e.message));
+            script.onerror = script.onload = null;
+            script.remove();
+            reject(error);
+        };
+        script.onload = function() {
+            script.onerror = script.onload = null;
+            resolve();
+        };
+        document.getElementsByTagName("head")[0].appendChild(script);
+    });
+});
+
+},{"ca2a84f7fa4a3bb0":"j49pS"}],"j49pS":[function(require,module,exports) {
+"use strict";
+var cachedBundles = {};
+var cachedPreloads = {};
+var cachedPrefetches = {};
+function getCache(type) {
+    switch(type){
+        case "preload":
+            return cachedPreloads;
+        case "prefetch":
+            return cachedPrefetches;
+        default:
+            return cachedBundles;
+    }
+}
+module.exports = function(loader, type) {
+    return function(bundle) {
+        var cache = getCache(type);
+        if (cache[bundle]) return cache[bundle];
+        return cache[bundle] = loader.apply(null, arguments).catch(function(e) {
+            delete cache[bundle];
+            throw e;
+        });
+    };
+};
 
 },{}]},["l9Mez","ebWYT"], "ebWYT", "parcelRequire2041")
 
