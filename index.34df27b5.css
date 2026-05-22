@@ -1,8 +1,9 @@
 @font-face {
   font-family: AvenirNextLTPro-UltLt;
-  src: url("avenir-next-ultra-light.db2d133a.ttf") format("truetype");
+  src: url("avenir-next-ultra-light.ea402eca.woff2") format("woff2");
   font-weight: 100;
   font-style: normal;
+  font-display: swap;
 }
 
 :root {
