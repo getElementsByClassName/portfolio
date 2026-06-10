@@ -586,14 +586,10 @@ function hmrAccept(bundle /*: ParcelRequire */ , id /*: string */ ) {
 },{}],"lRNzc":[function(require,module,exports) {
 var _three = require("three");
 var _terrainConfigJs = require("./terrainConfig.js");
-function convertRange(val, oldMin, oldMax, newMin, newMax) {
-    return (val - oldMin) * (newMax - newMin) / (oldMax - oldMin) + newMin;
-}
 onmessage = (event)=>{
     const { chunkKey, offsetX, offsetZ, chunkSize, instanceCount } = event.data;
     // Always allocate new buffers since we transfer them (makes them unusable for reuse)
     const offsets = new Float32Array(instanceCount * 3);
-    const uvs = new Float32Array(instanceCount * 2);
     const rotationMatrices = new Float32Array(instanceCount * 9);
     const scales = new Float32Array(instanceCount);
     for(let i = 0; i < instanceCount; i++){
@@ -612,8 +608,6 @@ onmessage = (event)=>{
         offsets[i * 3] = x;
         offsets[i * 3 + 1] = y;
         offsets[i * 3 + 2] = z;
-        uvs[i * 2] = convertRange(x, offsetX, offsetX + chunkSize, 0, 1);
-        uvs[i * 2 + 1] = convertRange(z, offsetZ, offsetZ + chunkSize, 0, 1);
         const angle = Math.random() * Math.PI * 2;
         const cosAngle = Math.cos(angle);
         const sinAngle = Math.sin(angle);
@@ -637,15 +631,13 @@ onmessage = (event)=>{
             offsets,
             rotationMatrices,
             scales,
-            uvs,
             boundingSphere,
             instanceCount
         }
     }, [
         offsets.buffer,
         rotationMatrices.buffer,
-        scales.buffer,
-        uvs.buffer
+        scales.buffer
     ]);
 };
 
