@@ -613,8 +613,7 @@ var _lenisDefault = parcelHelpers.interopDefault(_lenis);
 var _lenisCss = require("lenis/dist/lenis.css");
 var _utilsJs = require("./Utils.js");
 var _utilsJsDefault = parcelHelpers.interopDefault(_utilsJs);
-var _grassJs = require("./shaders/grass.js");
-var _grassJsDefault = parcelHelpers.interopDefault(_grassJs);
+var _terrainManagerJs = require("./TerrainManager.js");
 var _powerlinesJs = require("./shaders/powerlines.js");
 var _powerlinesJsDefault = parcelHelpers.interopDefault(_powerlinesJs);
 var _videoShaderMaterialJs = require("./materials/videoShaderMaterial.js");
@@ -623,7 +622,6 @@ var _stonefigureJsDefault = parcelHelpers.interopDefault(_stonefigureJs);
 var _videoFadeJs = require("./shaders/videoFade.js");
 var _videoFadeJsDefault = parcelHelpers.interopDefault(_videoFadeJs);
 var _fadeShaderMaterialJs = require("./materials/fadeShaderMaterial.js");
-var _horizonHazeMaterialJs = require("./materials/horizonHazeMaterial.js");
 var _patchProjectorMaterialJs = require("./patchProjectorMaterial.js");
 var _patchProjectorMaterialJsDefault = parcelHelpers.interopDefault(_patchProjectorMaterialJs);
 var _contentJson = require("./content.json");
@@ -1006,7 +1004,6 @@ const DISTANCE_LOD0 = 100;
 const DISTANCE_LOD1 = 200;
 const DISTANCE_LOD2 = 300;
 //Environment Map intensities
-const GRASS_MESH_ENVMAP_INTENSITY = 0.35;
 /********************************************************************
 // Scene Setup
 ********************************************************************/ const canvasContainer = document.querySelector("#container-opening-scene");
@@ -1472,8 +1469,7 @@ function fnCreateVideoFadeMaterial() {
 }
 /********************************************************************
 // Load Models
-********************************************************************/ let allGrassComputed = false;
-let allModelsLoaded = false;
+********************************************************************/ let allModelsLoaded = false;
 let allModelsAddedToScene = false;
 const loadingManager = new _three.LoadingManager();
 const loadingElement = document.querySelector("#text-loading");
@@ -1565,7 +1561,7 @@ async function fnLoadPowerlinesModel(url) {
     powerlinesMaterial.envMapIntensity = 0.4;
     powerlinesMaterial.fog = false;
     powerlinesMaterial.metalness = 1.0;
-    powerlinesMaterial.roughness = 0.3;
+    powerlinesMaterial.roughness = 0.6;
     model.children[1].material = powerlinesShaderMaterial;
     model.children[3].material = powerlinesShaderMaterial;
     model.children[4].material = powerlinesShaderMaterial;
@@ -1863,15 +1859,6 @@ async function fnLoadFactoryInteriorModel(url) {
     worldScene.scene.add(lod);
     (0, _utilsJsDefault.default).fnAddModelToRegistry(modelRegistry, name, lod1, new _three.Vector3(position.x, 0, position.y), diffuseMap, true, true, DISTANCE_TEXTURE_SWAP, false, colliderBVH, collisionRadius);
 }
-fnLoadStoneModelWithProjection({
-    modelURL: "./assets/models/video_rock/video_rock.glb",
-    name: "video_rock",
-    position: new _three.Vector2(-400, 200),
-    scale: 10,
-    envMapIntensity: 0.25,
-    isFaded: true,
-    fadeHeight: 18.5
-});
 async function fnLoadHQTexture(data) {
     if (!data) return;
     const material = data.mesh.material;
@@ -2027,7 +2014,7 @@ const stoneFigureParams = [
     {
         url: "./assets/models/horse_figure/horse_figure.glb",
         name: "horse_figure",
-        position: (0, _utilsJsDefault.default).fnGetRandomPosition(500, 800, 800),
+        position: (0, _utilsJsDefault.default).fnGetRandomPosition(600, 800, 800),
         scale: new _three.Vector3(2.5, 2.5, 2.5),
         rotation: -Math.PI / 4,
         material: createStoneFigureMaterial(),
@@ -2058,7 +2045,7 @@ const stoneFigureParams = [
     {
         url: "./assets/models/goat_figure/goat_figure.glb",
         name: "goat_figure",
-        position: (0, _utilsJsDefault.default).fnGetRandomPosition(500, 500, 500),
+        position: (0, _utilsJsDefault.default).fnGetRandomPosition(600, 500, 500),
         scale: new _three.Vector3(2.5, 2.5, 2.5),
         rotation: Math.PI - Math.PI / 4,
         material: createStoneFigureMaterial(),
@@ -2114,15 +2101,26 @@ async function fnLoadStoneFigureModel(url, name, position, scale, rotation, mate
 }
 //Load models for desktop
 if (!visitedFromMobileDevice) {
-    stoneFigureParams.forEach((params)=>{
-        fnLoadStoneFigureModel(params.url, params.name, params.position, params.scale, params.rotation, params.material, params.color);
+    window.addEventListener("load", ()=>{
+        stoneFigureParams.forEach((params)=>{
+            fnLoadStoneFigureModel(params.url, params.name, params.position, params.scale, params.rotation, params.material, params.color);
+        });
+        fnLoadFactoryModel("./assets/models/factory_new/factory.glb");
+        fnLoadFactoryInteriorModel("./assets/models/factory_interior/factory_interior.glb");
+        fnLoadStoneModelWithProjection({
+            modelURL: "./assets/models/video_rock/video_rock.glb",
+            name: "video_rock",
+            position: new _three.Vector2(-400, 200),
+            scale: 10,
+            envMapIntensity: 0.25,
+            isFaded: true,
+            fadeHeight: 18.5
+        });
     });
-    //fnLoadRockVideoProjectionModel('./assets/models/video_rock/videoRockPreload.glb', 12);
-    fnLoadFactoryModel("./assets/models/factory_new/factory.glb");
-    fnLoadFactoryInteriorModel("./assets/models/factory_interior/factory_interior.glb");
+    fnLoadPowerlinesModel("./assets/models/powerlines/powerlines.glb");
+//fnLoadRockVideoProjectionModel('./assets/models/video_rock/videoRockPreload.glb', 12);
 }
 //load Models for desktop+Mobile
-fnLoadPowerlinesModel("./assets/models/powerlines/powerlines.glb");
 function fnToggleFigureAnimation(stoneFigureParams, figureName) {
     for(let i = 0; i < stoneFigureParams.length; i++)if (stoneFigureParams[i].name === figureName) {
         //stoneFigureParams[i].material.uniforms.effectsIntensity.value = 1.0;
@@ -2429,183 +2427,13 @@ controls.addEventListener("change", event => {
 });
 */ //console.log('here');
 /********************************************************************
-// Grass Blade Shape and Material
-********************************************************************/ // Create grass blade shape
-function createGrassBladeShapeLOD1() {
-    const shape = new _three.Shape();
-    // Start at the bottom-left corner of the rectangle
-    shape.moveTo(-0.074, 0);
-    // Define the rectangle part
-    shape.lineTo(0.074, 0); // Bottom-right corner
-    // Define the tapering part towards the tip
-    shape.lineTo(0, 2.2); // Pointed tip
-    shape.lineTo(-0.074, 0); // Back to the starting point
-    return shape;
-}
-// Convert shape to geometry
-const bladeShape = createGrassBladeShapeLOD1();
-const bladeGeometry = new _three.ShapeGeometry(bladeShape);
-const grassMaterial = new (0, _vanillaDefault.default)({
-    baseMaterial: _three.MeshStandardMaterial,
-    uniforms: {
-        time: {
-            value: 0.0
-        },
-        grassTexture: {
-            value: grassDiffuseMap
-        },
-        cameraPos: {
-            value: camera.position
-        }
-    },
-    vertexShader: (0, _grassJsDefault.default).vert,
-    fragmentShader: (0, _grassJsDefault.default).frag,
-    vertexColors: false,
-    side: _three.DoubleSide,
-    fog: true
+// Terrain Manager
+********************************************************************/ const terrainManager = new (0, _terrainManagerJs.TerrainManager)({
+    worldScene,
+    camera,
+    grassDiffuseMap
 });
-/********************************************************************
-// Terrain Logic
-********************************************************************/ /** Terrain Constants */ const chunkSize = 300; // Size of each terrain chunk (200)
-const viewRadius = 7; // Number of chunks to load around the player (6)
-const unloadRadius = 8; // Number of chunks to unload outside this radius (7)
-const chunkVertexCount = 10; // 4
-const instanceCount = 4000; //(4750) (19500)
-const loadedChunks = new Map(); // Store references to loaded chunks
-// Define special chunk configurations by their X, Z values
-const specialChunks = {
-};
-/********************************************************************
-// Worker Pool for Grass Generation
-********************************************************************/ const workerPoolSize = navigator.hardwareConcurrency || 4; // Number of workers based on CPU cores
-const grassWorkerPool = [];
-const grassWorkerQueue = []; // Queue for pending tasks
-// Initialize the worker pool
-for(let i = 0; i < workerPoolSize; i++){
-    const worker = new Worker(require("cdb16b6f1235a7ac"));
-    worker.onmessage = (event)=>{
-        const { chunkKey, grassGeometryData } = event.data;
-        //console.log(event.data)
-        // Create instanced buffer geometry for grass blades
-        const grassGeometry = new _three.InstancedBufferGeometry();
-        //grassGeometry.copy(new THREE.PlaneGeometry(5, 5)); // Base blade geometry
-        grassGeometry.copy(bladeGeometry);
-        grassGeometry.setAttribute("instanceRotationMatrix", new _three.InstancedBufferAttribute(grassGeometryData.rotationMatrices, 9));
-        grassGeometry.setAttribute("scale", new _three.InstancedBufferAttribute(grassGeometryData.scales, 1));
-        grassGeometry.setAttribute("uv", new _three.InstancedBufferAttribute(grassGeometryData.uvs, 2));
-        // Height is now calculated in the worker - no main thread loop needed!
-        grassGeometry.setAttribute("offset", new _three.InstancedBufferAttribute(grassGeometryData.offsets, 3));
-        //const grassMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide });
-        const grassMesh = new _three.InstancedMesh(grassGeometry, grassMaterial, grassGeometryData.instanceCount);
-        //grassMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-        // Set bounding sphere for frustum culling
-        grassMesh.geometry.boundingSphere = grassGeometryData.boundingSphere;
-        grassMesh.material.envMap = worldScene.envMap;
-        grassMesh.material.envMapIntensity = GRASS_MESH_ENVMAP_INTENSITY;
-        // Add grass to the scene
-        worldScene.scene.add(grassMesh);
-        // Store the grass mesh in the loadedChunks map
-        if (loadedChunks.has(chunkKey)) loadedChunks.get(chunkKey).grassMesh = grassMesh;
-        // Process the next task in the queue, if any
-        if (grassWorkerQueue.length > 0) {
-            const nextTask = grassWorkerQueue.shift();
-            worker.postMessage(nextTask);
-        } else {
-            grassWorkerPool.push(worker); // Return worker to the pool
-            //fnOnTerrainComplete(); //and models have loaded, maybe set flag for terrain complete here
-            allGrassComputed = true;
-        }
-    };
-    grassWorkerPool.push(worker);
-}
-function postToGrassWorker(task) {
-    if (grassWorkerPool.length > 0) {
-        const worker = grassWorkerPool.pop();
-        worker.postMessage(task);
-    } else grassWorkerQueue.push(task); // Add task to the queue if no worker is available
-}
-/********************************************************************
-// NEW TERRAIN GENERATION
-********************************************************************/ // const groundMaterial = new THREE.MeshBasicMaterial({
-//     color: 0x000000, // Use the specified material color
-//     //envMap: worldScene.envMap,
-//     //envMapIntensity: 500.0
-//     //transparent: true, // Enable transparency
-//     //opacity: 0.0 // Adjust transparency (1 = fully opaque, 0 = fully transparent)
-//     //flatShading: chunkProps.type === "ground", // Enable flat shading for ground-only chunks
-// });
-// Horizon haze ground material - blends with skybox color at distance
-const groundMaterial = (0, _horizonHazeMaterialJs.createHorizonHazeMaterial)({
-    baseColor: new _three.Color(0x000000),
-    envMap: worldScene.envMap,
-    hazeStart: 1300,
-    hazeEnd: 1700,
-    horizonHeight: 0.5,
-    hazeIntensity: 0.65 // full haze strength
-});
-// Update ground material when skybox finishes loading
-worldScene.skyboxPromise.then((texture)=>{
-    if (groundMaterial && groundMaterial.uniforms) {
-        groundMaterial.uniforms.uEnvMap.value = texture;
-        groundMaterial.needsUpdate = true;
-    }
-});
-function fnGenerateChunk(x, z) {
-    const offsetX = x * chunkSize;
-    const offsetZ = z * chunkSize;
-    const chunkKey = `${x},${z}`;
-    const isSpecialChunk = specialChunks.hasOwnProperty(chunkKey);
-    // Define chunk properties based on whether it's a special chunk or not
-    const chunkProps = isSpecialChunk ? specialChunks[chunkKey] : {
-        type: "default",
-        materialColor: 0x000000,
-        grassBladeCount: instanceCount
-    };
-    postToGrassWorker({
-        chunkKey,
-        offsetX,
-        offsetZ,
-        chunkSize,
-        instanceCount: chunkProps.grassBladeCount
-    });
-    // Create geometry for the terrain chunk
-    const baseGeometry = new _three.PlaneGeometry(chunkSize, chunkSize, chunkVertexCount, chunkVertexCount);
-    baseGeometry.rotateX(-Math.PI / 2);
-    // Adjust the geometry's position so that its origin aligns with the top-left corner
-    baseGeometry.translate(chunkSize / 2, 0, chunkSize / 2);
-    const chunkBoundingSphere = new _three.Sphere(new _three.Vector3(chunkSize, 0.0, chunkSize), chunkSize * 1.5);
-    baseGeometry.boundingSphere = chunkBoundingSphere;
-    //const geometry = baseGeometry.clone();
-    // Modify the vertices based on simplex noise
-    const vertices = baseGeometry.attributes.position.array;
-    for(let i = 0; i < vertices.length; i += 3){
-        const vertexX = vertices[i] + offsetX;
-        const vertexZ = vertices[i + 2] + offsetZ;
-        vertices[i + 1] = (0, _terrainConfigJs.getHeight)(vertexX, vertexZ); // Set Y position based on height
-    }
-    // Create the mesh
-    const chunkMesh = new _three.Mesh(baseGeometry, groundMaterial);
-    chunkMesh.position.set(offsetX, 0, offsetZ);
-    // Track this chunk for opacity updates
-    //fadingChunks.add(chunkMesh);
-    return chunkMesh;
-}
-/********************************************************************
-// Load Initial Terrain
-********************************************************************/ function loadInitialTerrain(sizeInChunks) {
-    //const totalChunks = sizeInChunks * sizeInChunks;
-    for(let z = 0; z < sizeInChunks; z++)for(let x = 0; x < sizeInChunks; x++){
-        const chunkKey = `${x},${z}`;
-        if (!loadedChunks.has(chunkKey)) {
-            const chunkMesh = fnGenerateChunk(x, z);
-            worldScene.scene.add(chunkMesh);
-            loadedChunks.set(chunkKey, {
-                terrainMesh: chunkMesh
-            });
-        }
-    }
-}
-loadInitialTerrain(2);
+terrainManager.loadInitialTerrain(1);
 /********************************************************************
 // Function to run start animation and welcome screen fade, at page load
 ********************************************************************/ function fnCreateOnceFunction() {
@@ -2619,191 +2447,6 @@ loadInitialTerrain(2);
     };
 }
 const fnOnTerrainComplete = fnCreateOnceFunction();
-/********************************************************************
-// Load Chunks Dynamically
-********************************************************************/ function loadChunksAroundPlayer(playerPosition) {
-    const playerChunkX = Math.floor(playerPosition.x / chunkSize);
-    const playerChunkZ = Math.floor(playerPosition.z / chunkSize);
-    for(let dz = -viewRadius; dz <= viewRadius; dz++)for(let dx = -viewRadius; dx <= viewRadius; dx++){
-        const chunkX = playerChunkX + dx;
-        const chunkZ = playerChunkZ + dz;
-        const chunkKey = `${chunkX},${chunkZ}`;
-        // Check if the chunk is already loaded
-        if (!loadedChunks.has(chunkKey)) {
-            const chunkMesh = fnGenerateChunk(chunkX, chunkZ);
-            worldScene.scene.add(chunkMesh);
-            loadedChunks.set(chunkKey, {
-                terrainMesh: chunkMesh
-            });
-        }
-    }
-}
-/********************************************************************
-// Unload Distant Chunks
-********************************************************************/ function unloadFarChunks(playerPosition) {
-    const playerChunkX = Math.floor(playerPosition.x / chunkSize);
-    const playerChunkZ = Math.floor(playerPosition.z / chunkSize);
-    loadedChunks.forEach((chunk, key)=>{
-        const [chunkX, chunkZ] = key.split(",").map(Number);
-        const distance = Math.max(Math.abs(chunkX - playerChunkX), Math.abs(chunkZ - playerChunkZ));
-        if (distance > unloadRadius) {
-            worldScene.scene.remove(chunk.terrainMesh);
-            chunk.terrainMesh.geometry.dispose();
-            //chunk.terrainMesh.material.dispose();
-            if (chunk.grassMesh) {
-                worldScene.scene.remove(chunk.grassMesh);
-                chunk.grassMesh.geometry.dispose();
-            //chunk.grassMesh.material.dispose();
-            }
-            loadedChunks.delete(key);
-        }
-    });
-}
-/********************************************************************
-// Adjust Grass Instance Count
-********************************************************************/ // Pre-compute LOD thresholds and multipliers
-// const GRASS_LOD_LEVELS = [
-//     { distanceSq: 200 * 200, multiplier: 1.0 },    // 40000
-//     { distanceSq: 300 * 300, multiplier: 0.9 },    // 40000
-//     { distanceSq: 400 * 400, multiplier: 0.85 },   // 160000
-//     { distanceSq: 500 * 500, multiplier: 0.8 },   // 160000
-//     { distanceSq: 600 * 600, multiplier: 0.70 },   // 250000
-//     { distanceSq: 700 * 700, multiplier: 0.65 },   // 250000
-//     { distanceSq: 800 * 800, multiplier: 0.6 },    // 640000
-//     { distanceSq: 900 * 900, multiplier: 0.3 },   // 810000
-//     { distanceSq: 1000 * 1000, multiplier: 0.0001 },   // 810000
-//     { distanceSq: 1100 * 1100, multiplier: 0.0001 },   // 810000
-//     { distanceSq: Infinity, multiplier: 0.0001 }       // Beyond 1200
-// ];
-const GRASS_LOD_LEVELS = [
-    {
-        distanceSq: 10000,
-        multiplier: 1.0
-    },
-    {
-        distanceSq: 22500,
-        multiplier: 1.0
-    },
-    {
-        distanceSq: 40000,
-        multiplier: 0.95
-    },
-    {
-        distanceSq: 62500,
-        multiplier: 0.92
-    },
-    {
-        distanceSq: 90000,
-        multiplier: 0.80
-    },
-    {
-        distanceSq: 122500,
-        multiplier: 0.70
-    },
-    {
-        distanceSq: 160000,
-        multiplier: 0.60
-    },
-    {
-        distanceSq: 202500,
-        multiplier: 0.50
-    },
-    {
-        distanceSq: 250000,
-        multiplier: 0.40
-    },
-    {
-        distanceSq: 360000,
-        multiplier: 0.30
-    },
-    {
-        distanceSq: 490000,
-        multiplier: 0.2
-    },
-    {
-        distanceSq: 640000,
-        multiplier: 0.1
-    },
-    {
-        distanceSq: 810000,
-        multiplier: 0.1
-    },
-    {
-        distanceSq: 1000000,
-        multiplier: 0.01
-    },
-    {
-        distanceSq: 1440000,
-        multiplier: 0.01
-    },
-    {
-        distanceSq: Infinity,
-        multiplier: 0.001
-    } // Beyond
-];
-const halfChunkSize = chunkSize * 0.5;
-function adjustGrassInstanceCount(playerPosition) {
-    const playerX = playerPosition.x;
-    const playerZ = playerPosition.z;
-    loadedChunks.forEach((chunk, key)=>{
-        // Skip if special chunk or no grass mesh
-        if (specialChunks.hasOwnProperty(key) || !chunk.grassMesh) return;
-        // Parse chunk coordinates (cache if this becomes a bottleneck)
-        const [chunkX, chunkZ] = key.split(",").map(Number);
-        // Calculate chunk center coordinates
-        const centerX = chunkX * chunkSize + halfChunkSize;
-        const centerZ = chunkZ * chunkSize + halfChunkSize;
-        // Calculate squared distance (avoid expensive sqrt)
-        const deltaX = playerX - centerX;
-        const deltaZ = playerZ - centerZ;
-        const distanceSq = deltaX * deltaX + deltaZ * deltaZ;
-        // Find appropriate LOD level
-        for(let i = 0; i < GRASS_LOD_LEVELS.length; i++)if (distanceSq <= GRASS_LOD_LEVELS[i].distanceSq) {
-            const newCount = Math.floor(instanceCount * GRASS_LOD_LEVELS[i].multiplier);
-            // Only update if count actually changed (avoid unnecessary GPU updates)
-            if (chunk.grassMesh.count !== newCount) chunk.grassMesh.count = newCount;
-            break;
-        }
-    });
-}
-/*
-function adjustGrassInstanceCount(playerPosition) {
-    loadedChunks.forEach((chunk, key) => {
-        const isSpecialChunk = specialChunks.hasOwnProperty(key);
-        if (chunk.grassMesh && !isSpecialChunk) {
-
-            const [chunkX, chunkZ] = key.split(",").map(Number);
-            const centerX = chunkX * chunkSize + chunkSize / 2;
-            const centerZ = chunkZ * chunkSize + chunkSize / 2;
-
-            const distance = new THREE.Vector3(playerPosition.x, 0, playerPosition.z).distanceTo(new THREE.Vector3(centerX, 0, centerZ));
-
-
-            if (distance > 1200) {
-                chunk.grassMesh.count = instanceCount * 0.1;
-            } else if (distance > 900) {
-                chunk.grassMesh.count = instanceCount * 0.15;
-            } else if (distance > 800) {
-                chunk.grassMesh.count = instanceCount * 0.25;
-            } else if (distance > 500) {
-                chunk.grassMesh.count = instanceCount * 0.5;
-            } else if (distance > 400) {
-                chunk.grassMesh.count = instanceCount * 0.75;
-            } else if (distance > 200) {
-                chunk.grassMesh.count = instanceCount * 0.90;
-            } else {
-                chunk.grassMesh.count = instanceCount;
-            }
-        }
-    });
-}
-    */ /********************************************************************
-// Update Terrain Chunks
-********************************************************************/ function updateTerrainChunks(playerPosition) {
-    loadChunksAroundPlayer(playerPosition);
-    adjustGrassInstanceCount(playerPosition);
-    unloadFarChunks(playerPosition);
-}
 /********************************************************************
 // Function to fade out welcome screen and add Video Plane to scene
 ********************************************************************/ function fnFadeOutWelcomeScreen() {
@@ -2823,10 +2466,8 @@ const TEXTURE_SWAP_CHECK_INTERVAL = 100;
 ********************************************************************/ function animate() {
     const deltaTime = clock.getDelta();
     const playerPosition = camera.position;
-    // Update ground material camera position for horizon haze effect
-    groundMaterial.uniforms.uCameraPosition.value.copy(playerPosition);
+    terrainManager.update(playerPosition, deltaTime);
     textureswapCheckCooldown -= deltaTime * 1000;
-    updateTerrainChunks(playerPosition); // Dynamically update chunks
     if (visitedFromMobileDevice) fnCheckOrientation();
     else if (!cameraAnimationState.isAnimating) fnUpdateControls(deltaTime);
     if (textureswapCheckCooldown <= 0) {
@@ -2856,7 +2497,7 @@ const TEXTURE_SWAP_CHECK_INTERVAL = 100;
             }
             */ });
     }
-    if (allModelsLoaded && !allModelsAddedToScene && allGrassComputed) {
+    if (allModelsLoaded && !allModelsAddedToScene && terrainManager.allGrassComputed) {
         const allAdded = [
             ...modelRegistry.values()
         ].every((model)=>model.isAddedToScene);
@@ -2869,7 +2510,6 @@ const TEXTURE_SWAP_CHECK_INTERVAL = 100;
     fnAnimateCamera();
     //shader uniform updates
     powerlinesShaderMaterial.uniforms.uTime.value += deltaTime * 3.0;
-    grassMaterial.uniforms.time.value += deltaTime * 1.0; // Update time for wind animation
     videoShaderMaterial.uniforms.uTime.value += deltaTime * 0.25;
     stoneFigureParams.forEach((item)=>{
         if (item.isAnimating && item.material) {
@@ -2888,7 +2528,7 @@ const TEXTURE_SWAP_CHECK_INTERVAL = 100;
     // Render once at the end of your animate function
     activeComposer.render(deltaTime);
     //worldScene.composerDefault.render(deltaTime);
-    //stats.update();
+    // stats.update();
     // Check total materials created
     //console.log('Total Materials:', renderer.info.memory.geometries, renderer.info.memory.textures);
     // More detailed memory info
@@ -2900,7 +2540,7 @@ const TEXTURE_SWAP_CHECK_INTERVAL = 100;
     videoTexture.needsUpdate = true;
 }
 
-},{"three":"ktPTu","./terrainConfig.js":"hE4Kl","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/Addons.js":"iBAni","three/examples/jsm/math/Octree.js":"iwBOl","three/examples/jsm/helpers/OctreeHelper.js":"70dYF","three-mesh-bvh":"6y2ur","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./Utils.js":"c7A1Q","./shaders/grass.js":"cNzyR","./shaders/powerlines.js":"gJXUV","./materials/videoShaderMaterial.js":"iyqMm","./shaders/stonefigure.js":"e77je","./shaders/videoFade.js":"2lLRY","./materials/fadeShaderMaterial.js":"9kv9Y","./materials/horizonHazeMaterial.js":"9SL6m","./patchProjectorMaterial.js":"joMhG","./content.json":"24cue","./WorldScene.js":"5ZFD0","./ModelLoader.js":"5o86C","./LODManager.js":"3L9vB","./SoundManager.js":"70lfs","cdb16b6f1235a7ac":"9rntO","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","d9e2715bded666eb":"lO5cP"}],"ktPTu":[function(require,module,exports) {
+},{"three":"ktPTu","./terrainConfig.js":"hE4Kl","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/Addons.js":"iBAni","three/examples/jsm/math/Octree.js":"iwBOl","three/examples/jsm/helpers/OctreeHelper.js":"70dYF","three-mesh-bvh":"6y2ur","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","lenis":"JS2ak","lenis/dist/lenis.css":"e0AFw","./Utils.js":"c7A1Q","./shaders/powerlines.js":"gJXUV","./materials/videoShaderMaterial.js":"iyqMm","./shaders/stonefigure.js":"e77je","./shaders/videoFade.js":"2lLRY","./materials/fadeShaderMaterial.js":"9kv9Y","./patchProjectorMaterial.js":"joMhG","./content.json":"24cue","./WorldScene.js":"5ZFD0","./ModelLoader.js":"5o86C","./LODManager.js":"3L9vB","./SoundManager.js":"70lfs","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","d9e2715bded666eb":"lO5cP","./TerrainManager.js":"3FIfR"}],"ktPTu":[function(require,module,exports) {
 /**
  * @license
  * Copyright 2010-2024 Three.js Authors
@@ -209691,25 +209331,7 @@ class Utils {
 }
 exports.default = Utils;
 
-},{"three":"ktPTu","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"cNzyR":[function(require,module,exports) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-var _grassbladeVertGlsl = require("./glsl/grassblade.vert.glsl");
-var _grassbladeVertGlslDefault = parcelHelpers.interopDefault(_grassbladeVertGlsl);
-var _grassbladeFragGlsl = require("./glsl/grassblade.frag.glsl");
-var _grassbladeFragGlslDefault = parcelHelpers.interopDefault(_grassbladeFragGlsl);
-exports.default = {
-    frag: (0, _grassbladeFragGlslDefault.default),
-    vert: (0, _grassbladeVertGlslDefault.default)
-};
-
-},{"./glsl/grassblade.vert.glsl":"cdITI","./glsl/grassblade.frag.glsl":"rAUpS","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"cdITI":[function(require,module,exports) {
-module.exports = "#define GLSLIFY 1\nuniform float time;\nuniform float windStrength;\nuniform float displacementScale;\nuniform vec3 cameraPos;\n\nattribute vec3 offset;\nattribute float scale;\nattribute mat3 instanceRotationMatrix;\nattribute vec2 uvs;\n\nvarying vec2 vUv;\nvarying float vHeight;\n\n// Wind cutoff distance - adjust as needed\nconst float WIND_CUTOFF_DISTANCE = 350.0;\n\n// Simplified hash function using fewer operations\nfloat hash(vec2 p) {\n    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);\n}\n\n// Simplified noise - single sample instead of bilinear interpolation\nfloat fastNoise(vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n    // Use smoother step function\n    vec2 u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);\n    \n    return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x),\n               mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);\n}\n\nvoid main() {\n    vUv = uv;\n    \n    // Transform grass geometry\n    vec3 transformedGrass = position * scale;\n    transformedGrass = instanceRotationMatrix * transformedGrass;\n    transformedGrass += offset;\n    \n    // Pre-calculate commonly used values\n    vHeight = clamp(position.y, 0.0, 1.0);\n    \n    // Calculate distance to camera (only XZ plane for ground-level grass)\n    float distanceToCamera = length(transformedGrass.xz - cameraPos.xz);\n    //float distanceSq = dot(transformedGrass.xz - cameraPos.xz, transformedGrass.xz - cameraPos.xz);\n    \n    // Skip wind calculations if beyond cutoff distance\n    if (distanceToCamera <= WIND_CUTOFF_DISTANCE) {\n        vec2 worldPos = transformedGrass.xz;\n        \n        // Single noise calculation for both axes (reuse result)\n        float baseNoise = fastNoise(worldPos * 0.1);\n        float timeNoise = fastNoise(vec2(time * 0.1, time * 0.05));\n        \n        // Combine noise effects\n        float windVariation = timeNoise * 0.35;\n        float totalWindEffect = 0.13 + windVariation;\n        \n        // Pre-calculate sine wave components\n        float timeOffset = time * 2.0;\n        float noiseOffset = baseNoise;\n        \n        // Calculate displacement power once\n        float displacementPower = 1.0 - cos(vHeight * 7.854); // 3.1416 / 0.4 = 7.854\n        \n        // Apply wind displacement to both axes\n        float sinZ = sin(offset.z * noiseOffset + timeOffset);\n        float sinX = sin(offset.x * noiseOffset + timeOffset);\n        \n        transformedGrass.z += sinZ * totalWindEffect * displacementPower;\n        transformedGrass.x += sinX * totalWindEffect * displacementPower * 1.2; \n    }\n    \n    csm_Position = transformedGrass;\n}\n\n/*\nuniform float time;\nuniform vec2 u_touch; // Touch position\nuniform float u_time; // Time for animating wind\nuniform float u_touchActive; // Indicates if the touch is active\nuniform float u_fadeSpeed;\nuniform float u_touchTime;\nuniform float windStrength;\nuniform sampler2D displacementMap;\nuniform float fieldSize;\nuniform float displacementScale;\n\nattribute vec3 offset;\nattribute float scale;\n//attribute float normalizedHeight;\nattribute mat3 instanceRotationMatrix;\nattribute vec2 uvs; // Incoming UV coordinates\n//varying vec2 sendUV;\n//attribute float rotation;\nvarying vec2 vUv;\n//varying vec2 csm_cloudUV;\n//varying vec3 csm_vWorldPosition;\n//varying vec3 csm_vViewPosition;\nvarying float vHeight;\n//varying vec3 csm_vPosition;\n\n\nfloat hash(vec2 p) {\n    p = 50.0 * fract(p * 0.3183099 + vec2(0.71));\n    return -1.0 + 2.0 * fract(p.x * p.y * (p.x + p.y));\n}\n\nfloat noise(vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n    vec2 u = f * f * (3.0 - 2.0 * f);\n    \n    return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),\n               mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);\n}\n\nvoid main() {\n    precision mediump float;\n\n            vUv = uv;\n       \n            vec3 transformedGrass = position * scale;\n            transformedGrass = instanceRotationMatrix * transformedGrass;\n            transformedGrass += offset;\n\n            vHeight = clamp(position.y, 0.0, 1.0); \n            \n            // Generate noise based on time\n            float n = noise(vec2(time * 0.1, time * 0.05));\n\n            // Scale the noise value to be in the range [0.0, 0.2]\n            float varyingValue = n * 0.35;\n  \n            float noise = noise(offset.xz);\n\n  \n\n            // Displacement power calculation\n            float displacementPower = 1.0 - cos( vHeight * 3.1416 / 0.4 );\n\n            //displacementMultiplier = 1.0 - cos(windEffect * vHeight * 3.1416);\n\n\n            transformedGrass.z += sin(offset.z * noise  + time * 2.0) * (0.13 + varyingValue) * displacementPower;\n            //transformedGrass.z += displacementMultiplier; // Add fading push effect on Z-axis\n\n            transformedGrass.x += sin(offset.x * noise  + time * 2.0) * (0.17 + varyingValue) * displacementPower;\n            //transformedGrass.x += displacementMultiplier; // Add fading push effect on X-axis\n            // + ((windEffect * 1.2) * vHeight) \n\n            csm_Position = transformedGrass;\n  \n}\n*/\n\n";
-
-},{}],"rAUpS":[function(require,module,exports) {
-module.exports = "#define GLSLIFY 1\nuniform sampler2D grassTexture;\nvarying vec2 vUv;\nvarying float vHeight;\n\n// Move constants outside main() - they're compile-time constants\nconst float brightness = 1.15;\nconst vec3 topBladeColor = vec3(0.365, 0.588, 0.369);\nconst float mixFactor = 0.80;\nconst float uvScale = 0.5; // 1.0/100.0 precomputed\n\nvoid main() {\n    // Remove precision declaration from main() - should be at top of shader\n    \n    // Single texture lookup\n    vec3 textureColor = texture2D(grassTexture, vUv * uvScale).rgb;\n    \n    // Combine operations to reduce instructions\n    // Mix with top blade color and apply height-based darkening in one step\n    float heightCubed = vHeight * vHeight * vHeight * vHeight;\n    textureColor = mix(textureColor, topBladeColor, mixFactor) * heightCubed * brightness;\n    \n    csm_DiffuseColor = vec4(textureColor, 1.0);\n}\n\n/*\nuniform sampler2D grassTexture;\n//uniform sampler2D cloudTexture;\n//uniform vec3 fogColor;\n//uniform float fogDensity;\n//uniform vec3 vCameraPosition;\nvarying vec2 vUv;\n//varying vec2 sendUV;\n//varying vec2 cloudUV;\n//varying vec3 vWorldPosition;\n//varying vec3 csm_vWorldPosition;\nvarying float vHeight;\n//varying vec3 vPosition;\n//varying vec3 vViewPosition;\n//varying vec4 csm_DiffuseColor;\n\n//float contrast = 1.5;\nfloat brightness = 1.25;\n//vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n\nvec3 topBladeColor = vec3(0.365, 0.588, 0.369);\n\n\nvoid main() {\n\n    precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    \n    //float depth = length(csm_vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    //float fogFactor = 1.0 - exp(-fogDensity * depth);\n    //fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv / 100.0).rgb;\n    textureColor = mix(textureColor, topBladeColor, 0.70);\n    //float vHeight = clamp(vHeight, 0.0, 1.0);\n    textureColor *= vHeight * vHeight * vHeight;\n    textureColor *= brightness;\n\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    //vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n    //finalColor = mix(csm_DiffuseColor.rgb, topBladeColor, 1.0);\n    //csm_Emissive = textureColor;\n\n    csm_DiffuseColor = vec4(textureColor, 1.0);\n\n\n\n}\n\n*//*\nuniform sampler2D grassTexture;\n//uniform sampler2D cloudTexture;\n//uniform vec3 fogColor;\n//uniform float fogDensity;\n//uniform vec3 vCameraPosition;\nvarying vec2 vUv;\n//varying vec2 sendUV;\n//varying vec2 cloudUV;\n//varying vec3 vWorldPosition;\n//varying vec3 csm_vWorldPosition;\nvarying float vHeight;\n//varying vec3 vPosition;\n//varying vec3 vViewPosition;\n//varying vec4 csm_DiffuseColor;\n\n//float contrast = 1.5;\nfloat brightness = 1.25;\n//vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n\nvec3 topBladeColor = vec3(0.365, 0.588, 0.369);\n\n\nvoid main() {\n\n    precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    \n    //float depth = length(csm_vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    //float fogFactor = 1.0 - exp(-fogDensity * depth);\n    //fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv / 100.0).rgb;\n    textureColor = mix(textureColor, topBladeColor, 0.70);\n    //float vHeight = clamp(vHeight, 0.0, 1.0);\n    textureColor *= vHeight * vHeight * vHeight;\n    textureColor *= brightness;\n\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    //vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n    //finalColor = mix(csm_DiffuseColor.rgb, topBladeColor, 1.0);\n    //csm_Emissive = textureColor;\n\n    csm_DiffuseColor = vec4(textureColor, 1.0);\n\n\n\n}\n\n*//*\nuniform sampler2D grassTexture;\n//uniform sampler2D cloudTexture;\n//uniform vec3 fogColor;\n//uniform float fogDensity;\n//uniform vec3 vCameraPosition;\nvarying vec2 vUv;\n//varying vec2 sendUV;\n//varying vec2 cloudUV;\n//varying vec3 vWorldPosition;\n//varying vec3 csm_vWorldPosition;\nvarying float vHeight;\n//varying vec3 vPosition;\n//varying vec3 vViewPosition;\n//varying vec4 csm_DiffuseColor;\n\n//float contrast = 1.5;\nfloat brightness = 1.25;\n//vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n\nvec3 topBladeColor = vec3(0.365, 0.588, 0.369);\n\n\nvoid main() {\n\n    precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    \n    //float depth = length(csm_vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    //float fogFactor = 1.0 - exp(-fogDensity * depth);\n    //fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv / 100.0).rgb;\n    textureColor = mix(textureColor, topBladeColor, 0.70);\n    //float vHeight = clamp(vHeight, 0.0, 1.0);\n    textureColor *= vHeight * vHeight * vHeight;\n    textureColor *= brightness;\n\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    //vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n    //finalColor = mix(csm_DiffuseColor.rgb, topBladeColor, 1.0);\n    //csm_Emissive = textureColor;\n\n    csm_DiffuseColor = vec4(textureColor, 1.0);\n\n\n\n}\n\n*//*\nuniform sampler2D grassTexture;\n//uniform sampler2D cloudTexture;\n//uniform vec3 fogColor;\n//uniform float fogDensity;\n//uniform vec3 vCameraPosition;\nvarying vec2 vUv;\n//varying vec2 sendUV;\n//varying vec2 cloudUV;\n//varying vec3 vWorldPosition;\n//varying vec3 csm_vWorldPosition;\nvarying float vHeight;\n//varying vec3 vPosition;\n//varying vec3 vViewPosition;\n//varying vec4 csm_DiffuseColor;\n\n//float contrast = 1.5;\nfloat brightness = 1.25;\n//vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n\nvec3 topBladeColor = vec3(0.365, 0.588, 0.369);\n\n\nvoid main() {\n\n    precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    \n    //float depth = length(csm_vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    //float fogFactor = 1.0 - exp(-fogDensity * depth);\n    //fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv / 100.0).rgb;\n    textureColor = mix(textureColor, topBladeColor, 0.70);\n    //float vHeight = clamp(vHeight, 0.0, 1.0);\n    textureColor *= vHeight * vHeight * vHeight;\n    textureColor *= brightness;\n\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    //vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n    //finalColor = mix(csm_DiffuseColor.rgb, topBladeColor, 1.0);\n    //csm_Emissive = textureColor;\n\n    csm_DiffuseColor = vec4(textureColor, 1.0);\n\n\n\n}\n\n*/";
-
-},{}],"gJXUV":[function(require,module,exports) {
+},{"three":"ktPTu","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"gJXUV":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 var _powerlinesVertGlsl = require("./glsl/powerlines.vert.glsl");
@@ -209870,65 +209492,6 @@ module.exports = "#define GLSLIFY 1\n        varying vec3 vWorldPosition;\n     
 
 },{}],"7eI8B":[function(require,module,exports) {
 module.exports = "#define GLSLIFY 1\n        uniform bool uHasDiffuseMap;\n        uniform sampler2D uDiffuseMap;\n        uniform vec3 uColor;\n        uniform float uFadeHeight;\n        uniform float uTerrainHeight;\n        uniform float uBrightness;\n        varying vec3 vWorldPosition;\n        varying vec2 vUv;\n\n        void main() {\n            vec4 colorDiffuse = uHasDiffuseMap ? texture2D(uDiffuseMap, vUv) : vec4(uColor, 1.0);\n\n            float fadeFactor = smoothstep(uTerrainHeight, uTerrainHeight + uFadeHeight, vWorldPosition.y);\n\n            colorDiffuse.rgb *= fadeFactor * uBrightness;\n\n            csm_DiffuseColor = colorDiffuse;\n        }";
-
-},{}],"9SL6m":[function(require,module,exports) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-parcelHelpers.export(exports, "createHorizonHazeMaterial", ()=>createHorizonHazeMaterial);
-var _three = require("three");
-var _horizonHazeJs = require("../shaders/horizonHaze.js");
-var _horizonHazeJsDefault = parcelHelpers.interopDefault(_horizonHazeJs);
-function createHorizonHazeMaterial(options = {}) {
-    const { baseColor = new _three.Color(0x000000), envMap = envMap, hazeStart = 100, hazeEnd = 500, horizonHeight = 0.05, hazeIntensity = 1.0 // overall haze strength (0-1)
-     } = options;
-    const material = new _three.ShaderMaterial({
-        uniforms: {
-            uBaseColor: {
-                value: baseColor
-            },
-            uEnvMap: {
-                value: envMap
-            },
-            uCameraPosition: {
-                value: new _three.Vector3()
-            },
-            uHazeStart: {
-                value: hazeStart
-            },
-            uHazeEnd: {
-                value: hazeEnd
-            },
-            uHorizonHeight: {
-                value: horizonHeight
-            },
-            uHazeIntensity: {
-                value: hazeIntensity
-            }
-        },
-        vertexShader: (0, _horizonHazeJsDefault.default).vert,
-        fragmentShader: (0, _horizonHazeJsDefault.default).frag,
-        side: _three.FrontSide
-    });
-    return material;
-}
-
-},{"three":"ktPTu","../shaders/horizonHaze.js":"iM9hs","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"iM9hs":[function(require,module,exports) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-var _horizonHazeVertGlsl = require("./glsl/horizonHaze.vert.glsl");
-var _horizonHazeVertGlslDefault = parcelHelpers.interopDefault(_horizonHazeVertGlsl);
-var _horizonHazeFragGlsl = require("./glsl/horizonHaze.frag.glsl");
-var _horizonHazeFragGlslDefault = parcelHelpers.interopDefault(_horizonHazeFragGlsl);
-exports.default = {
-    frag: (0, _horizonHazeFragGlslDefault.default),
-    vert: (0, _horizonHazeVertGlslDefault.default)
-};
-
-},{"./glsl/horizonHaze.vert.glsl":"998J4","./glsl/horizonHaze.frag.glsl":"5qECw","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"998J4":[function(require,module,exports) {
-module.exports = "#define GLSLIFY 1\nvarying vec3 vWorldPosition;\nvarying float vDistanceFromCamera;\n\nuniform vec3 uCameraPosition;\n\nvoid main() {\n    vec4 worldPosition = modelMatrix * vec4(position, 1.0);\n    vWorldPosition = worldPosition.xyz;\n\n    // Calculate distance from camera (horizontal only, ignore Y)\n    vec2 horizontalDist = worldPosition.xz - uCameraPosition.xz;\n    vDistanceFromCamera = length(horizontalDist);\n\n    gl_Position = projectionMatrix * viewMatrix * worldPosition;\n}\n";
-
-},{}],"5qECw":[function(require,module,exports) {
-module.exports = "#define GLSLIFY 1\n\n// uniform vec3 uBaseColor;\n// uniform sampler2D uEnvMap;\n// uniform vec3 uCameraPosition;\n// uniform float uHazeStart;\n// uniform float uHazeEnd;\n// uniform float uHazeIntensity;\n\n// void main() {\n//     // Direction from camera to fragment\n//     vec3 viewDir = normalize(vWorldPosition - uCameraPosition);\n\n//     // Horizon direction (force horizontal)\n//     vec3 horizonDir = normalize(vec3(viewDir.x, 0.0, viewDir.z));\n\n//     // Convert to equirectangular UV\n//     float u = atan(horizonDir.z, horizonDir.x) / (2.0 * 3.14159265) + 0.5;\n//     float v = asin(clamp(horizonDir.y, -1.0, 1.0)) / 3.14159265 + 0.5;\n\n//     // Sample HDRI\n//     vec3 horizonColor = texture2D(uEnvMap, vec2(u, v)).rgb;\n\n//     // Distance-based haze\n//     float hazeFactor = smoothstep(uHazeStart, uHazeEnd, vDistanceFromCamera) * uHazeIntensity;\n\n//     // Final color\n//     vec3 finalColor = mix(uBaseColor, horizonColor, hazeFactor);\n\n//     gl_FragColor = vec4(finalColor, 1.0);\n// }\n\n// uniform vec3 uBaseColor;\n// uniform sampler2D uEnvMap;\n// uniform vec3 uCameraPosition;\n// uniform float uHazeStart;\n// uniform float uHazeEnd;\n// uniform float uHazeIntensity;\n\n// void main() {\n//     // Direction from camera to fragment\n//     vec3 viewDir = normalize(vWorldPosition - uCameraPosition);\n\n//     // Force horizontal direction for horizon\n//     vec3 horizonDir = normalize(vec3(viewDir.x, 0.0, viewDir.z));\n\n//     // Convert to equirectangular UV\n//     float u = atan(horizonDir.z, horizonDir.x) / (2.0 * 3.14159265) + 0.5;\n//     float v = asin(clamp(horizonDir.y, -1.0, 1.0)) / 3.14159265 + 0.5;\n\n//     // Apply optional vertical offset to align HDRI horizon\n//     v += 0.05;\n//     v = clamp(v, 0.0, 1.0);\n\n//     // Sample HDRI for horizon color\n//     vec3 horizonColor = texture2D(uEnvMap, vec2(u, v)).rgb;\n//     horizonColor = pow(horizonColor, vec3(1.0/2.2));\n\n//     // Distance-based haze factor\n//     float hazeFactor = smoothstep(uHazeStart, uHazeEnd, vDistanceFromCamera) * uHazeIntensity;\n\n//     // Blend base color (black) with horizon color\n//     vec3 finalColor = mix(uBaseColor, horizonColor, hazeFactor);\n\n//     gl_FragColor = vec4(finalColor, 1.0);\n// }\n\nvarying vec3 vWorldPosition;\nvarying float vDistanceFromCamera;\n\nuniform vec3 uBaseColor;\nuniform sampler2D uEnvMap;          // Equirectangular HDR texture\nuniform vec3 uCameraPosition;\nuniform float uHazeStart;\nuniform float uHazeEnd;\nuniform float uHazeIntensity;\n\n#define PI 3.14159265359\n\nvoid main() {\n    // 1\uFE0F\u20E3 Direction from camera to fragment\n    vec3 viewDir = normalize(vWorldPosition - uCameraPosition);\n\n    // 2\uFE0F\u20E3 Horizon direction (force horizontal)\n    vec3 horizonDir = normalize(vec3(viewDir.x, 0.0, viewDir.z));\n\n    // 3\uFE0F\u20E3 Convert direction to equirectangular UV coordinates\n    float u = atan(horizonDir.z, horizonDir.x) / (2.0 * PI) + 0.5;\n    float v = 0.5; // Sample at horizon (middle of texture vertically)\n\n    // 4\uFE0F\u20E3 Sample HDR texture\n    vec3 horizonColor = texture2D(uEnvMap, vec2(u, v)).rgb;\n\n    // 5\uFE0F\u20E3 Distance-based haze factor\n    float hazeFactor = smoothstep(uHazeStart, uHazeEnd, vDistanceFromCamera) * uHazeIntensity;\n\n    // 6\uFE0F\u20E3 Blend base color with horizon color\n    vec3 finalColor = mix(uBaseColor, horizonColor, hazeFactor);\n\n    gl_FragColor = vec4(finalColor, 1.0);\n}";
 
 },{}],"joMhG":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
@@ -226217,65 +225780,7 @@ class SoundManager {
 // Export the class
 exports.default = SoundManager;
 
-},{"three":"ktPTu","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"9rntO":[function(require,module,exports) {
-let workerURL = require("6a83a7f32f957bdd");
-let bundleURL = require("d9355504f81e2227");
-let url = bundleURL.getBundleURL("g05j8") + "grassWorker.a627e1b8.js" + "?" + Date.now();
-module.exports = workerURL(url, bundleURL.getOrigin(url), false);
-
-},{"6a83a7f32f957bdd":"cn2gM","d9355504f81e2227":"lgJ39"}],"cn2gM":[function(require,module,exports) {
-"use strict";
-module.exports = function(workerUrl, origin, isESM) {
-    if (origin === self.location.origin) // If the worker bundle's url is on the same origin as the document,
-    // use the worker bundle's own url.
-    return workerUrl;
-    else {
-        // Otherwise, create a blob URL which loads the worker bundle with `importScripts`.
-        var source = isESM ? "import " + JSON.stringify(workerUrl) + ";" : "importScripts(" + JSON.stringify(workerUrl) + ");";
-        return URL.createObjectURL(new Blob([
-            source
-        ], {
-            type: "application/javascript"
-        }));
-    }
-};
-
-},{}],"lgJ39":[function(require,module,exports) {
-"use strict";
-var bundleURL = {};
-function getBundleURLCached(id) {
-    var value = bundleURL[id];
-    if (!value) {
-        value = getBundleURL();
-        bundleURL[id] = value;
-    }
-    return value;
-}
-function getBundleURL() {
-    try {
-        throw new Error();
-    } catch (err) {
-        var matches = ("" + err.stack).match(/(https?|file|ftp|(chrome|moz|safari-web)-extension):\/\/[^)\n]+/g);
-        if (matches) // The first two stack frames will be this function and getBundleURLCached.
-        // Use the 3rd one, which will be a runtime in the original bundle.
-        return getBaseURL(matches[2]);
-    }
-    return "/";
-}
-function getBaseURL(url) {
-    return ("" + url).replace(/^((?:https?|file|ftp|(chrome|moz|safari-web)-extension):\/\/.+)\/[^/]+$/, "$1") + "/";
-}
-// TODO: Replace uses with `new URL(url).origin` when ie11 is no longer supported.
-function getOrigin(url) {
-    var matches = ("" + url).match(/(https?|file|ftp|(chrome|moz|safari-web)-extension):\/\/[^/]+/);
-    if (!matches) throw new Error("Origin not found");
-    return matches[0];
-}
-exports.getBundleURL = getBundleURLCached;
-exports.getBaseURL = getBaseURL;
-exports.getOrigin = getOrigin;
-
-},{}],"lO5cP":[function(require,module,exports) {
+},{"three":"ktPTu","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"lO5cP":[function(require,module,exports) {
 module.exports = require("dd222b79712c52e8")(require("d0c08065803cb1").getBundleURL("g05j8") + "GrassScene.ebc2bef3.js" + "?" + Date.now()).catch((err)=>{
     delete module.bundle.cache[module.id];
     throw err;
@@ -226341,6 +225846,450 @@ module.exports = function(loader, type) {
             throw e;
         });
     };
+};
+
+},{}],"lgJ39":[function(require,module,exports) {
+"use strict";
+var bundleURL = {};
+function getBundleURLCached(id) {
+    var value = bundleURL[id];
+    if (!value) {
+        value = getBundleURL();
+        bundleURL[id] = value;
+    }
+    return value;
+}
+function getBundleURL() {
+    try {
+        throw new Error();
+    } catch (err) {
+        var matches = ("" + err.stack).match(/(https?|file|ftp|(chrome|moz|safari-web)-extension):\/\/[^)\n]+/g);
+        if (matches) // The first two stack frames will be this function and getBundleURLCached.
+        // Use the 3rd one, which will be a runtime in the original bundle.
+        return getBaseURL(matches[2]);
+    }
+    return "/";
+}
+function getBaseURL(url) {
+    return ("" + url).replace(/^((?:https?|file|ftp|(chrome|moz|safari-web)-extension):\/\/.+)\/[^/]+$/, "$1") + "/";
+}
+// TODO: Replace uses with `new URL(url).origin` when ie11 is no longer supported.
+function getOrigin(url) {
+    var matches = ("" + url).match(/(https?|file|ftp|(chrome|moz|safari-web)-extension):\/\/[^/]+/);
+    if (!matches) throw new Error("Origin not found");
+    return matches[0];
+}
+exports.getBundleURL = getBundleURLCached;
+exports.getBaseURL = getBaseURL;
+exports.getOrigin = getOrigin;
+
+},{}],"3FIfR":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "TerrainManager", ()=>TerrainManager);
+var _three = require("three");
+var _vanilla = require("three-custom-shader-material/vanilla");
+var _vanillaDefault = parcelHelpers.interopDefault(_vanilla);
+var _grassJs = require("./shaders/grass.js");
+var _grassJsDefault = parcelHelpers.interopDefault(_grassJs);
+var _horizonHazeMaterialJs = require("./materials/horizonHazeMaterial.js");
+var _terrainConfigJs = require("./terrainConfig.js");
+class TerrainManager {
+    // Constants
+    #chunkSize = 400;
+    #viewRadius = 5;
+    #unloadRadius = 6;
+    #chunkVertexCount = 11;
+    #instanceCount = 7000;
+    #GRASS_MESH_ENVMAP_INTENSITY = 0.35;
+    #specialChunks = {
+    };
+    #GRASS_LOD_LEVELS = [
+        {
+            distanceSq: 10000,
+            multiplier: 1.0
+        },
+        {
+            distanceSq: 22500,
+            multiplier: 1.0
+        },
+        {
+            distanceSq: 40000,
+            multiplier: 0.95
+        },
+        {
+            distanceSq: 62500,
+            multiplier: 0.92
+        },
+        {
+            distanceSq: 90000,
+            multiplier: 0.80
+        },
+        {
+            distanceSq: 122500,
+            multiplier: 0.70
+        },
+        {
+            distanceSq: 160000,
+            multiplier: 0.60
+        },
+        {
+            distanceSq: 202500,
+            multiplier: 0.50
+        },
+        {
+            distanceSq: 250000,
+            multiplier: 0.40
+        },
+        {
+            distanceSq: 360000,
+            multiplier: 0.30
+        },
+        {
+            distanceSq: 490000,
+            multiplier: 0.2
+        },
+        {
+            distanceSq: 640000,
+            multiplier: 0.1
+        },
+        {
+            distanceSq: 810000,
+            multiplier: 0.1
+        },
+        {
+            distanceSq: 1000000,
+            multiplier: 0.01
+        },
+        {
+            distanceSq: 1440000,
+            multiplier: 0.01
+        },
+        {
+            distanceSq: Infinity,
+            multiplier: 0.001
+        }
+    ];
+    // State
+    #loadedChunks = new Map();
+    #grassWorkerPool = [];
+    #grassWorkerQueue = [];
+    #allGrassComputed = false;
+    // References
+    #worldScene;
+    #camera;
+    #bladeGeometry;
+    #grassMaterial;
+    #groundMaterial;
+    #halfChunkSize;
+    constructor({ worldScene, camera, grassDiffuseMap }){
+        this.#worldScene = worldScene;
+        this.#camera = camera;
+        this.#halfChunkSize = this.#chunkSize * 0.5;
+        // Create grass blade geometry
+        this.#bladeGeometry = new _three.ShapeGeometry(this.#createGrassBladeShape());
+        // Create grass material
+        this.#grassMaterial = new (0, _vanillaDefault.default)({
+            baseMaterial: _three.MeshStandardMaterial,
+            uniforms: {
+                time: {
+                    value: 0.0
+                },
+                grassTexture: {
+                    value: grassDiffuseMap
+                },
+                cameraPos: {
+                    value: camera.position
+                }
+            },
+            vertexShader: (0, _grassJsDefault.default).vert,
+            fragmentShader: (0, _grassJsDefault.default).frag,
+            vertexColors: false,
+            side: _three.DoubleSide,
+            fog: true
+        });
+        // Create ground material
+        this.#groundMaterial = (0, _horizonHazeMaterialJs.createHorizonHazeMaterial)({
+            baseColor: new _three.Color(0x000000),
+            envMap: worldScene.envMap,
+            hazeStart: 1300,
+            hazeEnd: 1700,
+            horizonHeight: 0.5,
+            hazeIntensity: 0.65
+        });
+        // Update ground material when skybox finishes loading
+        worldScene.skyboxPromise.then((texture)=>{
+            if (this.#groundMaterial && this.#groundMaterial.uniforms) {
+                this.#groundMaterial.uniforms.uEnvMap.value = texture;
+                this.#groundMaterial.needsUpdate = true;
+            }
+        });
+        // Initialize worker pool
+        this.#initWorkerPool();
+    }
+    // Whether all queued grass worker tasks have finished
+    get allGrassComputed() {
+        return this.#allGrassComputed;
+    }
+    // Generate the starting grid of terrain chunks (sizeInChunks x sizeInChunks)
+    loadInitialTerrain(sizeInChunks) {
+        for(let z = 0; z < sizeInChunks; z++)for(let x = 0; x < sizeInChunks; x++){
+            const chunkKey = `${x},${z}`;
+            if (!this.#loadedChunks.has(chunkKey)) {
+                const chunkMesh = this.#generateChunk(x, z);
+                this.#worldScene.scene.add(chunkMesh);
+                this.#loadedChunks.set(chunkKey, {
+                    terrainMesh: chunkMesh
+                });
+            }
+        }
+    }
+    // Per-frame update: haze camera uniform, chunk streaming, grass LOD and wind
+    update(playerPosition, deltaTime) {
+        // Update ground material camera position for horizon haze effect
+        this.#groundMaterial.uniforms.uCameraPosition.value.copy(playerPosition);
+        // Dynamically update chunks
+        this.#loadChunksAroundPlayer(playerPosition);
+        this.#adjustGrassInstanceCount(playerPosition);
+        this.#unloadFarChunks(playerPosition);
+        // Update time for wind animation
+        this.#grassMaterial.uniforms.time.value += deltaTime * 1.0;
+    }
+    // Build the tapered triangle Shape used for each grass blade
+    #createGrassBladeShape() {
+        const shape = new _three.Shape();
+        shape.moveTo(-0.074, 0);
+        shape.lineTo(0.074, 0);
+        shape.lineTo(0, 2.2);
+        shape.lineTo(-0.074, 0);
+        return shape;
+    }
+    // Spawn web workers (one per CPU core) for off-thread grass placement
+    #initWorkerPool() {
+        const workerPoolSize = navigator.hardwareConcurrency || 4;
+        for(let i = 0; i < workerPoolSize; i++){
+            const worker = new Worker(require("a1009931bde32a6f"));
+            worker.onmessage = (event)=>this.#handleWorkerMessage(event, worker);
+            this.#grassWorkerPool.push(worker);
+        }
+    }
+    // Receive computed grass data from a worker and create the InstancedMesh
+    #handleWorkerMessage(event, worker) {
+        const { chunkKey, grassGeometryData } = event.data;
+        const grassGeometry = new _three.InstancedBufferGeometry();
+        grassGeometry.copy(this.#bladeGeometry);
+        grassGeometry.setAttribute("instanceRotationMatrix", new _three.InstancedBufferAttribute(grassGeometryData.rotationMatrices, 9));
+        grassGeometry.setAttribute("scale", new _three.InstancedBufferAttribute(grassGeometryData.scales, 1));
+        grassGeometry.setAttribute("uv", new _three.InstancedBufferAttribute(grassGeometryData.uvs, 2));
+        grassGeometry.setAttribute("offset", new _three.InstancedBufferAttribute(grassGeometryData.offsets, 3));
+        const grassMesh = new _three.InstancedMesh(grassGeometry, this.#grassMaterial, grassGeometryData.instanceCount);
+        grassMesh.geometry.boundingSphere = grassGeometryData.boundingSphere;
+        grassMesh.material.envMap = this.#worldScene.envMap;
+        grassMesh.material.envMapIntensity = this.#GRASS_MESH_ENVMAP_INTENSITY;
+        this.#worldScene.scene.add(grassMesh);
+        if (this.#loadedChunks.has(chunkKey)) this.#loadedChunks.get(chunkKey).grassMesh = grassMesh;
+        if (this.#grassWorkerQueue.length > 0) {
+            const nextTask = this.#grassWorkerQueue.shift();
+            worker.postMessage(nextTask);
+        } else {
+            this.#grassWorkerPool.push(worker);
+            this.#allGrassComputed = true;
+        }
+    }
+    // Send a task to an idle worker, or queue it if all workers are busy
+    #postToGrassWorker(task) {
+        if (this.#grassWorkerPool.length > 0) {
+            const worker = this.#grassWorkerPool.pop();
+            worker.postMessage(task);
+        } else this.#grassWorkerQueue.push(task);
+    }
+    // Create a terrain mesh and dispatch grass generation for one chunk
+    #generateChunk(x, z) {
+        const offsetX = x * this.#chunkSize;
+        const offsetZ = z * this.#chunkSize;
+        const chunkKey = `${x},${z}`;
+        const isSpecialChunk = this.#specialChunks.hasOwnProperty(chunkKey);
+        const chunkProps = isSpecialChunk ? this.#specialChunks[chunkKey] : {
+            type: "default",
+            materialColor: 0x000000,
+            grassBladeCount: this.#instanceCount
+        };
+        this.#postToGrassWorker({
+            chunkKey,
+            offsetX,
+            offsetZ,
+            chunkSize: this.#chunkSize,
+            instanceCount: chunkProps.grassBladeCount
+        });
+        const baseGeometry = new _three.PlaneGeometry(this.#chunkSize, this.#chunkSize, this.#chunkVertexCount, this.#chunkVertexCount);
+        baseGeometry.rotateX(-Math.PI / 2);
+        baseGeometry.translate(this.#chunkSize / 2, 0, this.#chunkSize / 2);
+        const chunkBoundingSphere = new _three.Sphere(new _three.Vector3(this.#chunkSize, 0.0, this.#chunkSize), this.#chunkSize * 1.5);
+        baseGeometry.boundingSphere = chunkBoundingSphere;
+        const vertices = baseGeometry.attributes.position.array;
+        for(let i = 0; i < vertices.length; i += 3){
+            const vertexX = vertices[i] + offsetX;
+            const vertexZ = vertices[i + 2] + offsetZ;
+            vertices[i + 1] = (0, _terrainConfigJs.getHeight)(vertexX, vertexZ);
+        }
+        const chunkMesh = new _three.Mesh(baseGeometry, this.#groundMaterial);
+        chunkMesh.position.set(offsetX, 0, offsetZ);
+        return chunkMesh;
+    }
+    // Generate missing chunks within viewRadius of the player
+    #loadChunksAroundPlayer(playerPosition) {
+        const playerChunkX = Math.floor(playerPosition.x / this.#chunkSize);
+        const playerChunkZ = Math.floor(playerPosition.z / this.#chunkSize);
+        for(let dz = -this.#viewRadius; dz <= this.#viewRadius; dz++)for(let dx = -this.#viewRadius; dx <= this.#viewRadius; dx++){
+            const chunkX = playerChunkX + dx;
+            const chunkZ = playerChunkZ + dz;
+            const chunkKey = `${chunkX},${chunkZ}`;
+            if (!this.#loadedChunks.has(chunkKey)) {
+                const chunkMesh = this.#generateChunk(chunkX, chunkZ);
+                this.#worldScene.scene.add(chunkMesh);
+                this.#loadedChunks.set(chunkKey, {
+                    terrainMesh: chunkMesh
+                });
+            }
+        }
+    }
+    // Remove and dispose chunks beyond unloadRadius from the player
+    #unloadFarChunks(playerPosition) {
+        const playerChunkX = Math.floor(playerPosition.x / this.#chunkSize);
+        const playerChunkZ = Math.floor(playerPosition.z / this.#chunkSize);
+        this.#loadedChunks.forEach((chunk, key)=>{
+            const [chunkX, chunkZ] = key.split(",").map(Number);
+            const distance = Math.max(Math.abs(chunkX - playerChunkX), Math.abs(chunkZ - playerChunkZ));
+            if (distance > this.#unloadRadius) {
+                this.#worldScene.scene.remove(chunk.terrainMesh);
+                chunk.terrainMesh.geometry.dispose();
+                if (chunk.grassMesh) {
+                    this.#worldScene.scene.remove(chunk.grassMesh);
+                    chunk.grassMesh.geometry.dispose();
+                }
+                this.#loadedChunks.delete(key);
+            }
+        });
+    }
+    // Reduce visible grass instances on distant chunks for performance
+    #adjustGrassInstanceCount(playerPosition) {
+        const playerX = playerPosition.x;
+        const playerZ = playerPosition.z;
+        this.#loadedChunks.forEach((chunk, key)=>{
+            if (this.#specialChunks.hasOwnProperty(key) || !chunk.grassMesh) return;
+            const [chunkX, chunkZ] = key.split(",").map(Number);
+            const centerX = chunkX * this.#chunkSize + this.#halfChunkSize;
+            const centerZ = chunkZ * this.#chunkSize + this.#halfChunkSize;
+            const deltaX = playerX - centerX;
+            const deltaZ = playerZ - centerZ;
+            const distanceSq = deltaX * deltaX + deltaZ * deltaZ;
+            for(let i = 0; i < this.#GRASS_LOD_LEVELS.length; i++)if (distanceSq <= this.#GRASS_LOD_LEVELS[i].distanceSq) {
+                const newCount = Math.floor(this.#instanceCount * this.#GRASS_LOD_LEVELS[i].multiplier);
+                if (chunk.grassMesh.count !== newCount) chunk.grassMesh.count = newCount;
+                break;
+            }
+        });
+    }
+}
+
+},{"three":"ktPTu","three-custom-shader-material/vanilla":"7rL7K","./shaders/grass.js":"cNzyR","./materials/horizonHazeMaterial.js":"9SL6m","./terrainConfig.js":"hE4Kl","a1009931bde32a6f":"9rntO","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"cNzyR":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _grassbladeVertGlsl = require("./glsl/grassblade.vert.glsl");
+var _grassbladeVertGlslDefault = parcelHelpers.interopDefault(_grassbladeVertGlsl);
+var _grassbladeFragGlsl = require("./glsl/grassblade.frag.glsl");
+var _grassbladeFragGlslDefault = parcelHelpers.interopDefault(_grassbladeFragGlsl);
+exports.default = {
+    frag: (0, _grassbladeFragGlslDefault.default),
+    vert: (0, _grassbladeVertGlslDefault.default)
+};
+
+},{"./glsl/grassblade.vert.glsl":"cdITI","./glsl/grassblade.frag.glsl":"rAUpS","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"cdITI":[function(require,module,exports) {
+module.exports = "#define GLSLIFY 1\nuniform float time;\nuniform float windStrength;\nuniform float displacementScale;\nuniform vec3 cameraPos;\n\nattribute vec3 offset;\nattribute float scale;\nattribute mat3 instanceRotationMatrix;\nattribute vec2 uvs;\n\nvarying vec2 vUv;\nvarying float vHeight;\n\n// Wind cutoff distance - adjust as needed\nconst float WIND_CUTOFF_DISTANCE = 350.0;\n\n// Simplified hash function using fewer operations\nfloat hash(vec2 p) {\n    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);\n}\n\n// Simplified noise - single sample instead of bilinear interpolation\nfloat fastNoise(vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n    // Use smoother step function\n    vec2 u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);\n    \n    return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x),\n               mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);\n}\n\nvoid main() {\n    vUv = uv;\n    \n    // Transform grass geometry\n    vec3 transformedGrass = position * scale;\n    transformedGrass = instanceRotationMatrix * transformedGrass;\n    transformedGrass += offset;\n    \n    // Pre-calculate commonly used values\n    vHeight = clamp(position.y, 0.0, 1.0);\n    \n    // Calculate distance to camera (only XZ plane for ground-level grass)\n    float distanceToCamera = length(transformedGrass.xz - cameraPos.xz);\n    //float distanceSq = dot(transformedGrass.xz - cameraPos.xz, transformedGrass.xz - cameraPos.xz);\n    \n    // Skip wind calculations if beyond cutoff distance\n    if (distanceToCamera <= WIND_CUTOFF_DISTANCE) {\n        vec2 worldPos = transformedGrass.xz;\n        \n        // Single noise calculation for both axes (reuse result)\n        float baseNoise = fastNoise(worldPos * 0.1);\n        float timeNoise = fastNoise(vec2(time * 0.1, time * 0.05));\n        \n        // Combine noise effects\n        float windVariation = timeNoise * 0.35;\n        float totalWindEffect = 0.13 + windVariation;\n        \n        // Pre-calculate sine wave components\n        float timeOffset = time * 2.0;\n        float noiseOffset = baseNoise;\n        \n        // Calculate displacement power once\n        float displacementPower = 1.0 - cos(vHeight * 7.854); // 3.1416 / 0.4 = 7.854\n        \n        // Apply wind displacement to both axes\n        float sinZ = sin(offset.z * noiseOffset + timeOffset);\n        float sinX = sin(offset.x * noiseOffset + timeOffset);\n        \n        transformedGrass.z += sinZ * totalWindEffect * displacementPower;\n        transformedGrass.x += sinX * totalWindEffect * displacementPower * 1.2; \n    }\n    \n    csm_Position = transformedGrass;\n}\n\n/*\nuniform float time;\nuniform vec2 u_touch; // Touch position\nuniform float u_time; // Time for animating wind\nuniform float u_touchActive; // Indicates if the touch is active\nuniform float u_fadeSpeed;\nuniform float u_touchTime;\nuniform float windStrength;\nuniform sampler2D displacementMap;\nuniform float fieldSize;\nuniform float displacementScale;\n\nattribute vec3 offset;\nattribute float scale;\n//attribute float normalizedHeight;\nattribute mat3 instanceRotationMatrix;\nattribute vec2 uvs; // Incoming UV coordinates\n//varying vec2 sendUV;\n//attribute float rotation;\nvarying vec2 vUv;\n//varying vec2 csm_cloudUV;\n//varying vec3 csm_vWorldPosition;\n//varying vec3 csm_vViewPosition;\nvarying float vHeight;\n//varying vec3 csm_vPosition;\n\n\nfloat hash(vec2 p) {\n    p = 50.0 * fract(p * 0.3183099 + vec2(0.71));\n    return -1.0 + 2.0 * fract(p.x * p.y * (p.x + p.y));\n}\n\nfloat noise(vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n    vec2 u = f * f * (3.0 - 2.0 * f);\n    \n    return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),\n               mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);\n}\n\nvoid main() {\n    precision mediump float;\n\n            vUv = uv;\n       \n            vec3 transformedGrass = position * scale;\n            transformedGrass = instanceRotationMatrix * transformedGrass;\n            transformedGrass += offset;\n\n            vHeight = clamp(position.y, 0.0, 1.0); \n            \n            // Generate noise based on time\n            float n = noise(vec2(time * 0.1, time * 0.05));\n\n            // Scale the noise value to be in the range [0.0, 0.2]\n            float varyingValue = n * 0.35;\n  \n            float noise = noise(offset.xz);\n\n  \n\n            // Displacement power calculation\n            float displacementPower = 1.0 - cos( vHeight * 3.1416 / 0.4 );\n\n            //displacementMultiplier = 1.0 - cos(windEffect * vHeight * 3.1416);\n\n\n            transformedGrass.z += sin(offset.z * noise  + time * 2.0) * (0.13 + varyingValue) * displacementPower;\n            //transformedGrass.z += displacementMultiplier; // Add fading push effect on Z-axis\n\n            transformedGrass.x += sin(offset.x * noise  + time * 2.0) * (0.17 + varyingValue) * displacementPower;\n            //transformedGrass.x += displacementMultiplier; // Add fading push effect on X-axis\n            // + ((windEffect * 1.2) * vHeight) \n\n            csm_Position = transformedGrass;\n  \n}\n*/\n\n";
+
+},{}],"rAUpS":[function(require,module,exports) {
+module.exports = "#define GLSLIFY 1\nuniform sampler2D grassTexture;\nvarying vec2 vUv;\nvarying float vHeight;\n\n// Move constants outside main() - they're compile-time constants\nconst float brightness = 1.15;\nconst vec3 topBladeColor = vec3(0.365, 0.588, 0.369);\nconst float mixFactor = 0.80;\nconst float uvScale = 0.5; // 1.0/100.0 precomputed\n\nvoid main() {\n    // Remove precision declaration from main() - should be at top of shader\n    \n    // Single texture lookup\n    vec3 textureColor = texture2D(grassTexture, vUv * uvScale).rgb;\n    \n    // Combine operations to reduce instructions\n    // Mix with top blade color and apply height-based darkening in one step\n    float heightCubed = vHeight * vHeight * vHeight * vHeight;\n    textureColor = mix(textureColor, topBladeColor, mixFactor) * heightCubed * brightness;\n    \n    csm_DiffuseColor = vec4(textureColor, 1.0);\n}\n\n/*\nuniform sampler2D grassTexture;\n//uniform sampler2D cloudTexture;\n//uniform vec3 fogColor;\n//uniform float fogDensity;\n//uniform vec3 vCameraPosition;\nvarying vec2 vUv;\n//varying vec2 sendUV;\n//varying vec2 cloudUV;\n//varying vec3 vWorldPosition;\n//varying vec3 csm_vWorldPosition;\nvarying float vHeight;\n//varying vec3 vPosition;\n//varying vec3 vViewPosition;\n//varying vec4 csm_DiffuseColor;\n\n//float contrast = 1.5;\nfloat brightness = 1.25;\n//vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n\nvec3 topBladeColor = vec3(0.365, 0.588, 0.369);\n\n\nvoid main() {\n\n    precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    \n    //float depth = length(csm_vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    //float fogFactor = 1.0 - exp(-fogDensity * depth);\n    //fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv / 100.0).rgb;\n    textureColor = mix(textureColor, topBladeColor, 0.70);\n    //float vHeight = clamp(vHeight, 0.0, 1.0);\n    textureColor *= vHeight * vHeight * vHeight;\n    textureColor *= brightness;\n\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    //vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n    //finalColor = mix(csm_DiffuseColor.rgb, topBladeColor, 1.0);\n    //csm_Emissive = textureColor;\n\n    csm_DiffuseColor = vec4(textureColor, 1.0);\n\n\n\n}\n\n*//*\nuniform sampler2D grassTexture;\n//uniform sampler2D cloudTexture;\n//uniform vec3 fogColor;\n//uniform float fogDensity;\n//uniform vec3 vCameraPosition;\nvarying vec2 vUv;\n//varying vec2 sendUV;\n//varying vec2 cloudUV;\n//varying vec3 vWorldPosition;\n//varying vec3 csm_vWorldPosition;\nvarying float vHeight;\n//varying vec3 vPosition;\n//varying vec3 vViewPosition;\n//varying vec4 csm_DiffuseColor;\n\n//float contrast = 1.5;\nfloat brightness = 1.25;\n//vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n\nvec3 topBladeColor = vec3(0.365, 0.588, 0.369);\n\n\nvoid main() {\n\n    precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    \n    //float depth = length(csm_vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    //float fogFactor = 1.0 - exp(-fogDensity * depth);\n    //fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv / 100.0).rgb;\n    textureColor = mix(textureColor, topBladeColor, 0.70);\n    //float vHeight = clamp(vHeight, 0.0, 1.0);\n    textureColor *= vHeight * vHeight * vHeight;\n    textureColor *= brightness;\n\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    //vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n    //finalColor = mix(csm_DiffuseColor.rgb, topBladeColor, 1.0);\n    //csm_Emissive = textureColor;\n\n    csm_DiffuseColor = vec4(textureColor, 1.0);\n\n\n\n}\n\n*//*\nuniform sampler2D grassTexture;\n//uniform sampler2D cloudTexture;\n//uniform vec3 fogColor;\n//uniform float fogDensity;\n//uniform vec3 vCameraPosition;\nvarying vec2 vUv;\n//varying vec2 sendUV;\n//varying vec2 cloudUV;\n//varying vec3 vWorldPosition;\n//varying vec3 csm_vWorldPosition;\nvarying float vHeight;\n//varying vec3 vPosition;\n//varying vec3 vViewPosition;\n//varying vec4 csm_DiffuseColor;\n\n//float contrast = 1.5;\nfloat brightness = 1.25;\n//vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n\nvec3 topBladeColor = vec3(0.365, 0.588, 0.369);\n\n\nvoid main() {\n\n    precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    \n    //float depth = length(csm_vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    //float fogFactor = 1.0 - exp(-fogDensity * depth);\n    //fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv / 100.0).rgb;\n    textureColor = mix(textureColor, topBladeColor, 0.70);\n    //float vHeight = clamp(vHeight, 0.0, 1.0);\n    textureColor *= vHeight * vHeight * vHeight;\n    textureColor *= brightness;\n\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    //vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n    //finalColor = mix(csm_DiffuseColor.rgb, topBladeColor, 1.0);\n    //csm_Emissive = textureColor;\n\n    csm_DiffuseColor = vec4(textureColor, 1.0);\n\n\n\n}\n\n*//*\nuniform sampler2D grassTexture;\n//uniform sampler2D cloudTexture;\n//uniform vec3 fogColor;\n//uniform float fogDensity;\n//uniform vec3 vCameraPosition;\nvarying vec2 vUv;\n//varying vec2 sendUV;\n//varying vec2 cloudUV;\n//varying vec3 vWorldPosition;\n//varying vec3 csm_vWorldPosition;\nvarying float vHeight;\n//varying vec3 vPosition;\n//varying vec3 vViewPosition;\n//varying vec4 csm_DiffuseColor;\n\n//float contrast = 1.5;\nfloat brightness = 1.25;\n//vec3 topBladeColor = vec3(0.882, 0.901, 0.564);\n\nvec3 topBladeColor = vec3(0.365, 0.588, 0.369);\n\n\nvoid main() {\n\n    precision mediump float;\n    //csm_DiffuseColor = color;\n    //vec4 testColor = vec4(1.0, 0.0, 0.0, 1.0);\n    //vec4 mixColor = vec4(mix(testColor, csm_DiffuseColor, 1.0));\n    //csm_DiffuseColor = vec4(1.0, 1.0, 1.0, 1.0);\n    \n    \n    //float depth = length(csm_vWorldPosition - cameraPosition);\n\n    // Calculate the fog factor using an exponential function\n\n    //float fogFactor = 1.0 - exp(-fogDensity * depth);\n    //fogFactor = clamp(fogFactor, 0.0, 1.0);\n    // Sample the texture using the UV coordinates\n    vec3 textureColor = texture2D(grassTexture, vUv / 100.0).rgb;\n    textureColor = mix(textureColor, topBladeColor, 0.70);\n    //float vHeight = clamp(vHeight, 0.0, 1.0);\n    textureColor *= vHeight * vHeight * vHeight;\n    textureColor *= brightness;\n\n\n    //vec3 brightenedColor = textureColor.rgb * vHeight;\n    //vec3 finalColor = mix(textureColor, fogColor, fogFactor);\n    //vec3 finalColor = mix(textureColor, cloudColor, 0.4);\n    //gl_FragColor = vec4(vWorldPosition.z, 0.0, 0.0, 1.0);\n    //gl_FragColor = vec4(textureColor, 1.0);\n    //finalColor = mix(csm_DiffuseColor.rgb, topBladeColor, 1.0);\n    //csm_Emissive = textureColor;\n\n    csm_DiffuseColor = vec4(textureColor, 1.0);\n\n\n\n}\n\n*/";
+
+},{}],"9SL6m":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "createHorizonHazeMaterial", ()=>createHorizonHazeMaterial);
+var _three = require("three");
+var _horizonHazeJs = require("../shaders/horizonHaze.js");
+var _horizonHazeJsDefault = parcelHelpers.interopDefault(_horizonHazeJs);
+function createHorizonHazeMaterial(options = {}) {
+    const { baseColor = new _three.Color(0x000000), envMap = envMap, hazeStart = 100, hazeEnd = 500, horizonHeight = 0.05, hazeIntensity = 1.0 // overall haze strength (0-1)
+     } = options;
+    const material = new _three.ShaderMaterial({
+        uniforms: {
+            uBaseColor: {
+                value: baseColor
+            },
+            uEnvMap: {
+                value: envMap
+            },
+            uCameraPosition: {
+                value: new _three.Vector3()
+            },
+            uHazeStart: {
+                value: hazeStart
+            },
+            uHazeEnd: {
+                value: hazeEnd
+            },
+            uHorizonHeight: {
+                value: horizonHeight
+            },
+            uHazeIntensity: {
+                value: hazeIntensity
+            }
+        },
+        vertexShader: (0, _horizonHazeJsDefault.default).vert,
+        fragmentShader: (0, _horizonHazeJsDefault.default).frag,
+        side: _three.FrontSide
+    });
+    return material;
+}
+
+},{"three":"ktPTu","../shaders/horizonHaze.js":"iM9hs","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"iM9hs":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _horizonHazeVertGlsl = require("./glsl/horizonHaze.vert.glsl");
+var _horizonHazeVertGlslDefault = parcelHelpers.interopDefault(_horizonHazeVertGlsl);
+var _horizonHazeFragGlsl = require("./glsl/horizonHaze.frag.glsl");
+var _horizonHazeFragGlslDefault = parcelHelpers.interopDefault(_horizonHazeFragGlsl);
+exports.default = {
+    frag: (0, _horizonHazeFragGlslDefault.default),
+    vert: (0, _horizonHazeVertGlslDefault.default)
+};
+
+},{"./glsl/horizonHaze.vert.glsl":"998J4","./glsl/horizonHaze.frag.glsl":"5qECw","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"998J4":[function(require,module,exports) {
+module.exports = "#define GLSLIFY 1\nvarying vec3 vWorldPosition;\nvarying float vDistanceFromCamera;\n\nuniform vec3 uCameraPosition;\n\nvoid main() {\n    vec4 worldPosition = modelMatrix * vec4(position, 1.0);\n    vWorldPosition = worldPosition.xyz;\n\n    // Calculate distance from camera (horizontal only, ignore Y)\n    vec2 horizontalDist = worldPosition.xz - uCameraPosition.xz;\n    vDistanceFromCamera = length(horizontalDist);\n\n    gl_Position = projectionMatrix * viewMatrix * worldPosition;\n}\n";
+
+},{}],"5qECw":[function(require,module,exports) {
+module.exports = "#define GLSLIFY 1\n\n// uniform vec3 uBaseColor;\n// uniform sampler2D uEnvMap;\n// uniform vec3 uCameraPosition;\n// uniform float uHazeStart;\n// uniform float uHazeEnd;\n// uniform float uHazeIntensity;\n\n// void main() {\n//     // Direction from camera to fragment\n//     vec3 viewDir = normalize(vWorldPosition - uCameraPosition);\n\n//     // Horizon direction (force horizontal)\n//     vec3 horizonDir = normalize(vec3(viewDir.x, 0.0, viewDir.z));\n\n//     // Convert to equirectangular UV\n//     float u = atan(horizonDir.z, horizonDir.x) / (2.0 * 3.14159265) + 0.5;\n//     float v = asin(clamp(horizonDir.y, -1.0, 1.0)) / 3.14159265 + 0.5;\n\n//     // Sample HDRI\n//     vec3 horizonColor = texture2D(uEnvMap, vec2(u, v)).rgb;\n\n//     // Distance-based haze\n//     float hazeFactor = smoothstep(uHazeStart, uHazeEnd, vDistanceFromCamera) * uHazeIntensity;\n\n//     // Final color\n//     vec3 finalColor = mix(uBaseColor, horizonColor, hazeFactor);\n\n//     gl_FragColor = vec4(finalColor, 1.0);\n// }\n\n// uniform vec3 uBaseColor;\n// uniform sampler2D uEnvMap;\n// uniform vec3 uCameraPosition;\n// uniform float uHazeStart;\n// uniform float uHazeEnd;\n// uniform float uHazeIntensity;\n\n// void main() {\n//     // Direction from camera to fragment\n//     vec3 viewDir = normalize(vWorldPosition - uCameraPosition);\n\n//     // Force horizontal direction for horizon\n//     vec3 horizonDir = normalize(vec3(viewDir.x, 0.0, viewDir.z));\n\n//     // Convert to equirectangular UV\n//     float u = atan(horizonDir.z, horizonDir.x) / (2.0 * 3.14159265) + 0.5;\n//     float v = asin(clamp(horizonDir.y, -1.0, 1.0)) / 3.14159265 + 0.5;\n\n//     // Apply optional vertical offset to align HDRI horizon\n//     v += 0.05;\n//     v = clamp(v, 0.0, 1.0);\n\n//     // Sample HDRI for horizon color\n//     vec3 horizonColor = texture2D(uEnvMap, vec2(u, v)).rgb;\n//     horizonColor = pow(horizonColor, vec3(1.0/2.2));\n\n//     // Distance-based haze factor\n//     float hazeFactor = smoothstep(uHazeStart, uHazeEnd, vDistanceFromCamera) * uHazeIntensity;\n\n//     // Blend base color (black) with horizon color\n//     vec3 finalColor = mix(uBaseColor, horizonColor, hazeFactor);\n\n//     gl_FragColor = vec4(finalColor, 1.0);\n// }\n\nvarying vec3 vWorldPosition;\nvarying float vDistanceFromCamera;\n\nuniform vec3 uBaseColor;\nuniform sampler2D uEnvMap;          // Equirectangular HDR texture\nuniform vec3 uCameraPosition;\nuniform float uHazeStart;\nuniform float uHazeEnd;\nuniform float uHazeIntensity;\n\n#define PI 3.14159265359\n\nvoid main() {\n    // 1\uFE0F\u20E3 Direction from camera to fragment\n    vec3 viewDir = normalize(vWorldPosition - uCameraPosition);\n\n    // 2\uFE0F\u20E3 Horizon direction (force horizontal)\n    vec3 horizonDir = normalize(vec3(viewDir.x, 0.0, viewDir.z));\n\n    // 3\uFE0F\u20E3 Convert direction to equirectangular UV coordinates\n    float u = atan(horizonDir.z, horizonDir.x) / (2.0 * PI) + 0.5;\n    float v = 0.5; // Sample at horizon (middle of texture vertically)\n\n    // 4\uFE0F\u20E3 Sample HDR texture\n    vec3 horizonColor = texture2D(uEnvMap, vec2(u, v)).rgb;\n\n    // 5\uFE0F\u20E3 Distance-based haze factor\n    float hazeFactor = smoothstep(uHazeStart, uHazeEnd, vDistanceFromCamera) * uHazeIntensity;\n\n    // 6\uFE0F\u20E3 Blend base color with horizon color\n    vec3 finalColor = mix(uBaseColor, horizonColor, hazeFactor);\n\n    gl_FragColor = vec4(finalColor, 1.0);\n}";
+
+},{}],"9rntO":[function(require,module,exports) {
+let workerURL = require("6a83a7f32f957bdd");
+let bundleURL = require("d9355504f81e2227");
+let url = bundleURL.getBundleURL("g05j8") + "grassWorker.a627e1b8.js" + "?" + Date.now();
+module.exports = workerURL(url, bundleURL.getOrigin(url), false);
+
+},{"6a83a7f32f957bdd":"cn2gM","d9355504f81e2227":"lgJ39"}],"cn2gM":[function(require,module,exports) {
+"use strict";
+module.exports = function(workerUrl, origin, isESM) {
+    if (origin === self.location.origin) // If the worker bundle's url is on the same origin as the document,
+    // use the worker bundle's own url.
+    return workerUrl;
+    else {
+        // Otherwise, create a blob URL which loads the worker bundle with `importScripts`.
+        var source = isESM ? "import " + JSON.stringify(workerUrl) + ";" : "importScripts(" + JSON.stringify(workerUrl) + ");";
+        return URL.createObjectURL(new Blob([
+            source
+        ], {
+            type: "application/javascript"
+        }));
+    }
 };
 
 },{}]},["l9Mez","ebWYT"], "ebWYT", "parcelRequire2041")
