@@ -1952,6 +1952,30 @@ if (!visitedFromMobileDevice) {
         hideWasdIcon: ()=>uiManager.hideWasdIcon()
     });
     uiManager.setControls(playerController.controls);
+} else {
+    // Mobile touch input for camera rotation
+    let startX = 0;
+    let startY = 0;
+    let isTouching = false;
+    sectionScene.addEventListener("touchstart", (event)=>{
+        isTouching = true;
+        startX = event.touches[0].clientX;
+        startY = event.touches[0].clientY;
+    });
+    sectionScene.addEventListener("touchmove", (e)=>{
+        if (!isTouching) return;
+        const currentX = e.touches[0].clientX;
+        const currentY = e.touches[0].clientY;
+        const deltaX = currentX - startX;
+        const deltaY = currentY - startX;
+        const rotationSpeed = 0.005;
+        camera.rotation.y -= deltaX * rotationSpeed;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+    });
+    sectionScene.addEventListener("touchend", ()=>{
+        isTouching = false;
+    });
 }
 /********************************************************************
 // Terrain Manager
@@ -2067,7 +2091,7 @@ const TEXTURE_SWAP_CHECK_INTERVAL = 100;
     videoTexture.needsUpdate = true;
 }
 
-},{"three":"ktPTu","./terrainConfig.js":"hE4Kl","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/Addons.js":"iBAni","three/examples/jsm/math/Octree.js":"iwBOl","three/examples/jsm/helpers/OctreeHelper.js":"70dYF","three-mesh-bvh":"6y2ur","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","./Utils.js":"c7A1Q","./TerrainManager.js":"3FIfR","./shaders/powerlines.js":"gJXUV","./materials/videoShaderMaterial.js":"iyqMm","./shaders/stonefigure.js":"e77je","./shaders/videoFade.js":"2lLRY","./materials/fadeShaderMaterial.js":"9kv9Y","./patchProjectorMaterial.js":"joMhG","./WorldScene.js":"5ZFD0","./ModelLoader.js":"5o86C","./LODManager.js":"3L9vB","./SoundManager.js":"70lfs","d9e2715bded666eb":"lO5cP","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","./UIManager.js":"dF6ED","./PlayerController.js":"io3Tz"}],"ktPTu":[function(require,module,exports) {
+},{"three":"ktPTu","./terrainConfig.js":"hE4Kl","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","three/examples/jsm/loaders/RGBELoader":"cfP3d","three/examples/jsm/Addons.js":"iBAni","three/examples/jsm/math/Octree.js":"iwBOl","three/examples/jsm/helpers/OctreeHelper.js":"70dYF","three-mesh-bvh":"6y2ur","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/controls/FirstPersonControls.js":"7CSXF","three/examples/jsm/helpers/RectAreaLightHelper.js":"7YxXx","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","./Utils.js":"c7A1Q","./TerrainManager.js":"3FIfR","./shaders/powerlines.js":"gJXUV","./materials/videoShaderMaterial.js":"iyqMm","./shaders/stonefigure.js":"e77je","./shaders/videoFade.js":"2lLRY","./materials/fadeShaderMaterial.js":"9kv9Y","./patchProjectorMaterial.js":"joMhG","./WorldScene.js":"5ZFD0","./UIManager.js":"dF6ED","./PlayerController.js":"io3Tz","./ModelLoader.js":"5o86C","./LODManager.js":"3L9vB","./SoundManager.js":"70lfs","d9e2715bded666eb":"lO5cP","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"ktPTu":[function(require,module,exports) {
 /**
  * @license
  * Copyright 2010-2024 Three.js Authors
@@ -224869,593 +224893,7 @@ class FogEffect extends (0, _postprocessing.Effect) {
     }
 }
 
-},{"postprocessing":"bM81O","three":"ktPTu","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"5o86C":[function(require,module,exports) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-var _three = require("three");
-var _gltfloaderJs = require("three/examples/jsm/loaders/GLTFLoader.js");
-var _dracoloaderJs = require("three/examples/jsm/loaders/DRACOLoader.js");
-var _ktx2LoaderJs = require("three/examples/jsm/loaders/KTX2Loader.js");
-class ModelLoader {
-    constructor(loadingManager, renderer, cacheTimeout = 60000){
-        this.loadingManager = loadingManager;
-        this.renderer = renderer; // Needed for KTX2Loader
-        this.loader = new (0, _gltfloaderJs.GLTFLoader)(this.loadingManager);
-        this.cacheTimeout = cacheTimeout;
-        this.modelCache = {}; // Cache for loaded models
-        this.lastAccessTime = {}; // To track last access time
-        // Initialize DRACO Loader
-        this.dracoLoader = new (0, _dracoloaderJs.DRACOLoader)();
-        this.dracoLoader.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.4.3/");
-        this.dracoLoader.preload();
-        this.loader.setDRACOLoader(this.dracoLoader);
-        // Initialize KTX2 Loader
-        this.ktx2Loader = new (0, _ktx2LoaderJs.KTX2Loader)(this.loadingManager);
-        this.loader.setKTX2Loader(this.ktx2Loader);
-        this.ktx2Loader.setTranscoderPath("https://unpkg.com/three@0.157.0/examples/jsm/libs/basis/");
-        //this.ktx2Loader.setTranscoderPath('https://unpkg.com/three@0.167.1/examples/jsm/libs/basis/');
-        this.ktx2Loader.detectSupport(this.renderer);
-        // Cache cleanup interval
-        setInterval(()=>this.clearCache(), cacheTimeout);
-    }
-    async loadModel(url) {
-        // Return cached model if available
-        if (this.modelCache[url]) {
-            this.lastAccessTime[url] = Date.now();
-            //console.log(`Returning cached model: ${url}`);
-            return this.modelCache[url];
-        }
-        return new Promise((resolve, reject)=>{
-            this.loader.load(url, (gltf)=>{
-                const model = gltf.scene;
-                /*
-                                        // Process textures in the model
-                                        model.traverse((child) => {
-                                            if (child.isMesh && child.material) {
-                                                this.processKTX2Textures(child.material);
-                                            }
-                                        });
-                    */ // Cache the model
-                this.modelCache[url] = model;
-                this.lastAccessTime[url] = Date.now();
-                //console.log(`Model loaded: ${url}`);
-                resolve(model);
-            }, undefined, (error)=>{
-                console.error(`Error loading model: ${url}`, error);
-                reject(error);
-            });
-        });
-    }
-    async loadKTX2Texture(url) {
-        return new Promise((resolve, reject)=>{
-            this.ktx2Loader.load(url, (texture)=>resolve(texture), undefined, (error)=>reject(error));
-        });
-    }
-    processKTX2Textures(material) {
-        if (Array.isArray(material)) material.forEach((mat)=>this.replaceTextureWithKTX2(mat));
-        else this.replaceTextureWithKTX2(material);
-    }
-    async loadTexture(url) {
-        return new Promise((resolve, reject)=>{
-            const loader = new _three.TextureLoader();
-            loader.load(url, (texture)=>resolve(texture), undefined, (error)=>reject(error));
-        });
-    }
-    replaceTextureWithKTX2(material) {
-        if (material.map && material.map.name.endsWith(".ktx2")) material.map = this.ktx2Loader.load(material.map.sourceFile, (texture)=>{
-            texture.needsUpdate = true;
-        });
-    }
-    clearCache() {
-        const now = Date.now();
-        Object.keys(this.lastAccessTime).forEach((url)=>{
-            if (now - this.lastAccessTime[url] > this.cacheTimeout) {
-                //console.log(`Clearing cache for model: ${url}`);
-                delete this.modelCache[url];
-                delete this.lastAccessTime[url];
-            }
-        });
-    }
-} /*
-import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
-import { KTX2Loader } from "three/examples/jsm/Addons.js";
-
-export default class ModelLoader {
-    constructor(loadingManager, cacheTimeout = 60000) {
-        this.loadingManager = loadingManager;
-        this.loader = new GLTFLoader(this.loadingManager);
-        this.cacheTimeout = cacheTimeout;
-        this.modelCache = {}; // To store the loaded models
-        this.lastAccessTime = {}; // To track the last access time of the models
-        this.dracoLoader = new DRACOLoader();
-        this.dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.4.3/'); // Path to Draco decoder
-        this.loader.setDRACOLoader(this.dracoLoader);
-
-        // Clean up the cache after a certain time period
-        setInterval(() => this.clearCache(), cacheTimeout);
-    }
-
-    async loadModel(url) {
-        // Check if the model is already in the cache
-        if (this.modelCache[url]) {
-            // Update the last access time and return the cached model
-            this.lastAccessTime[url] = Date.now();
-            console.log(`Returning cached model: ${url}`);
-            return this.modelCache[url];
-        }
-
-        return new Promise((resolve, reject) => {
-            this.loader.setDRACOLoader(this.dracoLoader);
-
-
-            this.loader.load(
-                url,
-                (gltf) => {
-                    // Store the loaded model in the cache
-                    this.modelCache[url] = gltf.scene;
-                    this.lastAccessTime[url] = Date.now();
-                    console.log(`Model loaded: ${url}`);
-                    resolve(gltf.scene);
-                },
-                undefined, // onProgress callback is not needed for now
-                (error) => {
-                    console.error(`Error loading model: ${url}`, error);
-                    reject(error);
-                }
-            );
-        });
-
-    }
-
-    // Function to clear the cache
-    clearCache() {
-        const now = Date.now();
-        Object.keys(this.lastAccessTime).forEach((url) => {
-            // If a model hasn't been accessed in a certain period of time, remove it from cache
-            if (now - this.lastAccessTime[url] > this.cacheTimeout) {
-                console.log(`Clearing cache for model: ${url}`);
-                delete this.modelCache[url];
-                delete this.lastAccessTime[url];
-            }
-        });
-    }
-}
-    */ 
-exports.default = ModelLoader;
-
-},{"three":"ktPTu","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","three/examples/jsm/loaders/KTX2Loader.js":"g31AA","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"3L9vB":[function(require,module,exports) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-class LODManager {
-    constructor(modelLoader, loadingManger){
-        this.loadingManager = loadingManger;
-        this.modelLoader = modelLoader; // Pass in modelLoader (GLTFLoader with DRACOLoader)
-        this.models = new Map(); // Store models by position or identifier
-        this.loadingQueue = new Map(); // Queue for loading models
-    }
-    // Load the model and return it directly
-    async loadModel(position, lodPaths, isInstanced = false, isDynamic = false, positionsArray = []) {
-        const modelId = position || "instancedModel"; // Use position as identifier or fallback for instanced models
-        if (this.loadingQueue.has(modelId)) return this.loadingQueue.get(modelId); // Return already loading model
-        const lodPromises = [];
-        const modelLods = {
-            LOD0: null,
-            LOD1: null,
-            LOD2: null
-        };
-        // Start loading all LOD levels asynchronously
-        for(let lod in lodPaths)lodPromises.push(new Promise(async (resolve)=>{
-            try {
-                const gltf = await this.modelLoader.loadAsync(lodPaths[lod]); // Use modelLoader to load
-                modelLods[lod] = gltf.scene;
-                // Handle instancing and positioning
-                if (isInstanced && lod === "LOD0") this.createInstancedModel(modelLods[lod], positionsArray);
-                else if (!isInstanced) modelLods[lod].position.copy(position);
-                resolve();
-            } catch (error) {
-                console.error(`Error loading ${lod}:`, error);
-                resolve();
-            }
-        }));
-        // Wait for all LODs to be loaded
-        await Promise.all(lodPromises);
-        // Add to the models map
-        this.models.set(modelId, modelLods);
-        // Return the loaded model (which can be LOD0, LOD1, or LOD2 depending on your need)
-        return modelLods;
-    }
-    // Handle instanced models by creating the necessary geometry and applying positions
-    createInstancedModel(model, positionsArray) {
-        const instancedMesh = model.children[0]; // Assuming the first child is the mesh
-        // Create the instancing geometry (this could be more dynamic)
-        const instancedGeometry = instancedMesh.geometry.clone();
-        const instancedMaterial = instancedMesh.material;
-        const instancedMeshWithPositions = new THREE.InstancedMesh(instancedGeometry, instancedMaterial, positionsArray.length);
-        positionsArray.forEach((position, index)=>{
-            instancedMeshWithPositions.setMatrixAt(index, new THREE.Matrix4().setPosition(position));
-        });
-        model.add(instancedMeshWithPositions);
-    }
-    // Update LOD based on the player's distance
-    updateLOD(playerPosition, lodDistanceThresholds) {
-        this.models.forEach((modelLods, modelId)=>{
-            const modelPosition = modelLods.LOD0.position;
-            // Calculate the distance between player and model
-            const distance = playerPosition.distanceTo(modelPosition);
-            // Determine which LOD to show based on the distance thresholds
-            let currentLOD = "LOD0"; // Default to LOD0
-            if (distance > lodDistanceThresholds.LOD1) currentLOD = "LOD1";
-            if (distance > lodDistanceThresholds.LOD2) currentLOD = "LOD2";
-            // Set the appropriate LOD visibility
-            this.updateModelVisibility(modelLods, currentLOD);
-        });
-    }
-    // Update the visibility of the LODs based on the current LOD
-    updateModelVisibility(modelLods, currentLOD) {
-        for(let lod in modelLods)if (modelLods[lod]) modelLods[lod].visible = lod === currentLOD;
-    }
-    // Remove models from memory after a certain period
-    async cleanupModels() {
-        const now = Date.now();
-        for (const [id, model] of this.models.entries())// Check if the model has been idle for a certain amount of time
-        if (now - model.lastUsedTime > 10000) {
-            this.models.delete(id);
-            model.LOD0.traverse((child)=>{
-                if (child.geometry) child.geometry.dispose();
-                if (child.material) child.material.dispose();
-            });
-        }
-    }
-}
-exports.default = LODManager;
-
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"70lfs":[function(require,module,exports) {
-/**
- * SoundManager - A comprehensive audio management class for Three.js
- * Handles both sound effects and background ambience
- */ var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-var _three = require("three");
-class SoundManager {
-    constructor(camera, listener = null){
-        this.sounds = {};
-        this.ambientSounds = {};
-        this.masterVolume = 1.0;
-        this.effectsVolume = 1.0;
-        this.ambienceVolume = 0.5;
-        // Set up audio listener if not provided
-        if (!listener) {
-            this.listener = new _three.AudioListener();
-            if (camera) camera.add(this.listener);
-        } else this.listener = listener;
-        // Create audio loader
-        this.audioLoader = new _three.AudioLoader();
-        // Track loaded resources
-        this.loadingManager = new _three.LoadingManager();
-        this.isLoading = false;
-    }
-    /**
-     * Set the master volume for all sounds
-     * @param {number} value - Volume level from 0.0 to 1.0
-     */ setMasterVolume(value) {
-        this.masterVolume = Math.max(0, Math.min(1, value));
-        // Update all sounds with new master volume
-        Object.values(this.sounds).forEach((sound)=>{
-            sound.setVolume(this.effectsVolume * this.masterVolume);
-        });
-        Object.values(this.ambientSounds).forEach((sound)=>{
-            sound.setVolume(this.ambienceVolume * this.masterVolume);
-        });
-    }
-    /**
-     * Set the effects volume level
-     * @param {number} value - Volume level from 0.0 to 1.0
-     */ setEffectsVolume(value) {
-        this.effectsVolume = Math.max(0, Math.min(1, value));
-        // Update all effect sounds
-        Object.values(this.sounds).forEach((sound)=>{
-            sound.setVolume(this.effectsVolume * this.masterVolume);
-        });
-    }
-    /**
-     * Set the ambience volume level
-     * @param {number} value - Volume level from 0.0 to 1.0
-     */ setAmbienceVolume(value) {
-        this.ambienceVolume = Math.max(0, Math.min(1, value));
-        // Update all ambient sounds
-        Object.values(this.ambientSounds).forEach((sound)=>{
-            sound.setVolume(this.ambienceVolume * this.masterVolume);
-        });
-    }
-    /**
-     * Preload sound effect
-     * @param {string} name - Unique identifier for this sound
-     * @param {string} path - File path to the sound
-     * @param {Function} callback - Optional callback when loading completes
-     */ loadSound(name, path, callback = null) {
-        this.isLoading = true;
-        this.audioLoader.load(path, (buffer)=>{
-            // Create a non-positional audio source
-            const sound = new _three.Audio(this.listener);
-            sound.setBuffer(buffer);
-            sound.setVolume(this.effectsVolume * this.masterVolume);
-            this.sounds[name] = sound;
-            if (callback) callback();
-            this.isLoading = false;
-        }, // onProgress callback
-        (xhr)=>{
-        //console.log(`${name} sound: ${(xhr.loaded / xhr.total * 100)}% loaded`);
-        }, // onError callback
-        (err)=>{
-            //console.error(`Error loading sound ${name}:`, err);
-            this.isLoading = false;
-        });
-    }
-    /**
-     * Preload ambient sound
-     * @param {string} name - Unique identifier for this ambient sound
-     * @param {string} path - File path to the sound
-     * @param {boolean} loop - Whether the sound should loop
-     * @param {Function} callback - Optional callback when loading completes
-     */ loadAmbientSound(name, path, loop = true, callback = null) {
-        this.isLoading = true;
-        this.audioLoader.load(path, (buffer)=>{
-            // Create a non-positional audio source
-            const sound = new _three.Audio(this.listener);
-            sound.setBuffer(buffer);
-            sound.setVolume(this.ambienceVolume * this.masterVolume);
-            sound.setLoop(loop);
-            this.ambientSounds[name] = sound;
-            if (callback) callback();
-            this.isLoading = false;
-        }, // onProgress callback
-        (xhr)=>{
-        //console.log(`${name} ambient sound: ${(xhr.loaded / xhr.total * 100)}% loaded`);
-        }, // onError callback
-        (err)=>{
-            //console.error(`Error loading ambient sound ${name}:`, err);
-            this.isLoading = false;
-        });
-    }
-    /**
-     * Load a positional sound (3D sound effect)
-     * @param {string} name - Unique identifier for this sound
-     * @param {string} path - File path to the sound
-     * @param {THREE.Object3D} object - The object to attach the sound to
-     * @param {number} refDistance - Distance model reference distance 
-     * @param {Function} callback - Optional callback when loading completes
-     */ loadPositionalSound(name, path, object, refDistance = 1, callback = null) {
-        this.isLoading = true;
-        this.audioLoader.load(path, (buffer)=>{
-            // Create a positional audio source
-            const sound = new _three.PositionalAudio(this.listener);
-            sound.setBuffer(buffer);
-            sound.setRefDistance(refDistance);
-            sound.loop = true;
-            sound.setVolume(this.effectsVolume * this.masterVolume);
-            // Attach the sound to the object
-            object.add(sound);
-            // Store reference
-            this.sounds[name] = sound;
-            if (callback) callback();
-            this.isLoading = false;
-        }, // onProgress callback
-        (xhr)=>{
-        //console.log(`${name} positional sound: ${(xhr.loaded / xhr.total * 100)}% loaded`);
-        }, // onError callback
-        (err)=>{
-            //console.error(`Error loading positional sound ${name}:`, err);
-            this.isLoading = false;
-        });
-    }
-    /**
-     * Play a sound effect
-     * @param {string} name - Name of the sound to play
-     * @param {boolean} interrupt - Whether to restart if already playing
-     * @return {boolean} - Whether the sound was successfully played
-     */ play(name, interrupt = true) {
-        const sound = this.sounds[name];
-        if (!sound) //console.warn(`Sound "${name}" not found`);
-        return false;
-        if (sound.isPlaying && !interrupt) return false;
-        if (sound.isPlaying) sound.stop();
-        sound.play();
-        return true;
-    }
-    /**
-     * Play an ambient sound
-     * @param {string} name - Name of the ambient sound to play
-     * @param {boolean} fadeIn - Whether to fade in the sound
-     * @param {number} fadeTime - Time in seconds for fade in
-     */ playAmbience(name, fadeIn = true, fadeTime = 2.0) {
-        const sound = this.ambientSounds[name];
-        if (!sound) //console.warn(`Ambient sound "${name}" not found`);
-        return false;
-        if (sound.isPlaying) return false;
-        if (fadeIn) {
-            // Store the target volume and start at 0
-            const targetVolume = sound.getVolume();
-            sound.setVolume(0);
-            sound.play();
-            // Fade in
-            const startTime = performance.now();
-            const updateVolume = ()=>{
-                const elapsedTime = (performance.now() - startTime) / 1000;
-                const progress = Math.min(elapsedTime / fadeTime, 1);
-                sound.setVolume(targetVolume * progress);
-                if (progress < 1) requestAnimationFrame(updateVolume);
-            };
-            requestAnimationFrame(updateVolume);
-        } else sound.play();
-        return true;
-    }
-    /**
-     * Stop a specific sound
-     * @param {string} name - Name of the sound to stop
-     * @param {boolean} fadeOut - Whether to fade out before stopping
-     * @param {number} fadeTime - Time in seconds for fade out
-     */ stop(name, fadeOut = false, fadeTime = 1.0) {
-        const sound = this.sounds[name] || this.ambientSounds[name];
-        if (!sound) //console.warn(`Sound "${name}" not found`);
-        return;
-        if (!sound.isPlaying) return;
-        if (fadeOut) {
-            // Store initial volume
-            const initialVolume = sound.getVolume();
-            const startTime = performance.now();
-            // Fade out
-            const updateVolume = ()=>{
-                const elapsedTime = (performance.now() - startTime) / 1000;
-                const progress = Math.min(elapsedTime / fadeTime, 1);
-                sound.setVolume(initialVolume * (1 - progress));
-                if (progress < 1) requestAnimationFrame(updateVolume);
-                else {
-                    sound.stop();
-                    // Restore original volume
-                    sound.setVolume(initialVolume);
-                }
-            };
-            requestAnimationFrame(updateVolume);
-        } else sound.stop();
-    }
-    /**
-     * Stop all sounds including ambience
-     * @param {boolean} fadeOut - Whether to fade out
-     * @param {number} fadeTime - Time in seconds for fade out
-     */ stopAll(fadeOut = false, fadeTime = 1.0) {
-        // Stop regular sounds
-        Object.keys(this.sounds).forEach((name)=>{
-            this.stop(name, fadeOut, fadeTime);
-        });
-        // Stop ambient sounds
-        Object.keys(this.ambientSounds).forEach((name)=>{
-            this.stop(name, fadeOut, fadeTime);
-        });
-    }
-    /**
-     * Pause all currently playing sounds
-     */ pauseAll() {
-        this.listener.context.suspend();
-    }
-    /**
-     * Resume all paused sounds
-     */ resumeAll() {
-        this.listener.context.resume();
-    }
-    /**
-     * Crossfade between two ambient sounds
-     * @param {string} from - Name of the ambient sound to fade out
-     * @param {string} to - Name of the ambient sound to fade in
-     * @param {number} duration - Duration of crossfade in seconds
-     */ crossfadeAmbience(from, to, duration = 3.0) {
-        const fromSound = this.ambientSounds[from];
-        const toSound = this.ambientSounds[to];
-        if (!fromSound || !toSound) //console.warn(`One or both ambient sounds not found for crossfade`);
-        return;
-        // Store original volumes
-        const fromVolume = fromSound.getVolume();
-        const toVolume = toSound.getVolume();
-        // Start playing the target sound at zero volume
-        toSound.setVolume(0);
-        if (!toSound.isPlaying) toSound.play();
-        // Perform crossfade
-        const startTime = performance.now();
-        const updateVolumes = ()=>{
-            const elapsedTime = (performance.now() - startTime) / 1000;
-            const progress = Math.min(elapsedTime / duration, 1);
-            // Fade out source sound
-            fromSound.setVolume(fromVolume * (1 - progress));
-            // Fade in target sound
-            toSound.setVolume(toVolume * progress);
-            if (progress < 1) requestAnimationFrame(updateVolumes);
-            else {
-                fromSound.stop();
-                fromSound.setVolume(fromVolume); // Restore original volume
-            }
-        };
-        requestAnimationFrame(updateVolumes);
-    }
-    /**
-     * Update method to call in animation loop for any ongoing processes
-     * @param {number} delta - Time delta between frames
-     */ update(delta) {
-    // Can be extended for time-based effects or analyzers
-    }
-}
-// Export the class
-exports.default = SoundManager;
-
-},{"three":"ktPTu","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"lO5cP":[function(require,module,exports) {
-module.exports = require("dd222b79712c52e8")(require("d0c08065803cb1").getBundleURL("g05j8") + "GrassScene.ebc2bef3.js" + "?" + Date.now()).catch((err)=>{
-    delete module.bundle.cache[module.id];
-    throw err;
-}).then(()=>module.bundle.root("a5jmZ"));
-
-},{"dd222b79712c52e8":"61B45","d0c08065803cb1":"lgJ39"}],"61B45":[function(require,module,exports) {
-"use strict";
-var cacheLoader = require("ca2a84f7fa4a3bb0");
-module.exports = cacheLoader(function(bundle) {
-    return new Promise(function(resolve, reject) {
-        // Don't insert the same script twice (e.g. if it was already in the HTML)
-        var existingScripts = document.getElementsByTagName("script");
-        if ([].concat(existingScripts).some(function isCurrentBundle(script) {
-            return script.src === bundle;
-        })) {
-            resolve();
-            return;
-        }
-        var preloadLink = document.createElement("link");
-        preloadLink.href = bundle;
-        preloadLink.rel = "preload";
-        preloadLink.as = "script";
-        document.head.appendChild(preloadLink);
-        var script = document.createElement("script");
-        script.async = true;
-        script.type = "text/javascript";
-        script.src = bundle;
-        script.onerror = function(e) {
-            var error = new TypeError("Failed to fetch dynamically imported module: ".concat(bundle, ". Error: ").concat(e.message));
-            script.onerror = script.onload = null;
-            script.remove();
-            reject(error);
-        };
-        script.onload = function() {
-            script.onerror = script.onload = null;
-            resolve();
-        };
-        document.getElementsByTagName("head")[0].appendChild(script);
-    });
-});
-
-},{"ca2a84f7fa4a3bb0":"j49pS"}],"j49pS":[function(require,module,exports) {
-"use strict";
-var cachedBundles = {};
-var cachedPreloads = {};
-var cachedPrefetches = {};
-function getCache(type) {
-    switch(type){
-        case "preload":
-            return cachedPreloads;
-        case "prefetch":
-            return cachedPrefetches;
-        default:
-            return cachedBundles;
-    }
-}
-module.exports = function(loader, type) {
-    return function(bundle) {
-        var cache = getCache(type);
-        if (cache[bundle]) return cache[bundle];
-        return cache[bundle] = loader.apply(null, arguments).catch(function(e) {
-            delete cache[bundle];
-            throw e;
-        });
-    };
-};
-
-},{}],"dF6ED":[function(require,module,exports) {
+},{"postprocessing":"bM81O","three":"ktPTu","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"dF6ED":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "UIManager", ()=>UIManager);
@@ -226297,6 +225735,592 @@ class PlayerController {
     }
 }
 
-},{"three":"ktPTu","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","./terrainConfig.js":"hE4Kl","./Utils.js":"c7A1Q","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}]},["l9Mez","ebWYT"], "ebWYT", "parcelRequire2041")
+},{"three":"ktPTu","three/examples/jsm/controls/PointerLockControls.js":"fjBcw","./terrainConfig.js":"hE4Kl","./Utils.js":"c7A1Q","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"5o86C":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _three = require("three");
+var _gltfloaderJs = require("three/examples/jsm/loaders/GLTFLoader.js");
+var _dracoloaderJs = require("three/examples/jsm/loaders/DRACOLoader.js");
+var _ktx2LoaderJs = require("three/examples/jsm/loaders/KTX2Loader.js");
+class ModelLoader {
+    constructor(loadingManager, renderer, cacheTimeout = 60000){
+        this.loadingManager = loadingManager;
+        this.renderer = renderer; // Needed for KTX2Loader
+        this.loader = new (0, _gltfloaderJs.GLTFLoader)(this.loadingManager);
+        this.cacheTimeout = cacheTimeout;
+        this.modelCache = {}; // Cache for loaded models
+        this.lastAccessTime = {}; // To track last access time
+        // Initialize DRACO Loader
+        this.dracoLoader = new (0, _dracoloaderJs.DRACOLoader)();
+        this.dracoLoader.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.4.3/");
+        this.dracoLoader.preload();
+        this.loader.setDRACOLoader(this.dracoLoader);
+        // Initialize KTX2 Loader
+        this.ktx2Loader = new (0, _ktx2LoaderJs.KTX2Loader)(this.loadingManager);
+        this.loader.setKTX2Loader(this.ktx2Loader);
+        this.ktx2Loader.setTranscoderPath("https://unpkg.com/three@0.157.0/examples/jsm/libs/basis/");
+        //this.ktx2Loader.setTranscoderPath('https://unpkg.com/three@0.167.1/examples/jsm/libs/basis/');
+        this.ktx2Loader.detectSupport(this.renderer);
+        // Cache cleanup interval
+        setInterval(()=>this.clearCache(), cacheTimeout);
+    }
+    async loadModel(url) {
+        // Return cached model if available
+        if (this.modelCache[url]) {
+            this.lastAccessTime[url] = Date.now();
+            //console.log(`Returning cached model: ${url}`);
+            return this.modelCache[url];
+        }
+        return new Promise((resolve, reject)=>{
+            this.loader.load(url, (gltf)=>{
+                const model = gltf.scene;
+                /*
+                                        // Process textures in the model
+                                        model.traverse((child) => {
+                                            if (child.isMesh && child.material) {
+                                                this.processKTX2Textures(child.material);
+                                            }
+                                        });
+                    */ // Cache the model
+                this.modelCache[url] = model;
+                this.lastAccessTime[url] = Date.now();
+                //console.log(`Model loaded: ${url}`);
+                resolve(model);
+            }, undefined, (error)=>{
+                console.error(`Error loading model: ${url}`, error);
+                reject(error);
+            });
+        });
+    }
+    async loadKTX2Texture(url) {
+        return new Promise((resolve, reject)=>{
+            this.ktx2Loader.load(url, (texture)=>resolve(texture), undefined, (error)=>reject(error));
+        });
+    }
+    processKTX2Textures(material) {
+        if (Array.isArray(material)) material.forEach((mat)=>this.replaceTextureWithKTX2(mat));
+        else this.replaceTextureWithKTX2(material);
+    }
+    async loadTexture(url) {
+        return new Promise((resolve, reject)=>{
+            const loader = new _three.TextureLoader();
+            loader.load(url, (texture)=>resolve(texture), undefined, (error)=>reject(error));
+        });
+    }
+    replaceTextureWithKTX2(material) {
+        if (material.map && material.map.name.endsWith(".ktx2")) material.map = this.ktx2Loader.load(material.map.sourceFile, (texture)=>{
+            texture.needsUpdate = true;
+        });
+    }
+    clearCache() {
+        const now = Date.now();
+        Object.keys(this.lastAccessTime).forEach((url)=>{
+            if (now - this.lastAccessTime[url] > this.cacheTimeout) {
+                //console.log(`Clearing cache for model: ${url}`);
+                delete this.modelCache[url];
+                delete this.lastAccessTime[url];
+            }
+        });
+    }
+} /*
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
+import { KTX2Loader } from "three/examples/jsm/Addons.js";
+
+export default class ModelLoader {
+    constructor(loadingManager, cacheTimeout = 60000) {
+        this.loadingManager = loadingManager;
+        this.loader = new GLTFLoader(this.loadingManager);
+        this.cacheTimeout = cacheTimeout;
+        this.modelCache = {}; // To store the loaded models
+        this.lastAccessTime = {}; // To track the last access time of the models
+        this.dracoLoader = new DRACOLoader();
+        this.dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.4.3/'); // Path to Draco decoder
+        this.loader.setDRACOLoader(this.dracoLoader);
+
+        // Clean up the cache after a certain time period
+        setInterval(() => this.clearCache(), cacheTimeout);
+    }
+
+    async loadModel(url) {
+        // Check if the model is already in the cache
+        if (this.modelCache[url]) {
+            // Update the last access time and return the cached model
+            this.lastAccessTime[url] = Date.now();
+            console.log(`Returning cached model: ${url}`);
+            return this.modelCache[url];
+        }
+
+        return new Promise((resolve, reject) => {
+            this.loader.setDRACOLoader(this.dracoLoader);
+
+
+            this.loader.load(
+                url,
+                (gltf) => {
+                    // Store the loaded model in the cache
+                    this.modelCache[url] = gltf.scene;
+                    this.lastAccessTime[url] = Date.now();
+                    console.log(`Model loaded: ${url}`);
+                    resolve(gltf.scene);
+                },
+                undefined, // onProgress callback is not needed for now
+                (error) => {
+                    console.error(`Error loading model: ${url}`, error);
+                    reject(error);
+                }
+            );
+        });
+
+    }
+
+    // Function to clear the cache
+    clearCache() {
+        const now = Date.now();
+        Object.keys(this.lastAccessTime).forEach((url) => {
+            // If a model hasn't been accessed in a certain period of time, remove it from cache
+            if (now - this.lastAccessTime[url] > this.cacheTimeout) {
+                console.log(`Clearing cache for model: ${url}`);
+                delete this.modelCache[url];
+                delete this.lastAccessTime[url];
+            }
+        });
+    }
+}
+    */ 
+exports.default = ModelLoader;
+
+},{"three":"ktPTu","three/examples/jsm/loaders/GLTFLoader.js":"dVRsF","three/examples/jsm/loaders/DRACOLoader.js":"lkdU4","three/examples/jsm/loaders/KTX2Loader.js":"g31AA","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"3L9vB":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+class LODManager {
+    constructor(modelLoader, loadingManger){
+        this.loadingManager = loadingManger;
+        this.modelLoader = modelLoader; // Pass in modelLoader (GLTFLoader with DRACOLoader)
+        this.models = new Map(); // Store models by position or identifier
+        this.loadingQueue = new Map(); // Queue for loading models
+    }
+    // Load the model and return it directly
+    async loadModel(position, lodPaths, isInstanced = false, isDynamic = false, positionsArray = []) {
+        const modelId = position || "instancedModel"; // Use position as identifier or fallback for instanced models
+        if (this.loadingQueue.has(modelId)) return this.loadingQueue.get(modelId); // Return already loading model
+        const lodPromises = [];
+        const modelLods = {
+            LOD0: null,
+            LOD1: null,
+            LOD2: null
+        };
+        // Start loading all LOD levels asynchronously
+        for(let lod in lodPaths)lodPromises.push(new Promise(async (resolve)=>{
+            try {
+                const gltf = await this.modelLoader.loadAsync(lodPaths[lod]); // Use modelLoader to load
+                modelLods[lod] = gltf.scene;
+                // Handle instancing and positioning
+                if (isInstanced && lod === "LOD0") this.createInstancedModel(modelLods[lod], positionsArray);
+                else if (!isInstanced) modelLods[lod].position.copy(position);
+                resolve();
+            } catch (error) {
+                console.error(`Error loading ${lod}:`, error);
+                resolve();
+            }
+        }));
+        // Wait for all LODs to be loaded
+        await Promise.all(lodPromises);
+        // Add to the models map
+        this.models.set(modelId, modelLods);
+        // Return the loaded model (which can be LOD0, LOD1, or LOD2 depending on your need)
+        return modelLods;
+    }
+    // Handle instanced models by creating the necessary geometry and applying positions
+    createInstancedModel(model, positionsArray) {
+        const instancedMesh = model.children[0]; // Assuming the first child is the mesh
+        // Create the instancing geometry (this could be more dynamic)
+        const instancedGeometry = instancedMesh.geometry.clone();
+        const instancedMaterial = instancedMesh.material;
+        const instancedMeshWithPositions = new THREE.InstancedMesh(instancedGeometry, instancedMaterial, positionsArray.length);
+        positionsArray.forEach((position, index)=>{
+            instancedMeshWithPositions.setMatrixAt(index, new THREE.Matrix4().setPosition(position));
+        });
+        model.add(instancedMeshWithPositions);
+    }
+    // Update LOD based on the player's distance
+    updateLOD(playerPosition, lodDistanceThresholds) {
+        this.models.forEach((modelLods, modelId)=>{
+            const modelPosition = modelLods.LOD0.position;
+            // Calculate the distance between player and model
+            const distance = playerPosition.distanceTo(modelPosition);
+            // Determine which LOD to show based on the distance thresholds
+            let currentLOD = "LOD0"; // Default to LOD0
+            if (distance > lodDistanceThresholds.LOD1) currentLOD = "LOD1";
+            if (distance > lodDistanceThresholds.LOD2) currentLOD = "LOD2";
+            // Set the appropriate LOD visibility
+            this.updateModelVisibility(modelLods, currentLOD);
+        });
+    }
+    // Update the visibility of the LODs based on the current LOD
+    updateModelVisibility(modelLods, currentLOD) {
+        for(let lod in modelLods)if (modelLods[lod]) modelLods[lod].visible = lod === currentLOD;
+    }
+    // Remove models from memory after a certain period
+    async cleanupModels() {
+        const now = Date.now();
+        for (const [id, model] of this.models.entries())// Check if the model has been idle for a certain amount of time
+        if (now - model.lastUsedTime > 10000) {
+            this.models.delete(id);
+            model.LOD0.traverse((child)=>{
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) child.material.dispose();
+            });
+        }
+    }
+}
+exports.default = LODManager;
+
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"70lfs":[function(require,module,exports) {
+/**
+ * SoundManager - A comprehensive audio management class for Three.js
+ * Handles both sound effects and background ambience
+ */ var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _three = require("three");
+class SoundManager {
+    constructor(camera, listener = null){
+        this.sounds = {};
+        this.ambientSounds = {};
+        this.masterVolume = 1.0;
+        this.effectsVolume = 1.0;
+        this.ambienceVolume = 0.5;
+        // Set up audio listener if not provided
+        if (!listener) {
+            this.listener = new _three.AudioListener();
+            if (camera) camera.add(this.listener);
+        } else this.listener = listener;
+        // Create audio loader
+        this.audioLoader = new _three.AudioLoader();
+        // Track loaded resources
+        this.loadingManager = new _three.LoadingManager();
+        this.isLoading = false;
+    }
+    /**
+     * Set the master volume for all sounds
+     * @param {number} value - Volume level from 0.0 to 1.0
+     */ setMasterVolume(value) {
+        this.masterVolume = Math.max(0, Math.min(1, value));
+        // Update all sounds with new master volume
+        Object.values(this.sounds).forEach((sound)=>{
+            sound.setVolume(this.effectsVolume * this.masterVolume);
+        });
+        Object.values(this.ambientSounds).forEach((sound)=>{
+            sound.setVolume(this.ambienceVolume * this.masterVolume);
+        });
+    }
+    /**
+     * Set the effects volume level
+     * @param {number} value - Volume level from 0.0 to 1.0
+     */ setEffectsVolume(value) {
+        this.effectsVolume = Math.max(0, Math.min(1, value));
+        // Update all effect sounds
+        Object.values(this.sounds).forEach((sound)=>{
+            sound.setVolume(this.effectsVolume * this.masterVolume);
+        });
+    }
+    /**
+     * Set the ambience volume level
+     * @param {number} value - Volume level from 0.0 to 1.0
+     */ setAmbienceVolume(value) {
+        this.ambienceVolume = Math.max(0, Math.min(1, value));
+        // Update all ambient sounds
+        Object.values(this.ambientSounds).forEach((sound)=>{
+            sound.setVolume(this.ambienceVolume * this.masterVolume);
+        });
+    }
+    /**
+     * Preload sound effect
+     * @param {string} name - Unique identifier for this sound
+     * @param {string} path - File path to the sound
+     * @param {Function} callback - Optional callback when loading completes
+     */ loadSound(name, path, callback = null) {
+        this.isLoading = true;
+        this.audioLoader.load(path, (buffer)=>{
+            // Create a non-positional audio source
+            const sound = new _three.Audio(this.listener);
+            sound.setBuffer(buffer);
+            sound.setVolume(this.effectsVolume * this.masterVolume);
+            this.sounds[name] = sound;
+            if (callback) callback();
+            this.isLoading = false;
+        }, // onProgress callback
+        (xhr)=>{
+        //console.log(`${name} sound: ${(xhr.loaded / xhr.total * 100)}% loaded`);
+        }, // onError callback
+        (err)=>{
+            //console.error(`Error loading sound ${name}:`, err);
+            this.isLoading = false;
+        });
+    }
+    /**
+     * Preload ambient sound
+     * @param {string} name - Unique identifier for this ambient sound
+     * @param {string} path - File path to the sound
+     * @param {boolean} loop - Whether the sound should loop
+     * @param {Function} callback - Optional callback when loading completes
+     */ loadAmbientSound(name, path, loop = true, callback = null) {
+        this.isLoading = true;
+        this.audioLoader.load(path, (buffer)=>{
+            // Create a non-positional audio source
+            const sound = new _three.Audio(this.listener);
+            sound.setBuffer(buffer);
+            sound.setVolume(this.ambienceVolume * this.masterVolume);
+            sound.setLoop(loop);
+            this.ambientSounds[name] = sound;
+            if (callback) callback();
+            this.isLoading = false;
+        }, // onProgress callback
+        (xhr)=>{
+        //console.log(`${name} ambient sound: ${(xhr.loaded / xhr.total * 100)}% loaded`);
+        }, // onError callback
+        (err)=>{
+            //console.error(`Error loading ambient sound ${name}:`, err);
+            this.isLoading = false;
+        });
+    }
+    /**
+     * Load a positional sound (3D sound effect)
+     * @param {string} name - Unique identifier for this sound
+     * @param {string} path - File path to the sound
+     * @param {THREE.Object3D} object - The object to attach the sound to
+     * @param {number} refDistance - Distance model reference distance 
+     * @param {Function} callback - Optional callback when loading completes
+     */ loadPositionalSound(name, path, object, refDistance = 1, callback = null) {
+        this.isLoading = true;
+        this.audioLoader.load(path, (buffer)=>{
+            // Create a positional audio source
+            const sound = new _three.PositionalAudio(this.listener);
+            sound.setBuffer(buffer);
+            sound.setRefDistance(refDistance);
+            sound.loop = true;
+            sound.setVolume(this.effectsVolume * this.masterVolume);
+            // Attach the sound to the object
+            object.add(sound);
+            // Store reference
+            this.sounds[name] = sound;
+            if (callback) callback();
+            this.isLoading = false;
+        }, // onProgress callback
+        (xhr)=>{
+        //console.log(`${name} positional sound: ${(xhr.loaded / xhr.total * 100)}% loaded`);
+        }, // onError callback
+        (err)=>{
+            //console.error(`Error loading positional sound ${name}:`, err);
+            this.isLoading = false;
+        });
+    }
+    /**
+     * Play a sound effect
+     * @param {string} name - Name of the sound to play
+     * @param {boolean} interrupt - Whether to restart if already playing
+     * @return {boolean} - Whether the sound was successfully played
+     */ play(name, interrupt = true) {
+        const sound = this.sounds[name];
+        if (!sound) //console.warn(`Sound "${name}" not found`);
+        return false;
+        if (sound.isPlaying && !interrupt) return false;
+        if (sound.isPlaying) sound.stop();
+        sound.play();
+        return true;
+    }
+    /**
+     * Play an ambient sound
+     * @param {string} name - Name of the ambient sound to play
+     * @param {boolean} fadeIn - Whether to fade in the sound
+     * @param {number} fadeTime - Time in seconds for fade in
+     */ playAmbience(name, fadeIn = true, fadeTime = 2.0) {
+        const sound = this.ambientSounds[name];
+        if (!sound) //console.warn(`Ambient sound "${name}" not found`);
+        return false;
+        if (sound.isPlaying) return false;
+        if (fadeIn) {
+            // Store the target volume and start at 0
+            const targetVolume = sound.getVolume();
+            sound.setVolume(0);
+            sound.play();
+            // Fade in
+            const startTime = performance.now();
+            const updateVolume = ()=>{
+                const elapsedTime = (performance.now() - startTime) / 1000;
+                const progress = Math.min(elapsedTime / fadeTime, 1);
+                sound.setVolume(targetVolume * progress);
+                if (progress < 1) requestAnimationFrame(updateVolume);
+            };
+            requestAnimationFrame(updateVolume);
+        } else sound.play();
+        return true;
+    }
+    /**
+     * Stop a specific sound
+     * @param {string} name - Name of the sound to stop
+     * @param {boolean} fadeOut - Whether to fade out before stopping
+     * @param {number} fadeTime - Time in seconds for fade out
+     */ stop(name, fadeOut = false, fadeTime = 1.0) {
+        const sound = this.sounds[name] || this.ambientSounds[name];
+        if (!sound) //console.warn(`Sound "${name}" not found`);
+        return;
+        if (!sound.isPlaying) return;
+        if (fadeOut) {
+            // Store initial volume
+            const initialVolume = sound.getVolume();
+            const startTime = performance.now();
+            // Fade out
+            const updateVolume = ()=>{
+                const elapsedTime = (performance.now() - startTime) / 1000;
+                const progress = Math.min(elapsedTime / fadeTime, 1);
+                sound.setVolume(initialVolume * (1 - progress));
+                if (progress < 1) requestAnimationFrame(updateVolume);
+                else {
+                    sound.stop();
+                    // Restore original volume
+                    sound.setVolume(initialVolume);
+                }
+            };
+            requestAnimationFrame(updateVolume);
+        } else sound.stop();
+    }
+    /**
+     * Stop all sounds including ambience
+     * @param {boolean} fadeOut - Whether to fade out
+     * @param {number} fadeTime - Time in seconds for fade out
+     */ stopAll(fadeOut = false, fadeTime = 1.0) {
+        // Stop regular sounds
+        Object.keys(this.sounds).forEach((name)=>{
+            this.stop(name, fadeOut, fadeTime);
+        });
+        // Stop ambient sounds
+        Object.keys(this.ambientSounds).forEach((name)=>{
+            this.stop(name, fadeOut, fadeTime);
+        });
+    }
+    /**
+     * Pause all currently playing sounds
+     */ pauseAll() {
+        this.listener.context.suspend();
+    }
+    /**
+     * Resume all paused sounds
+     */ resumeAll() {
+        this.listener.context.resume();
+    }
+    /**
+     * Crossfade between two ambient sounds
+     * @param {string} from - Name of the ambient sound to fade out
+     * @param {string} to - Name of the ambient sound to fade in
+     * @param {number} duration - Duration of crossfade in seconds
+     */ crossfadeAmbience(from, to, duration = 3.0) {
+        const fromSound = this.ambientSounds[from];
+        const toSound = this.ambientSounds[to];
+        if (!fromSound || !toSound) //console.warn(`One or both ambient sounds not found for crossfade`);
+        return;
+        // Store original volumes
+        const fromVolume = fromSound.getVolume();
+        const toVolume = toSound.getVolume();
+        // Start playing the target sound at zero volume
+        toSound.setVolume(0);
+        if (!toSound.isPlaying) toSound.play();
+        // Perform crossfade
+        const startTime = performance.now();
+        const updateVolumes = ()=>{
+            const elapsedTime = (performance.now() - startTime) / 1000;
+            const progress = Math.min(elapsedTime / duration, 1);
+            // Fade out source sound
+            fromSound.setVolume(fromVolume * (1 - progress));
+            // Fade in target sound
+            toSound.setVolume(toVolume * progress);
+            if (progress < 1) requestAnimationFrame(updateVolumes);
+            else {
+                fromSound.stop();
+                fromSound.setVolume(fromVolume); // Restore original volume
+            }
+        };
+        requestAnimationFrame(updateVolumes);
+    }
+    /**
+     * Update method to call in animation loop for any ongoing processes
+     * @param {number} delta - Time delta between frames
+     */ update(delta) {
+    // Can be extended for time-based effects or analyzers
+    }
+}
+// Export the class
+exports.default = SoundManager;
+
+},{"three":"ktPTu","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"lO5cP":[function(require,module,exports) {
+module.exports = require("dd222b79712c52e8")(require("d0c08065803cb1").getBundleURL("g05j8") + "GrassScene.ebc2bef3.js" + "?" + Date.now()).catch((err)=>{
+    delete module.bundle.cache[module.id];
+    throw err;
+}).then(()=>module.bundle.root("a5jmZ"));
+
+},{"dd222b79712c52e8":"61B45","d0c08065803cb1":"lgJ39"}],"61B45":[function(require,module,exports) {
+"use strict";
+var cacheLoader = require("ca2a84f7fa4a3bb0");
+module.exports = cacheLoader(function(bundle) {
+    return new Promise(function(resolve, reject) {
+        // Don't insert the same script twice (e.g. if it was already in the HTML)
+        var existingScripts = document.getElementsByTagName("script");
+        if ([].concat(existingScripts).some(function isCurrentBundle(script) {
+            return script.src === bundle;
+        })) {
+            resolve();
+            return;
+        }
+        var preloadLink = document.createElement("link");
+        preloadLink.href = bundle;
+        preloadLink.rel = "preload";
+        preloadLink.as = "script";
+        document.head.appendChild(preloadLink);
+        var script = document.createElement("script");
+        script.async = true;
+        script.type = "text/javascript";
+        script.src = bundle;
+        script.onerror = function(e) {
+            var error = new TypeError("Failed to fetch dynamically imported module: ".concat(bundle, ". Error: ").concat(e.message));
+            script.onerror = script.onload = null;
+            script.remove();
+            reject(error);
+        };
+        script.onload = function() {
+            script.onerror = script.onload = null;
+            resolve();
+        };
+        document.getElementsByTagName("head")[0].appendChild(script);
+    });
+});
+
+},{"ca2a84f7fa4a3bb0":"j49pS"}],"j49pS":[function(require,module,exports) {
+"use strict";
+var cachedBundles = {};
+var cachedPreloads = {};
+var cachedPrefetches = {};
+function getCache(type) {
+    switch(type){
+        case "preload":
+            return cachedPreloads;
+        case "prefetch":
+            return cachedPrefetches;
+        default:
+            return cachedBundles;
+    }
+}
+module.exports = function(loader, type) {
+    return function(bundle) {
+        var cache = getCache(type);
+        if (cache[bundle]) return cache[bundle];
+        return cache[bundle] = loader.apply(null, arguments).catch(function(e) {
+            delete cache[bundle];
+            throw e;
+        });
+    };
+};
+
+},{}]},["l9Mez","ebWYT"], "ebWYT", "parcelRequire2041")
 
 //# sourceMappingURL=index.739bf03c.js.map
