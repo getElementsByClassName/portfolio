@@ -679,7 +679,7 @@ const sectionScene = uiManager.sectionScene;
 // Scene Constants
 ********************************************************************/ const PERSON_HEIGHT = 22.0; //21
 const DISTANCE_TEXTURE_SWAP = 300.0;
-const DISTANCE_TEXTURE_DISPOSE = 650.0;
+//const DISTANCE_TEXTURE_DISPOSE = 650.0;
 //LOD
 const DISTANCE_LOD0 = 100;
 const DISTANCE_LOD1 = 200;
@@ -706,7 +706,7 @@ const camera = worldScene.getCamera();
 soundManager.setMasterVolume(1.00);
 soundManager.setAmbienceVolume(0.75);
 soundManager.setEffectsVolume(0.90);
-let soundOn, soundsAreloaded, windSoundIsLoaded = false;
+let soundOn, soundsAreloaded = false; //windSoundIsLoaded removed - unused
 soundToggleBtn.addEventListener("click", ()=>{
     // Toggle sound state
     soundOn = !soundOn;
@@ -990,16 +990,6 @@ loadingManager.onLoad = function() {
 };
 const modelLoader = new (0, _modelLoaderJsDefault.default)(loadingManager, renderer);
 const modelRegistry = new Map();
-/** Apply textures and load model */ let rockMesh = null;
-let rockHQTexture = null;
-let rockMaterial;
-let rockTextureLoaded = false;
-let rockPosition = {
-    x: -300,
-    z: -200
-};
-const rockLOD = new _three.LOD();
-const rockCount = 8;
 async function fnLoadPowerlinesModel(url) {
     const position = {
         x: 385,
@@ -1336,30 +1326,16 @@ async function fnLoadHQTexture(data) {
     } else material.uniforms.uDiffuseMap.value = data.hqTexture;
 //data.mesh.material.needsUpdate = true;
 }
-// Function to unload HQ texture (remove from GPU memory)
-function fnUnloadHQTexture(data) {
-    if (!data.hqTexture) return;
-    //console.log(data)
-    const material = data.mesh.material;
-    if (material.uniforms.uDiffuseMap.value) {
-        material.uniforms.uDiffuseMap.value.dispose(); // Free from GPU
-        material.uniforms.uDiffuseMap.value = data.lqTexture;
-    }
-    material.needsUpdate = true;
-//data.mesh.material.map.dispose();
-//data.hqTexture = null;
-//console.log(material.uniforms.uDiffuseMap.value)
-/*
-    const model = modelRegistry.get(modelID);
-    if (!model || !model.hqTexture) return;
-
-    console.log(`Unloading HQ texture for: ${model.name}`);
-
-    model.hqTexture.dispose(); // Free GPU memory
-    model.hqTexture = null; // Remove reference
-    model.mesh.material.map = null;
-    model.mesh.material.needsUpdate = true;
-    */ }
+// // Function to unload HQ texture (remove from GPU memory)
+// function fnUnloadHQTexture(data) {
+//     if (!data.hqTexture) return;
+//     const material = data.mesh.material;
+//     if (material.uniforms.uDiffuseMap.value) {
+//         material.uniforms.uDiffuseMap.value.dispose();
+//         material.uniforms.uDiffuseMap.value = data.lqTexture;
+//     }
+//     material.needsUpdate = true;
+// }
 /*
 async function fnLoadRockModels() {
     try {
@@ -1803,6 +1779,8 @@ const fnOnTerrainComplete = fnCreateOnceFunction();
 // Animate Function
 ********************************************************************/ let textureswapCheckCooldown = 0;
 const TEXTURE_SWAP_CHECK_INTERVAL = 100;
+let renderInfoCooldown = 0;
+const RENDER_INFO_INTERVAL = 2000;
 /********************************************************************
 // Animate function
 ********************************************************************/ function animate() {
@@ -1859,30 +1837,23 @@ const TEXTURE_SWAP_CHECK_INTERVAL = 100;
             item.material.uniforms.time.value += deltaTime * 2.0;
         }
     });
-    //renderer.render(worldScene.scene, camera);
-    //composer.render(deltaTime);
-    //animateParticles();
     //function to change post-processing composer for indoor env
     fnCheckIfPlayerIsInFactoryTrigger(playerPosition, deltaTime);
     fnCheckIfSoundSourcesShouldPlay(playerPosition);
-    //soundManager.update(deltaTime);
-    //fnCheckIfPlayerIsInFactoryTrigger(playerPosition, deltaTime);
     // Render once at the end of your animate function
     activeComposer.render(deltaTime);
-    //worldScene.composerDefault.render(deltaTime);
-    // stats.update();
-    // Check total materials created
-    //console.log('Total Materials:', renderer.info.memory.geometries, renderer.info.memory.textures);
-    // More detailed memory info
-    //console.log('Renderer Info:', renderer.info);
-    //console.log(renderer.info);
-    //renderer.render(worldScene, camera);
-    //renderer.setAnimationLoop(animate);
-    //composerDefault.render(deltaTime);
-    videoTexture.needsUpdate = true;
+//stats.update();
+// renderInfoCooldown -= deltaTime * 1000;
+// if (renderInfoCooldown <= 0) {
+//     renderInfoCooldown = RENDER_INFO_INTERVAL;
+//     const mem = renderer.info.memory;
+//     const render = renderer.info.render;
+//     console.log(`[Renderer] geometries: ${mem.geometries} | textures: ${mem.textures} | calls: ${render.calls} | triangles: ${render.triangles} | programs: ${renderer.info.programs?.length ?? '?'}`);
+// }
+//videoTexture.needsUpdate = true;
 }
 
-},{"three":"ktPTu","./terrainConfig.js":"hE4Kl","three-mesh-bvh":"6y2ur","three-custom-shader-material/vanilla":"7rL7K","./Utils.js":"c7A1Q","./TerrainManager.js":"3FIfR","./shaders/powerlines.js":"gJXUV","./materials/videoShaderMaterial.js":"iyqMm","./shaders/stonefigure.js":"e77je","./shaders/videoFade.js":"2lLRY","./materials/fadeShaderMaterial.js":"9kv9Y","./patchProjectorMaterial.js":"joMhG","./WorldScene.js":"5ZFD0","./UIManager.js":"dF6ED","./PlayerController.js":"io3Tz","./ModelLoader.js":"5o86C","./SoundManager.js":"70lfs","d9e2715bded666eb":"lO5cP","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","three/examples/jsm/libs/stats.module":"6xUSB"}],"ktPTu":[function(require,module,exports) {
+},{"three":"ktPTu","./terrainConfig.js":"hE4Kl","three-mesh-bvh":"6y2ur","three-custom-shader-material/vanilla":"7rL7K","three/examples/jsm/libs/stats.module":"6xUSB","./Utils.js":"c7A1Q","./TerrainManager.js":"3FIfR","./shaders/powerlines.js":"gJXUV","./materials/videoShaderMaterial.js":"iyqMm","./shaders/stonefigure.js":"e77je","./shaders/videoFade.js":"2lLRY","./materials/fadeShaderMaterial.js":"9kv9Y","./patchProjectorMaterial.js":"joMhG","./WorldScene.js":"5ZFD0","./UIManager.js":"dF6ED","./PlayerController.js":"io3Tz","./ModelLoader.js":"5o86C","./SoundManager.js":"70lfs","d9e2715bded666eb":"lO5cP","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"ktPTu":[function(require,module,exports) {
 /**
  * @license
  * Copyright 2010-2024 Three.js Authors
@@ -33344,6 +33315,10 @@ exports.export = function(dest, destName, get) {
 },{}],"hE4Kl":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
+// Seeded PRNG based on the mulberry32 algorithm. Given the same seed it always produces the
+// same sequence of numbers, which is required for deterministic grass placement per chunk.
+// Exported so grassWorker.js can import it and use it with a per-chunk seed.
+parcelHelpers.export(exports, "mulberry32", ()=>mulberry32);
 parcelHelpers.export(exports, "TERRAIN_SEED", ()=>TERRAIN_SEED);
 parcelHelpers.export(exports, "NOISE_SCALE", ()=>NOISE_SCALE);
 parcelHelpers.export(exports, "NOISE_AMPLITUDE", ()=>NOISE_AMPLITUDE);
@@ -33354,7 +33329,6 @@ parcelHelpers.export(exports, "simplex", ()=>simplex);
 parcelHelpers.export(exports, "smoothstep", ()=>smoothstep);
 parcelHelpers.export(exports, "getHeight", ()=>getHeight);
 var _simplexNoise = require("three/examples/jsm/math/SimplexNoise");
-// Seeded PRNG (mulberry32) - produces same sequence given same seed
 function mulberry32(seed) {
     return function() {
         let t = seed += 0x6D2B79F5;
@@ -40394,7 +40368,103 @@ function findGlyph(token) {
     return token.type !== "whitespace";
 }
 
-},{}],"c7A1Q":[function(require,module,exports) {
+},{}],"6xUSB":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var Stats = function() {
+    var mode = 0;
+    var container = document.createElement("div");
+    container.style.cssText = "position:fixed;top:0;left:0;cursor:pointer;opacity:0.9;z-index:10000";
+    container.addEventListener("click", function(event) {
+        event.preventDefault();
+        showPanel(++mode % container.children.length);
+    }, false);
+    //
+    function addPanel(panel) {
+        container.appendChild(panel.dom);
+        return panel;
+    }
+    function showPanel(id) {
+        for(var i = 0; i < container.children.length; i++)container.children[i].style.display = i === id ? "block" : "none";
+        mode = id;
+    }
+    //
+    var beginTime = (performance || Date).now(), prevTime = beginTime, frames = 0;
+    var fpsPanel = addPanel(new Stats.Panel("FPS", "#0ff", "#002"));
+    var msPanel = addPanel(new Stats.Panel("MS", "#0f0", "#020"));
+    if (self.performance && self.performance.memory) var memPanel = addPanel(new Stats.Panel("MB", "#f08", "#201"));
+    showPanel(0);
+    return {
+        REVISION: 16,
+        dom: container,
+        addPanel: addPanel,
+        showPanel: showPanel,
+        begin: function() {
+            beginTime = (performance || Date).now();
+        },
+        end: function() {
+            frames++;
+            var time = (performance || Date).now();
+            msPanel.update(time - beginTime, 200);
+            if (time >= prevTime + 1000) {
+                fpsPanel.update(frames * 1000 / (time - prevTime), 100);
+                prevTime = time;
+                frames = 0;
+                if (memPanel) {
+                    var memory = performance.memory;
+                    memPanel.update(memory.usedJSHeapSize / 1048576, memory.jsHeapSizeLimit / 1048576);
+                }
+            }
+            return time;
+        },
+        update: function() {
+            beginTime = this.end();
+        },
+        // Backwards Compatibility
+        domElement: container,
+        setMode: showPanel
+    };
+};
+Stats.Panel = function(name, fg, bg) {
+    var min = Infinity, max = 0, round = Math.round;
+    var PR = round(window.devicePixelRatio || 1);
+    var WIDTH = 80 * PR, HEIGHT = 48 * PR, TEXT_X = 3 * PR, TEXT_Y = 2 * PR, GRAPH_X = 3 * PR, GRAPH_Y = 15 * PR, GRAPH_WIDTH = 74 * PR, GRAPH_HEIGHT = 30 * PR;
+    var canvas = document.createElement("canvas");
+    canvas.width = WIDTH;
+    canvas.height = HEIGHT;
+    canvas.style.cssText = "width:80px;height:48px";
+    var context = canvas.getContext("2d");
+    context.font = "bold " + 9 * PR + "px Helvetica,Arial,sans-serif";
+    context.textBaseline = "top";
+    context.fillStyle = bg;
+    context.fillRect(0, 0, WIDTH, HEIGHT);
+    context.fillStyle = fg;
+    context.fillText(name, TEXT_X, TEXT_Y);
+    context.fillRect(GRAPH_X, GRAPH_Y, GRAPH_WIDTH, GRAPH_HEIGHT);
+    context.fillStyle = bg;
+    context.globalAlpha = 0.9;
+    context.fillRect(GRAPH_X, GRAPH_Y, GRAPH_WIDTH, GRAPH_HEIGHT);
+    return {
+        dom: canvas,
+        update: function(value, maxValue) {
+            min = Math.min(min, value);
+            max = Math.max(max, value);
+            context.fillStyle = bg;
+            context.globalAlpha = 1;
+            context.fillRect(0, 0, WIDTH, GRAPH_Y);
+            context.fillStyle = fg;
+            context.fillText(round(value) + " " + name + " (" + round(min) + "-" + round(max) + ")", TEXT_X, TEXT_Y);
+            context.drawImage(canvas, GRAPH_X + PR, GRAPH_Y, GRAPH_WIDTH - PR, GRAPH_HEIGHT, GRAPH_X, GRAPH_Y, GRAPH_WIDTH - PR, GRAPH_HEIGHT);
+            context.fillRect(GRAPH_X + GRAPH_WIDTH - PR, GRAPH_Y, PR, GRAPH_HEIGHT);
+            context.fillStyle = bg;
+            context.globalAlpha = 0.9;
+            context.fillRect(GRAPH_X + GRAPH_WIDTH - PR, GRAPH_Y, PR, round((1 - value / maxValue) * GRAPH_HEIGHT));
+        }
+    };
+};
+exports.default = Stats;
+
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"c7A1Q":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 var _three = require("three");
@@ -40507,6 +40577,11 @@ class TerrainManager {
     #chunkVertexCount = 11;
     #instanceCount = 7000;
     #GRASS_MESH_ENVMAP_INTENSITY = 0.35;
+    // Limits how many terrain chunks can be generated per animation frame.
+    // Without this cap, the first frame would synchronously generate all ~120 missing
+    // chunks at once (geometry creation + simplex noise per vertex), causing a hard freeze.
+    // At 4 per frame the world fills in smoothly over ~30 frames instead.
+    #maxChunksPerFrame = 4;
     #specialChunks = {
     };
     #GRASS_LOD_LEVELS = [
@@ -40580,6 +40655,10 @@ class TerrainManager {
     #grassWorkerPool = [];
     #grassWorkerQueue = [];
     #allGrassComputed = false;
+    // Tracks how many grass worker tasks are currently in-flight (queued or being processed).
+    // Used to set allGrassComputed only when every task has truly finished, not just when
+    // the queue happens to be empty (which can happen while workers are still running).
+    #pendingWorkerCount = 0;
     // References
     #worldScene;
     #camera;
@@ -40610,6 +40689,11 @@ class TerrainManager {
             side: _three.DoubleSide,
             fog: true
         });
+        // envMapIntensity is set once on the shared material here rather than inside the worker
+        // callback. Setting it there (once per chunk response) would trigger material.needsUpdate
+        // on the same shared material object every time a worker finishes, causing repeated GPU
+        // shader recompiles during initial load.
+        this.#grassMaterial.envMapIntensity = this.#GRASS_MESH_ENVMAP_INTENSITY;
         // Create ground material
         this.#groundMaterial = (0, _horizonHazeMaterialJs.createHorizonHazeMaterial)({
             baseColor: new _three.Color(0x000000),
@@ -40619,8 +40703,15 @@ class TerrainManager {
             horizonHeight: 0.5,
             hazeIntensity: 0.65
         });
-        // Update ground material when skybox finishes loading
+        // Both material env maps are updated in a single skyboxPromise callback so each material
+        // recompiles its shader exactly once. Previously the ground material was updated here and
+        // the grass material was updated inside the worker reply handler — that meant one recompile
+        // per loaded chunk (up to 120+) instead of one recompile total.
         worldScene.skyboxPromise.then((texture)=>{
+            if (this.#grassMaterial) {
+                this.#grassMaterial.envMap = worldScene.envMap;
+                this.#grassMaterial.needsUpdate = true;
+            }
             if (this.#groundMaterial && this.#groundMaterial.uniforms) {
                 this.#groundMaterial.uniforms.uEnvMap.value = texture;
                 this.#groundMaterial.needsUpdate = true;
@@ -40640,8 +40731,13 @@ class TerrainManager {
             if (!this.#loadedChunks.has(chunkKey)) {
                 const chunkMesh = this.#generateChunk(x, z);
                 this.#worldScene.scene.add(chunkMesh);
+                // chunkX and chunkZ are stored in the chunk data so that the per-frame
+                // unload and LOD methods can read them directly rather than splitting and
+                // parsing the string key on every chunk every frame.
                 this.#loadedChunks.set(chunkKey, {
-                    terrainMesh: chunkMesh
+                    terrainMesh: chunkMesh,
+                    chunkX: x,
+                    chunkZ: z
                 });
             }
         }
@@ -40685,20 +40781,34 @@ class TerrainManager {
         grassGeometry.setAttribute("offset", new _three.InstancedBufferAttribute(grassGeometryData.offsets, 3));
         const grassMesh = new _three.InstancedMesh(grassGeometry, this.#grassMaterial, grassGeometryData.instanceCount);
         grassMesh.geometry.boundingSphere = grassGeometryData.boundingSphere;
-        grassMesh.material.envMap = this.#worldScene.envMap;
-        grassMesh.material.envMapIntensity = this.#GRASS_MESH_ENVMAP_INTENSITY;
+        // envMap and envMapIntensity are intentionally NOT set here. All grass meshes share
+        // the same #grassMaterial instance, so setting envMap here would call needsUpdate on
+        // the shared material once per worker reply, causing a shader recompile per chunk.
+        // Instead, both are set once in the constructor after the skybox loads.
         this.#worldScene.scene.add(grassMesh);
         if (this.#loadedChunks.has(chunkKey)) this.#loadedChunks.get(chunkKey).grassMesh = grassMesh;
+        // Decrement to reflect this task completing. If more tasks are queued, hand the next
+        // one directly to this worker so it stays busy without returning to the pool first.
+        // The queued task's count was already incremented when it was enqueued in
+        // #postToGrassWorker, so we must NOT increment again here — only decrement for the
+        // task that just finished.
+        this.#pendingWorkerCount--;
         if (this.#grassWorkerQueue.length > 0) {
             const nextTask = this.#grassWorkerQueue.shift();
             worker.postMessage(nextTask);
-        } else {
-            this.#grassWorkerPool.push(worker);
-            this.#allGrassComputed = true;
-        }
+        } else this.#grassWorkerPool.push(worker);
+        // Only mark completion when every in-flight task has finished. Previously the flag
+        // was set as soon as the queue drained, which could happen while several workers were
+        // still computing their current task — causing allGrassComputed to fire too early.
+        if (this.#pendingWorkerCount === 0) this.#allGrassComputed = true;
     }
     // Send a task to an idle worker, or queue it if all workers are busy
     #postToGrassWorker(task) {
+        // Increment before dispatching so the counter is always >= the number of active tasks.
+        // allGrassComputed is reset to false because new work is now in flight — the flag will
+        // be set back to true once this (and any other pending) tasks complete.
+        this.#pendingWorkerCount++;
+        this.#allGrassComputed = false;
         if (this.#grassWorkerPool.length > 0) {
             const worker = this.#grassWorkerPool.pop();
             worker.postMessage(task);
@@ -40715,17 +40825,30 @@ class TerrainManager {
             materialColor: 0x000000,
             grassBladeCount: this.#instanceCount
         };
+        // A deterministic seed derived from chunk coordinates. XOR-combining two large primes
+        // gives a good spread with no collisions for reasonable chunk ranges. The >>> 0 coerces
+        // the result to an unsigned 32-bit integer as expected by mulberry32.
+        // This ensures the worker produces identical grass positions every time this chunk loads,
+        // preventing visible popping when a chunk is unloaded and re-entered.
+        const seed = (x * 73856093 ^ z * 19349663) >>> 0;
         this.#postToGrassWorker({
             chunkKey,
             offsetX,
             offsetZ,
             chunkSize: this.#chunkSize,
-            instanceCount: chunkProps.grassBladeCount
+            instanceCount: chunkProps.grassBladeCount,
+            seed
         });
         const baseGeometry = new _three.PlaneGeometry(this.#chunkSize, this.#chunkSize, this.#chunkVertexCount, this.#chunkVertexCount);
         baseGeometry.rotateX(-Math.PI / 2);
         baseGeometry.translate(this.#chunkSize / 2, 0, this.#chunkSize / 2);
-        const chunkBoundingSphere = new _three.Sphere(new _three.Vector3(this.#chunkSize, 0.0, this.#chunkSize), this.#chunkSize * 1.5);
+        // The bounding sphere center must be the midpoint of the geometry in local space.
+        // After translate(chunkSize/2, 0, chunkSize/2), vertex X and Z both span [0, chunkSize],
+        // so the center is (chunkSize/2, 0, chunkSize/2). The previous value was (chunkSize, 0,
+        // chunkSize) — the far corner — which placed the sphere off-center and broke Three.js
+        // frustum culling, causing all terrain chunks to be submitted to the GPU every frame
+        // even when they were clearly outside the camera's view.
+        const chunkBoundingSphere = new _three.Sphere(new _three.Vector3(this.#chunkSize / 2, 0.0, this.#chunkSize / 2), this.#chunkSize * 1.0);
         baseGeometry.boundingSphere = chunkBoundingSphere;
         const vertices = baseGeometry.attributes.position.array;
         for(let i = 0; i < vertices.length; i += 3){
@@ -40737,11 +40860,16 @@ class TerrainManager {
         chunkMesh.position.set(offsetX, 0, offsetZ);
         return chunkMesh;
     }
-    // Generate missing chunks within viewRadius of the player
+    // Generate missing chunks within viewRadius of the player, at most #maxChunksPerFrame per call.
+    // This is called every frame, so without the cap it would try to generate all ~120 missing
+    // chunks synchronously on the first frame — each requiring geometry allocation and simplex
+    // noise evaluation per vertex — causing a hard freeze before the first render.
     #loadChunksAroundPlayer(playerPosition) {
         const playerChunkX = Math.floor(playerPosition.x / this.#chunkSize);
         const playerChunkZ = Math.floor(playerPosition.z / this.#chunkSize);
+        let generated = 0;
         for(let dz = -this.#viewRadius; dz <= this.#viewRadius; dz++)for(let dx = -this.#viewRadius; dx <= this.#viewRadius; dx++){
+            if (generated >= this.#maxChunksPerFrame) return;
             const chunkX = playerChunkX + dx;
             const chunkZ = playerChunkZ + dz;
             const chunkKey = `${chunkX},${chunkZ}`;
@@ -40749,8 +40877,11 @@ class TerrainManager {
                 const chunkMesh = this.#generateChunk(chunkX, chunkZ);
                 this.#worldScene.scene.add(chunkMesh);
                 this.#loadedChunks.set(chunkKey, {
-                    terrainMesh: chunkMesh
+                    terrainMesh: chunkMesh,
+                    chunkX,
+                    chunkZ
                 });
+                generated++;
             }
         }
     }
@@ -40759,7 +40890,9 @@ class TerrainManager {
         const playerChunkX = Math.floor(playerPosition.x / this.#chunkSize);
         const playerChunkZ = Math.floor(playerPosition.z / this.#chunkSize);
         this.#loadedChunks.forEach((chunk, key)=>{
-            const [chunkX, chunkZ] = key.split(",").map(Number);
+            // chunkX/chunkZ were stored when the chunk was inserted, avoiding key.split(",").map(Number)
+            // on every chunk every frame (which created allocations and GC pressure at 100+ chunks).
+            const { chunkX, chunkZ } = chunk;
             const distance = Math.max(Math.abs(chunkX - playerChunkX), Math.abs(chunkZ - playerChunkZ));
             if (distance > this.#unloadRadius) {
                 this.#worldScene.scene.remove(chunk.terrainMesh);
@@ -40778,7 +40911,8 @@ class TerrainManager {
         const playerZ = playerPosition.z;
         this.#loadedChunks.forEach((chunk, key)=>{
             if (this.#specialChunks.hasOwnProperty(key) || !chunk.grassMesh) return;
-            const [chunkX, chunkZ] = key.split(",").map(Number);
+            // Same as above — use stored coords rather than splitting the key string.
+            const { chunkX, chunkZ } = chunk;
             const centerX = chunkX * this.#chunkSize + this.#halfChunkSize;
             const centerZ = chunkZ * this.#chunkSize + this.#halfChunkSize;
             const deltaX = playerX - centerX;
@@ -41581,7 +41715,7 @@ class WorldScene {
         });
         let pixelRatio = window.devicePixelRatio;
         //this.renderer.setPixelRatio(pixelRatio > 1.5 ? 1.0 : pixelRatio);
-        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.1));
         //this.renderer.setPixelRatio(1.05);
         this.renderer.outputEncoding = _three.SRGBColorSpace;
         //this.renderer.setClearColor(0x000000, 0);
@@ -41660,10 +41794,10 @@ class WorldScene {
             mipmapBlur: true,
             levels: 6,
             luminanceThreshold: 1.0,
-            luminanceSmoothing: 0.2,
-            intensity: 0.55,
+            luminanceSmoothing: 0.9,
+            intensity: 0.65,
             opacity: 1.0,
-            radius: 0.85,
+            radius: 0.9,
             kernelSize: (0, _postprocessing.KernelSize).MEDIUM
         });
         // // Depth of Field effect - exposed for tweaking
@@ -65091,102 +65225,6 @@ module.exports = function(loader, type) {
     };
 };
 
-},{}],"6xUSB":[function(require,module,exports) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-var Stats = function() {
-    var mode = 0;
-    var container = document.createElement("div");
-    container.style.cssText = "position:fixed;top:0;left:0;cursor:pointer;opacity:0.9;z-index:10000";
-    container.addEventListener("click", function(event) {
-        event.preventDefault();
-        showPanel(++mode % container.children.length);
-    }, false);
-    //
-    function addPanel(panel) {
-        container.appendChild(panel.dom);
-        return panel;
-    }
-    function showPanel(id) {
-        for(var i = 0; i < container.children.length; i++)container.children[i].style.display = i === id ? "block" : "none";
-        mode = id;
-    }
-    //
-    var beginTime = (performance || Date).now(), prevTime = beginTime, frames = 0;
-    var fpsPanel = addPanel(new Stats.Panel("FPS", "#0ff", "#002"));
-    var msPanel = addPanel(new Stats.Panel("MS", "#0f0", "#020"));
-    if (self.performance && self.performance.memory) var memPanel = addPanel(new Stats.Panel("MB", "#f08", "#201"));
-    showPanel(0);
-    return {
-        REVISION: 16,
-        dom: container,
-        addPanel: addPanel,
-        showPanel: showPanel,
-        begin: function() {
-            beginTime = (performance || Date).now();
-        },
-        end: function() {
-            frames++;
-            var time = (performance || Date).now();
-            msPanel.update(time - beginTime, 200);
-            if (time >= prevTime + 1000) {
-                fpsPanel.update(frames * 1000 / (time - prevTime), 100);
-                prevTime = time;
-                frames = 0;
-                if (memPanel) {
-                    var memory = performance.memory;
-                    memPanel.update(memory.usedJSHeapSize / 1048576, memory.jsHeapSizeLimit / 1048576);
-                }
-            }
-            return time;
-        },
-        update: function() {
-            beginTime = this.end();
-        },
-        // Backwards Compatibility
-        domElement: container,
-        setMode: showPanel
-    };
-};
-Stats.Panel = function(name, fg, bg) {
-    var min = Infinity, max = 0, round = Math.round;
-    var PR = round(window.devicePixelRatio || 1);
-    var WIDTH = 80 * PR, HEIGHT = 48 * PR, TEXT_X = 3 * PR, TEXT_Y = 2 * PR, GRAPH_X = 3 * PR, GRAPH_Y = 15 * PR, GRAPH_WIDTH = 74 * PR, GRAPH_HEIGHT = 30 * PR;
-    var canvas = document.createElement("canvas");
-    canvas.width = WIDTH;
-    canvas.height = HEIGHT;
-    canvas.style.cssText = "width:80px;height:48px";
-    var context = canvas.getContext("2d");
-    context.font = "bold " + 9 * PR + "px Helvetica,Arial,sans-serif";
-    context.textBaseline = "top";
-    context.fillStyle = bg;
-    context.fillRect(0, 0, WIDTH, HEIGHT);
-    context.fillStyle = fg;
-    context.fillText(name, TEXT_X, TEXT_Y);
-    context.fillRect(GRAPH_X, GRAPH_Y, GRAPH_WIDTH, GRAPH_HEIGHT);
-    context.fillStyle = bg;
-    context.globalAlpha = 0.9;
-    context.fillRect(GRAPH_X, GRAPH_Y, GRAPH_WIDTH, GRAPH_HEIGHT);
-    return {
-        dom: canvas,
-        update: function(value, maxValue) {
-            min = Math.min(min, value);
-            max = Math.max(max, value);
-            context.fillStyle = bg;
-            context.globalAlpha = 1;
-            context.fillRect(0, 0, WIDTH, GRAPH_Y);
-            context.fillStyle = fg;
-            context.fillText(round(value) + " " + name + " (" + round(min) + "-" + round(max) + ")", TEXT_X, TEXT_Y);
-            context.drawImage(canvas, GRAPH_X + PR, GRAPH_Y, GRAPH_WIDTH - PR, GRAPH_HEIGHT, GRAPH_X, GRAPH_Y, GRAPH_WIDTH - PR, GRAPH_HEIGHT);
-            context.fillRect(GRAPH_X + GRAPH_WIDTH - PR, GRAPH_Y, PR, GRAPH_HEIGHT);
-            context.fillStyle = bg;
-            context.globalAlpha = 0.9;
-            context.fillRect(GRAPH_X + GRAPH_WIDTH - PR, GRAPH_Y, PR, round((1 - value / maxValue) * GRAPH_HEIGHT));
-        }
-    };
-};
-exports.default = Stats;
-
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}]},["l9Mez","ebWYT"], "ebWYT", "parcelRequire2041")
+},{}]},["l9Mez","ebWYT"], "ebWYT", "parcelRequire2041")
 
 //# sourceMappingURL=index.739bf03c.js.map

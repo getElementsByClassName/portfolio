@@ -587,14 +587,19 @@ function hmrAccept(bundle /*: ParcelRequire */ , id /*: string */ ) {
 var _three = require("three");
 var _terrainConfigJs = require("./terrainConfig.js");
 onmessage = (event)=>{
-    const { chunkKey, offsetX, offsetZ, chunkSize, instanceCount } = event.data;
+    const { chunkKey, offsetX, offsetZ, chunkSize, instanceCount, seed } = event.data;
+    // A seeded PRNG derived from the chunk's coordinates is used instead of Math.random().
+    // Math.random() produces a different sequence every time the worker runs, so a chunk that
+    // gets unloaded (player walked away) and then reloaded would show completely different grass
+    // positions — a visible pop. With a fixed seed per chunk the layout is always identical.
+    const rand = (0, _terrainConfigJs.mulberry32)(seed);
     // Always allocate new buffers since we transfer them (makes them unusable for reuse)
     const offsets = new Float32Array(instanceCount * 3);
     const rotationMatrices = new Float32Array(instanceCount * 9);
     const scales = new Float32Array(instanceCount);
     for(let i = 0; i < instanceCount; i++){
-        const x = offsetX + Math.random() * chunkSize;
-        const z = offsetZ + Math.random() * chunkSize;
+        const x = offsetX + rand() * chunkSize;
+        const z = offsetZ + rand() * chunkSize;
         // Skip grass in factory area
         if (x > 1028 && x < 1390 && z > 840 && z < 1300) {
             offsets[i * 3] = 0;
@@ -608,7 +613,7 @@ onmessage = (event)=>{
         offsets[i * 3] = x;
         offsets[i * 3 + 1] = y;
         offsets[i * 3 + 2] = z;
-        const angle = Math.random() * Math.PI * 2;
+        const angle = rand() * Math.PI * 2;
         const cosAngle = Math.cos(angle);
         const sinAngle = Math.sin(angle);
         const index = i * 9;
@@ -621,10 +626,9 @@ onmessage = (event)=>{
         rotationMatrices[index + 6] = sinAngle;
         rotationMatrices[index + 7] = 0;
         rotationMatrices[index + 8] = cosAngle;
-        scales[i] = Math.random() * 2.0 + 5.5;
+        scales[i] = rand() * 2.0 + 5.5;
     }
-    const boundingSphere = new _three.Sphere(new _three.Vector3(offsetX + chunkSize * 0.5, 0, offsetZ + chunkSize * 0.5), chunkSize * 0.75 // Radius covers chunk diagonal + some margin
-    );
+    const boundingSphere = new _three.Sphere(new _three.Vector3(offsetX + chunkSize * 0.5, 0, offsetZ + chunkSize * 0.5), chunkSize * 0.75);
     postMessage({
         chunkKey,
         grassGeometryData: {
@@ -32103,6 +32107,10 @@ exports.export = function(dest, destName, get) {
 },{}],"c4p0m":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
+// Seeded PRNG based on the mulberry32 algorithm. Given the same seed it always produces the
+// same sequence of numbers, which is required for deterministic grass placement per chunk.
+// Exported so grassWorker.js can import it and use it with a per-chunk seed.
+parcelHelpers.export(exports, "mulberry32", ()=>mulberry32);
 parcelHelpers.export(exports, "TERRAIN_SEED", ()=>TERRAIN_SEED);
 parcelHelpers.export(exports, "NOISE_SCALE", ()=>NOISE_SCALE);
 parcelHelpers.export(exports, "NOISE_AMPLITUDE", ()=>NOISE_AMPLITUDE);
@@ -32113,7 +32121,6 @@ parcelHelpers.export(exports, "simplex", ()=>simplex);
 parcelHelpers.export(exports, "smoothstep", ()=>smoothstep);
 parcelHelpers.export(exports, "getHeight", ()=>getHeight);
 var _simplexNoise = require("three/examples/jsm/math/SimplexNoise");
-// Seeded PRNG (mulberry32) - produces same sequence given same seed
 function mulberry32(seed) {
     return function() {
         let t = seed += 0x6D2B79F5;
